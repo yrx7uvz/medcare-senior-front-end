@@ -3,8 +3,10 @@ import { NunitoSans_400Regular, NunitoSans_600SemiBold, NunitoSans_700Bold } fro
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { DemoBanner } from '../components/layout/DemoBanner';
 import { ProfileSwitcher } from '../components/layout/ProfileSwitcher';
 import { Toast } from '../components/layout/Toast';
+import { IS_DEMO } from '../config/env';
 import { useAppStore } from '../store/appStore';
 import { elderDeviceStorage } from '../lib/secureStorage';
 import { ThemeProvider, palette } from '../theme';
@@ -39,9 +41,11 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <RootNavigator />
-        <ProfileSwitcher />
-        <Toast />
+        <DemoBanner>
+          <RootNavigator />
+          {IS_DEMO ? <ProfileSwitcher /> : null}
+          <Toast />
+        </DemoBanner>
       </ThemeProvider>
     </SafeAreaProvider>
   );

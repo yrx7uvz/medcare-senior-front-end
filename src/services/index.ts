@@ -1,25 +1,12 @@
-import { mockAuthService } from '../adapters/mock/MockAuthService';
-import { mockDoseService } from '../adapters/mock/MockDoseService';
-import { mockElderService } from '../adapters/mock/MockElderService';
-import { mockMedicationInfoService } from '../adapters/mock/MockMedicationInfoService';
-import { mockMedicationService } from '../adapters/mock/MockMedicationService';
-import { mockMessageService } from '../adapters/mock/MockMessageService';
-import { mockReportService } from '../adapters/mock/MockReportService';
+import { httpServices } from '../adapters/http';
+import { getDemo } from '../config/demo';
 import type { Services } from './types';
 
 /**
- * Ponto único de troca: para usar a API real, substitua cada adapter mock por
- * um adapter HTTP (ver src/adapters/http) que implemente a mesma interface.
+ * Ponto único de troca: no modo demonstração (EXPO_PUBLIC_DEMO=true) usa os
+ * adapters mock; fora dele, os adapters da API (src/adapters/http).
  */
-export const services: Services = {
-  auth: mockAuthService,
-  elders: mockElderService,
-  medications: mockMedicationService,
-  doses: mockDoseService,
-  messages: mockMessageService,
-  reports: mockReportService,
-  medicationInfo: mockMedicationInfoService,
-};
+export const services: Services = getDemo()?.mockServices ?? httpServices;
 
 export * from './errors';
 export type { Services, AuthService, ElderService, MedicationService, DoseService, MessageService, ReportService, MedicationInfoService } from './types';
