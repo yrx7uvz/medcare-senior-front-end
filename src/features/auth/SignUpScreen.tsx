@@ -25,6 +25,8 @@ export function SignUpScreen({ navigation }: RootScreenProps<'SignUp'>) {
     defaultValues: { name: '', email: '', phone: '', password: '', confirmPassword: '', lgpdConsent: false },
   });
   const signUp = useMutation(services.auth.signUp);
+  // react-hook-form não é compatível com o React Compiler (só aviso; o projeto não usa o compilador).
+  // eslint-disable-next-line react-hooks/incompatible-library
   const consent = watch('lgpdConsent');
   const password = watch('password');
 

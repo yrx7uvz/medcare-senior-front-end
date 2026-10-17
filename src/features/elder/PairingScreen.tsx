@@ -14,7 +14,7 @@ export function PairingScreen({ navigation }: RootScreenProps<'ElderPairing'>) {
   const { colors } = useTheme();
   const [code, setCode] = useState('');
   const [blockedUntil, setBlockedUntil] = useState<number | null>(null);
-  const [tick, setTick] = useState(Date.now());
+  const [tick, setTick] = useState(() => Date.now());
   const validate = useMutation(services.elders.validateLinkCode);
 
   useEffect(() => {
@@ -39,6 +39,7 @@ export function PairingScreen({ navigation }: RootScreenProps<'ElderPairing'>) {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reage ao erro da mutação (estado externo ao componente); regra do React Compiler, que o projeto não usa
     if (validate.error?.status === 429 && validate.error.retryAfterSec) setBlockedUntil(Date.now() + validate.error.retryAfterSec * 1000);
   }, [validate.error]);
 

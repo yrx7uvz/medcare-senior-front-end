@@ -97,7 +97,7 @@ export function ProfileSwitcher() {
                   ))}
                 </View>
                 <AppText variant="caption" muted>
-                  15:10 faz a Atorvastatina passar a "Não tomada" e, se o Omeprazol não foi confirmado, gera um novo alerta.
+                  15:10 faz a Atorvastatina passar a &quot;Não tomada&quot; e, se o Omeprazol não foi confirmado, gera um novo alerta.
                 </AppText>
               </Section>
 

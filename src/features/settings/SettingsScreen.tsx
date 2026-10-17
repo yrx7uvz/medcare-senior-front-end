@@ -33,6 +33,7 @@ export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
   const [confirmText, setConfirmText] = useState('');
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- inicializa o rascunho quando a consulta termina; regra do React Compiler, que o projeto não usa
     if (tolerance.data !== undefined && draft === null) setDraft(tolerance.data);
   }, [tolerance.data, draft]);
 
