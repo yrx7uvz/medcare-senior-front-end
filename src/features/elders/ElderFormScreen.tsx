@@ -26,6 +26,8 @@ export function ElderFormScreen({ navigation }: RootScreenProps<'ElderForm'>) {
     defaultValues: { name: '', birthDate: '', phone: '' },
   });
   const create = useMutation(services.elders.create);
+  // react-hook-form não é compatível com o React Compiler (só aviso; o projeto não usa o compilador).
+  // eslint-disable-next-line react-hooks/incompatible-library
   const birth = watch('birthDate');
   const birthKey = dateBRToKey(birth);
   const age = birthKey ? ageOn(birthKey, now) : null;

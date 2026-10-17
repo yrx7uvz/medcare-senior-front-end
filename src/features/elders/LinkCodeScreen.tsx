@@ -27,9 +27,13 @@ export function LinkCodeScreen({ route, navigation }: RootScreenProps<'LinkCode'
   };
 
   // Recém-cadastrado: gera o código automaticamente.
+  // As dependências são só [justCreated, active.data] de propósito: incluir newCode/fresh/generate.loading
+  // faria o efeito rodar de novo quando a geração falha (fresh continua null e loading volta a false),
+  // tentando gerar código em laço. O efeito deve disparar apenas quando o código ativo termina de carregar.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- newCode é assíncrono e protegido pelas condições acima; regra do React Compiler, que o projeto não usa
     if (justCreated && active.data === null && !fresh && !generate.loading) newCode();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ver comentário acima: evita laço de geração em caso de falha
   }, [justCreated, active.data]);
 
   const link = generate.loading ? undefined : fresh ?? active.data;

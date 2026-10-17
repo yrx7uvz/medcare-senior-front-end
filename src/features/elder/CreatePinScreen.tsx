@@ -22,6 +22,7 @@ export function CreatePinScreen({ route }: RootScreenProps<'ElderCreatePin'>) {
   useEffect(() => {
     if (pin.length !== 4) return;
     if (first === null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- máquina de estados do PIN dirigida pelo efeito (comportamento atual); regra do React Compiler, que o projeto não usa
       setFirst(pin);
       setPin('');
       return;

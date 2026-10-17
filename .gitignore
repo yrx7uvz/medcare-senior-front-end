@@ -5,3 +5,28 @@ dist/
 *.keystore
 .env
 .env.*
+
+# Builds nativos gerados (prebuild) e artefatos
+android/
+ios/
+*.apk
+*.aab
+dist-check/
+*.tsbuildinfo
+coverage/
+
+# Credenciais e chaves (nunca versionar)
+google-services.json
+GoogleService-Info.plist
+*.p8
+*.p12
+*.pem
+credentials.json
+
+# Logs e arquivos do sistema
+npm-debug.log*
+yarn-debug.log*
+.DS_Store
+
+# Exemplo de variáveis de ambiente é versionado (o padrão .env.* acima o ignoraria)
+!.env.example

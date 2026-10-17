@@ -8,7 +8,6 @@ import { cardShadow, radius, spacing, useTheme } from '../../theme';
 interface Props {
   dose: DoseView;
   showElder?: boolean;
-  showDate?: boolean;
   onPress?: () => void;
 }
 

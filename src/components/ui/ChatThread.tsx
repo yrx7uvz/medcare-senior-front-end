@@ -42,7 +42,6 @@ export function ChatThread({ messages, viewer, otherName, todayKey, onSend, send
     if (ok) setText('');
   }
 
-  let lastDay = '';
   return (
     <View style={styles.flex}>
       <ScrollView ref={scrollRef} contentContainerStyle={[styles.list, { gap: large ? spacing.md : spacing.sm }]}>
@@ -51,10 +50,9 @@ export function ChatThread({ messages, viewer, otherName, todayKey, onSend, send
             Nenhuma mensagem ainda. Escreva a primeira.
           </AppText>
         ) : null}
-        {messages.map((m) => {
+        {messages.map((m, i) => {
           const day = m.sentAt.slice(0, 10);
-          const header = day !== lastDay ? formatDayHeader(day, todayKey) : null;
-          lastDay = day;
+          const header = i === 0 || messages[i - 1].sentAt.slice(0, 10) !== day ? formatDayHeader(day, todayKey) : null;
           return (
             <View key={m.id} style={{ gap: spacing.sm }}>
               {header ? (

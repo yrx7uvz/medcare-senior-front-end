@@ -51,6 +51,8 @@ export function MedicationForm({ defaultValues, elders, lockElder, isEdit, submi
   const errors = formState.errors;
   const [lookup, setLookup] = useState<LookupState>({ status: 'idle' });
 
+  // react-hook-form não é compatível com o React Compiler (só aviso; o projeto não usa o compilador).
+  // eslint-disable-next-line react-hooks/incompatible-library
   const [type, shape, primaryColor, secondaryColor, lengthMm, widthMm, imprint, hasScore, name, dosage, source, elderId] = watch([
     'type', 'shape', 'primaryColor', 'secondaryColor', 'lengthMm', 'widthMm', 'imprint', 'hasScore', 'name', 'dosage', 'appearanceSource', 'elderId',
   ]);

@@ -6,6 +6,7 @@ export function useNow(intervalMs = 15_000): Date {
   const [now, setNow] = useState(getNow);
   const baseMs = useClockStore((s) => s.baseMs);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sincroniza com o relógio (store externa) quando ele é reposicionado; regra do React Compiler, que o projeto não usa
     setNow(getNow());
     const id = setInterval(() => setNow(getNow()), intervalMs);
     return () => clearInterval(id);

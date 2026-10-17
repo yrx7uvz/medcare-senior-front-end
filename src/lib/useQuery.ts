@@ -22,6 +22,8 @@ export function useQuery<T>(key: readonly unknown[], fetcher: () => Promise<T>, 
   const { enabled = true, silentKey } = options;
   const version = useQueryBus((s) => s.version);
   const fetcherRef = useRef(fetcher);
+  // Padrão "latest ref": a função mais recente é lida só em callbacks/efeitos. Regra do React Compiler, que o projeto não usa.
+  // eslint-disable-next-line react-hooks/refs
   fetcherRef.current = fetcher;
   const keyStr = JSON.stringify(key);
   const silentStr = JSON.stringify(silentKey ?? null);
@@ -47,6 +49,7 @@ export function useQuery<T>(key: readonly unknown[], fetcher: () => Promise<T>, 
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- busca dados ao montar/trocar a chave (sistema externo); regra do React Compiler
     if (enabled) run(false);
     else setState({ data: undefined, error: undefined, loading: false });
   }, [keyStr, enabled, run]);
@@ -57,6 +60,7 @@ export function useQuery<T>(key: readonly unknown[], fetcher: () => Promise<T>, 
       mounted.current = true;
       return;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- atualização silenciosa ao invalidar o cache; regra do React Compiler
     if (enabled) run(true);
   }, [version, silentStr, enabled, run]);
 
@@ -68,6 +72,8 @@ export function useMutation<A extends unknown[], R>(fn: (...args: A) => Promise<
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<AppError | undefined>();
   const fnRef = useRef(fn);
+  // Mesmo padrão "latest ref" de useQuery.
+  // eslint-disable-next-line react-hooks/refs
   fnRef.current = fn;
   const mutate = useCallback(async (...args: A): Promise<R | undefined> => {
     setLoading(true);
