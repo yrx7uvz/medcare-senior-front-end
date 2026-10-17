@@ -7,7 +7,7 @@ import { CaregiverScreen } from '../../components/layout/CaregiverScreen';
 import { AppText, Avatar, Button, Card, ConfirmDialog, TextField, ThemeToggle, type IconComponent } from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
-import { resetDb } from '../../mocks/db';
+import { getDemo } from '../../config/demo';
 import { useMutation, useQuery } from '../../lib/useQuery';
 import { spacing, useTheme } from '../../theme';
 import { ToleranceSelector } from './ToleranceSelector';
@@ -44,7 +44,7 @@ export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
     if (!r) return;
     setStep(0);
     setSession(null);
-    resetDb();
+    getDemo()?.resetDemoDb();
     resetUi();
     setFlash(`Conta excluída. Seus dados pessoais e os dos pacientes serão removidos em até ${r.removalDeadlineDays} dias; o histórico de doses fica anonimizado (RN13).`);
   }
