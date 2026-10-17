@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { ElderScreen } from '../../components/layout/ElderScreen';
+import { SwitchProfileLink } from '../../components/layout/SwitchProfileLink';
 import { AppText, DigitBoxes, PinPad } from '../../components/ui';
 import { useAppStore } from '../../store/appStore';
 import { firstName } from '../../lib/date';
@@ -37,7 +38,7 @@ export function CreatePinScreen({ route }: RootScreenProps<'ElderCreatePin'>) {
       await elderDeviceStorage.saveSession({ elderId, token });
       await elderDeviceStorage.savePin(pin);
       setUnlocked(true);
-      setElderSession({ elderId });
+      setElderSession({ elderId, token });
     })();
   }, [pin, first, elderId, token, setElderSession, setUnlocked]);
 
@@ -68,6 +69,7 @@ export function CreatePinScreen({ route }: RootScreenProps<'ElderCreatePin'>) {
         <ShieldCheck color={colors.primaryDark} size={26} />
         <AppText variant="elderBody" style={styles.flex}>O PIN fica guardado só neste celular.</AppText>
       </View>
+      <SwitchProfileLink />
     </ElderScreen>
   );
 }

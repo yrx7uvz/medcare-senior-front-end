@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { AppText, Button, Card, FormTextField } from '../../components/ui';
 import { OfflineBanner } from '../../components/layout/OfflineBanner';
+import { SwitchProfileLink } from '../../components/layout/SwitchProfileLink';
 import { IS_DEMO } from '../../config/env';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
@@ -103,6 +104,8 @@ export function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
               </AppText>
             </Pressable>
           </View>
+
+          <SwitchProfileLink />
 
           <View style={[styles.lgpd, { borderColor: colors.border }]}>
             <ShieldCheck color={colors.status.TOMADA.fg} size={18} />
