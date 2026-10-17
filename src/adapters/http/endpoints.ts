@@ -1,0 +1,21 @@
+/** Rotas da API (seção 3.1.1 do roteiro). Prontas para os adapters HTTP. */
+export const endpoints = {
+  signUp: '/api/cuidadores',
+  login: '/api/auth/login',
+  deleteAccount: '/api/cuidadores/me',
+  fcmToken: '/api/cuidadores/me/fcm-token',
+  elders: '/api/idosos',
+  generateLinkCode: (elderId: string) => `/api/idosos/${elderId}/gerar-codigo`,
+  validateLinkCode: '/api/vinculo/validar',
+  medications: '/api/medicamentos',
+  medication: (id: string) => `/api/medicamentos/${id}`,
+  treatments: (medicationId: string) => `/api/medicamentos/${medicationId}/tratamentos`,
+  treatment: (id: string) => `/api/tratamentos/${id}`,
+  pendingDoses: '/api/doses/pendentes',
+  confirmDose: (id: string) => `/api/doses/${id}/confirmar`,
+  tolerance: '/api/configuracoes/tolerancia',
+  dailyReport: (elderId: string) => `/api/relatorios/diario?idosoId=${elderId}`,
+  history: '/api/historico',
+  messages: '/api/mensagens',
+  pdf: '/api/relatorios/pdf',
+} as const;

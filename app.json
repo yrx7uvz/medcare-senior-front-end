@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "MedCare Sênior",
+    "slug": "medcare-senior",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "platforms": ["android", "web"],
+    "android": {
+      "package": "br.ucb.medcaresenior"
+    },
+    "plugins": [
+      "expo-font",
+      "expo-secure-store",
+      ["expo-build-properties", { "android": { "minSdkVersion": 26 } }]
+    ]
+  }
+}
