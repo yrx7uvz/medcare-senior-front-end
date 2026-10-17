@@ -6,6 +6,7 @@ import { KeyboardAvoidingView, ScrollView, StyleSheet, View } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { StackHeader } from '../../components/layout/StackHeader';
+import { SwitchProfileLink } from '../../components/layout/SwitchProfileLink';
 import { AppText, Button, Card, Checkbox, FormTextField } from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
@@ -123,6 +124,7 @@ export function SignUpScreen({ navigation }: RootScreenProps<'SignUp'>) {
           disabled={!consent}
           accessibilityHint={consent ? undefined : 'Disponível depois de aceitar os termos'}
         />
+        <SwitchProfileLink />
       </ScrollView>
     </KeyboardAvoidingView>
   );

@@ -13,6 +13,7 @@
     "web:demo": "cross-env EXPO_PUBLIC_DEMO=true expo start --web",
     "typecheck": "tsc --noEmit",
     "check:mocks": "cross-env EXPO_PUBLIC_DEMO=true tsx scripts/check-mocks.ts",
+    "check:core": "tsx scripts/check-core.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",

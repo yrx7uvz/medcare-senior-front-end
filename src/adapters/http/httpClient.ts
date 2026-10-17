@@ -13,6 +13,13 @@ export const setTokenProvider = (fn: TokenProvider) => {
   getToken = fn;
 };
 
+/** Chamado quando a API responde 401 a uma requisição que ENVIOU token (sessão inválida ou expirada). */
+type UnauthorizedHandler = () => void;
+let onUnauthorized: UnauthorizedHandler | null = null;
+export const setUnauthorizedHandler = (fn: UnauthorizedHandler | null) => {
+  onUnauthorized = fn;
+};
+
 export async function request<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<T> {
   const token = getToken();
   let res: Response;
@@ -31,6 +38,8 @@ export async function request<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', path
   if (res.status === 204) return undefined as T;
   const data: unknown = await res.json().catch(() => null);
   if (!res.ok) {
+    // Só derruba a sessão se havia token: um 401 de login com senha errada não é sessão expirada
+    if (res.status === 401 && token) onUnauthorized?.();
     // ErroResponse da API: { mensagem, codigo? }
     const payload = (data ?? {}) as { mensagem?: string; codigo?: string };
     const retry = Number(res.headers.get('Retry-After')) || undefined;

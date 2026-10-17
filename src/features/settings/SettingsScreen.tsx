@@ -8,6 +8,7 @@ import { AppText, Avatar, Button, Card, ConfirmDialog, TextField, ThemeToggle, t
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import { getDemo } from '../../config/demo';
+import { logoutCaregiver } from '../../lib/session';
 import { useMutation, useQuery } from '../../lib/useQuery';
 import { spacing, useTheme } from '../../theme';
 import { ToleranceSelector } from './ToleranceSelector';
@@ -102,7 +103,7 @@ export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
           <Button title="Excluir minha conta e dados" icon={Trash2} variant="danger" onPress={() => setStep(1)} />
         </Card>
 
-        <Button title="Sair" icon={LogOut} variant="secondary" onPress={() => setSession(null)} />
+        <Button title="Sair" icon={LogOut} variant="secondary" onPress={() => void logoutCaregiver()} />
       </ScrollView>
 
       <ConfirmDialog

@@ -7,8 +7,7 @@ import { DemoBanner } from '../components/layout/DemoBanner';
 import { ProfileSwitcher } from '../components/layout/ProfileSwitcher';
 import { Toast } from '../components/layout/Toast';
 import { IS_DEMO } from '../config/env';
-import { useAppStore } from '../store/appStore';
-import { elderDeviceStorage } from '../lib/secureStorage';
+import { bootSession, registerSessionHandlers } from '../lib/session';
 import { ThemeProvider, palette } from '../theme';
 import { RootNavigator } from './navigation/RootNavigator';
 
@@ -20,15 +19,12 @@ export default function App() {
     NunitoSans_600SemiBold,
     NunitoSans_700Bold,
   });
-  const setElderSession = useAppStore((s) => s.setElderSession);
-
-  // Restaura o pareamento do idoso guardado no aparelho (SecureStore).
+  // Boot: liga token e 401 ao cliente HTTP e restaura perfil e sessões do SecureStore.
   useEffect(() => {
-    elderDeviceStorage
-      .loadSession()
-      .then((s) => setElderSession(s ? { elderId: s.elderId } : null))
-      .catch(() => setElderSession(null));
-  }, [setElderSession]);
+    const unsubscribe = registerSessionHandlers();
+    void bootSession();
+    return unsubscribe;
+  }, []);
 
   if (!fontsLoaded) {
     return (

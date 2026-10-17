@@ -1,11 +1,17 @@
 import * as SecureStore from 'expo-secure-store';
 
 /**
- * Único dado guardado no aparelho: a sessão do idoso (token de dispositivo) e o
- * PIN local de 4 dígitos (HU07). Usa o Keystore do Android via expo-secure-store;
- * se indisponível (ex.: web), cai para memória e nada é persistido.
+ * Dados guardados no aparelho: o perfil escolhido (cuidador ou idoso), a sessão
+ * do cuidador, a sessão do idoso (token de dispositivo) e o PIN local de 4 dígitos
+ * (HU07). Usa o Keystore do Android via expo-secure-store; se indisponível (ex.:
+ * web), cai para memória e nada é persistido.
  */
-const KEYS = { elderSession: 'medcare.elder.session', elderPin: 'medcare.elder.pin' } as const;
+const KEYS = {
+  elderSession: 'medcare.elder.session',
+  elderPin: 'medcare.elder.pin',
+  profile: 'medcare.device.profile',
+  caregiverSession: 'medcare.caregiver.session',
+} as const;
 const memory = new Map<string, string>();
 
 async function available() {
@@ -29,6 +35,52 @@ async function removeItem(key: string) {
   else memory.delete(key);
 }
 
+function parseJson<T>(raw: string | null): T | null {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
+export type DeviceProfile = 'CUIDADOR' | 'IDOSO';
+
+/** Perfil escolhido na primeira tela ("Sou cuidador" / "Sou idoso"). */
+export const profileStorage = {
+  async save(profile: DeviceProfile) {
+    await setItem(KEYS.profile, profile);
+  },
+  async load(): Promise<DeviceProfile | null> {
+    const raw = await getItem(KEYS.profile);
+    return raw === 'CUIDADOR' || raw === 'IDOSO' ? raw : null;
+  },
+  async clear() {
+    await removeItem(KEYS.profile);
+  },
+};
+
+export interface StoredCaregiverSession {
+  caregiverId: string;
+  name: string;
+  email: string;
+  token: string;
+}
+
+/** Sessão do cuidador (JWT da API), restaurada ao abrir o app. */
+export const caregiverSessionStorage = {
+  async save(session: StoredCaregiverSession) {
+    await setItem(KEYS.caregiverSession, JSON.stringify(session));
+  },
+  async load(): Promise<StoredCaregiverSession | null> {
+    const s = parseJson<StoredCaregiverSession>(await getItem(KEYS.caregiverSession));
+    return s && typeof s.token === 'string' && typeof s.caregiverId === 'string' ? s : null;
+  },
+  async clear() {
+    await removeItem(KEYS.caregiverSession);
+  },
+};
+
 export interface StoredElderSession {
   elderId: string;
   token: string;
@@ -39,13 +91,8 @@ export const elderDeviceStorage = {
     await setItem(KEYS.elderSession, JSON.stringify(session));
   },
   async loadSession(): Promise<StoredElderSession | null> {
-    const raw = await getItem(KEYS.elderSession);
-    if (!raw) return null;
-    try {
-      return JSON.parse(raw) as StoredElderSession;
-    } catch {
-      return null;
-    }
+    const s = parseJson<StoredElderSession>(await getItem(KEYS.elderSession));
+    return s && typeof s.elderId === 'string' && typeof s.token === 'string' ? s : null;
   },
   async savePin(pin: string) {
     await setItem(KEYS.elderPin, pin);

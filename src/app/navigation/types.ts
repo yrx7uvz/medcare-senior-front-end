@@ -11,6 +11,8 @@ export type CaregiverTabParamList = {
 };
 
 export type RootStackParamList = {
+  // Primeira abertura: escolha do perfil do aparelho
+  ProfileChoice: undefined;
   // Cuidador (sem sessão)
   Login: undefined;
   SignUp: undefined;

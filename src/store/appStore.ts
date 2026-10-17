@@ -15,8 +15,11 @@ interface NotificationPrefs {
  * AsyncStorage: vêm dos serviços a cada tela (hoje mockados, depois da API).
  */
 interface AppState {
-  viewAs: ViewAs;
-  setViewAs: (v: ViewAs) => void;
+  /** Perfil deste aparelho; null = ainda não escolhido (tela de escolha) ou ainda carregando. */
+  viewAs: ViewAs | null;
+  setViewAs: (v: ViewAs | null) => void;
+  /** O boot terminou de ler perfil e sessões do SecureStore. */
+  profileLoaded: boolean;
 
   session: CaregiverSession | null;
   setSession: (s: CaregiverSession | null) => void;
@@ -33,10 +36,10 @@ interface AppState {
   elderHighContrast: boolean;
   toggleElderHighContrast: () => void;
 
-  /** Sessão do idoso carregada do SecureStore. */
-  elderSession: { elderId: string } | null;
+  /** Sessão do idoso carregada do SecureStore (o token fica em memória para as chamadas à API). */
+  elderSession: { elderId: string; token: string } | null;
   elderSessionLoaded: boolean;
-  setElderSession: (s: { elderId: string } | null) => void;
+  setElderSession: (s: { elderId: string; token: string } | null) => void;
   /** PIN digitado nesta abertura. */
   elderUnlocked: boolean;
   setElderUnlocked: (v: boolean) => void;
@@ -58,8 +61,9 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>()((set) => ({
-  viewAs: 'CAREGIVER',
+  viewAs: null,
   setViewAs: (viewAs) => set(viewAs === 'ELDER' ? { viewAs, elderUnlocked: false } : { viewAs }),
+  profileLoaded: false,
 
   session: null,
   setSession: (session) => set({ session }),
