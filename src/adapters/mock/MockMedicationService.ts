@@ -51,7 +51,7 @@ function medicationFields(input: MedicationInput) {
     imprint: input.imprint?.trim() || undefined,
     hasScore: input.type === 'COMPRIMIDO' ? input.hasScore : false,
     stock: input.stock,
-    leaflet: input.leaflet?.trim() || undefined,
+    bulaUrl: input.bulaUrl?.trim() || undefined,
     appearanceSource: input.appearanceSource,
   };
 }

@@ -17,6 +17,7 @@ export const stubMessageService: MessageService = {
 };
 
 export const stubReportService: ReportService = {
+  getDaily: notIntegrated,
   getAdherence: notIntegrated,
   generatePdf: notIntegrated,
 };
