@@ -1,12 +1,13 @@
+import { forgetDoseOrigins } from '../adapters/http/HttpDoseService';
 import { forgetLinkCodes } from '../adapters/http/HttpElderService';
-import { setTokenProvider, setUnauthorizedHandler } from '../adapters/http/httpClient';
+import { clearHttpCache, setTokenProvider, setUnauthorizedHandler, setViewerProvider } from '../adapters/http/httpClient';
 import { IS_DEMO } from '../config/env';
 import { useAppStore, type ViewAs } from '../store/appStore';
-import { isJwtExpired } from './jwt';
+import { resolveStoredSessions, SESSION_EXPIRED_MESSAGE } from './bootRules';
 import { invalidateQueries } from './queryBus';
 import { caregiverSessionStorage, elderDeviceStorage, profileStorage, type DeviceProfile } from './secureStorage';
 
-export const SESSION_EXPIRED_MESSAGE = 'Sua sessão expirou. Entre novamente.';
+export { ELDER_EXPIRED_MESSAGE, SESSION_EXPIRED_MESSAGE } from './bootRules';
 export const ELDER_DISCONNECTED_MESSAGE = 'Este aparelho precisa ser conectado de novo. Peça um novo código a quem cuida de você.';
 
 const toViewAs = (p: DeviceProfile | null): ViewAs | null => (p === 'CUIDADOR' ? 'CAREGIVER' : p === 'IDOSO' ? 'ELDER' : null);
@@ -25,12 +26,14 @@ function clearDataCaches() {
   useAppStore.getState().resetUi();
   // Códigos de vínculo gerados nesta abertura (memória) não podem aparecer para outra conta
   forgetLinkCodes();
+  forgetDoseOrigins();
+  clearHttpCache();
   invalidateQueries();
 }
 
 /**
- * Restaura perfil e sessões do SecureStore. Token do cuidador expirado (ou ilegível)
- * é descartado e o login mostra o aviso. Falha de leitura não trava: vira bootError,
+ * Restaura perfil e sessões do SecureStore. Token do cuidador ou do idoso expirado (ou ilegível)
+ * é descartado e a tela mostra o aviso (login ou pareamento). Falha de leitura não trava: vira bootError,
  * e a tela de carregamento oferece "Tentar novamente" (que chama bootSession de novo).
  */
 export async function bootSession() {
@@ -47,16 +50,15 @@ export async function bootSession() {
     useAppStore.setState({ bootError: 'Não foi possível ler os dados guardados neste celular.' });
     return;
   }
-  let flash: string | null = null;
-  if (caregiver && isJwtExpired(caregiver.token)) {
-    caregiver = null;
-    flash = SESSION_EXPIRED_MESSAGE;
-    await safely(() => caregiverSessionStorage.clear(), undefined);
-  }
+  // Token vencido: o do cuidador vai ao login; o do idoso (180 dias) apaga sessão e PIN e volta ao pareamento
+  const resolved = resolveStoredSessions({ profile, caregiver, elder, isDemo: IS_DEMO });
+  if (resolved.clearCaregiver) await safely(() => caregiverSessionStorage.clear(), undefined);
+  if (resolved.clearElder) await safely(() => elderDeviceStorage.clear(), undefined);
+  const flash = resolved.flash;
   useAppStore.setState({
     viewAs: toViewAs(profile),
-    session: caregiver,
-    elderSession: elder,
+    session: resolved.caregiver,
+    elderSession: resolved.elder,
     elderSessionLoaded: true,
     profileLoaded: true,
     ...(flash ? { flash } : {}),
@@ -94,6 +96,7 @@ async function disconnectElder() {
  * persistência da sessão do cuidador e tratamento de 401 com token.
  */
 export function registerSessionHandlers() {
+  setViewerProvider(() => useAppStore.getState().viewAs);
   setTokenProvider(() => {
     const s = useAppStore.getState();
     if (s.viewAs === 'CAREGIVER') return s.session?.token ?? null;

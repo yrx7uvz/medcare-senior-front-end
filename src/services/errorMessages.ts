@@ -8,6 +8,9 @@ const MESSAGES: Readonly<Record<string, string>> = {
   IDOSO_DUPLICADO: 'Você já cadastrou um paciente com este nome e esta data de nascimento.',
   ACESSO_NEGADO: 'Você não tem permissão para acessar estas informações.',
   RECURSO_NAO_ENCONTRADO: 'Não encontramos este item. Ele pode ter sido removido. Atualize a tela.',
+  DOSE_JA_REGISTRADA: 'Esta dose já foi registrada. A tela foi atualizada.',
+  DOSE_MUITO_CEDO: 'Ainda é cedo para confirmar esta dose. A confirmação abre 1 hora antes do horário.',
+  DOSE_ENCERRADA: 'O prazo para confirmar esta dose terminou.',
   TRATAMENTO_ATIVO: 'Este remédio tem tratamento ativo. Confirme se quer remover mesmo assim.',
   // Erros de contrato (o app mandou algo que a API não entende): sem detalhe técnico para o usuário
   CORPO_INVALIDO: 'Não foi possível enviar os dados. Atualize o app e tente de novo.',

@@ -1,9 +1,9 @@
 import type { Services } from '../../services/types';
 import { httpAuthService } from './HttpAuthService';
+import { httpDoseService } from './HttpDoseService';
 import { httpElderService } from './HttpElderService';
 import { httpMedicationService } from './HttpMedicationService';
 import {
-  stubDoseService,
   stubMedicationInfoService,
   stubMessageService,
   stubReportService,
@@ -17,7 +17,7 @@ export const httpServices: Services = {
   auth: httpAuthService,
   elders: httpElderService,
   medications: httpMedicationService,
-  doses: stubDoseService,
+  doses: httpDoseService,
   messages: stubMessageService,
   reports: stubReportService,
   medicationInfo: stubMedicationInfoService,

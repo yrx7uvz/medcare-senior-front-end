@@ -1,4 +1,4 @@
-import { AppError } from '../../services/errors';
+import { AppError, toAppError } from '../../services/errors';
 import type { AuthService } from '../../services/types';
 import type { CaregiverSession, SignUpInput } from '../../types/views';
 import { endpoints } from './endpoints';
@@ -12,6 +12,8 @@ interface AuthResponse {
   id: number;
   nome: string;
 }
+
+export const ACCOUNT_CREATED_LOGIN_FAILED = 'Conta criada, mas não foi possível entrar agora. Faça login.';
 
 /** Corpo de POST /api/cuidadores (nomes da API). */
 function toCuidadorRequest(input: SignUpInput) {
@@ -36,10 +38,18 @@ async function login(email: string, password: string): Promise<CaregiverSession>
 export const httpAuthService: AuthService = {
   login,
 
-  /** Cadastro (201) seguido de login com as mesmas credenciais: o app entra já com o token. */
+  /**
+   * Cadastro (201) seguido de login com as mesmas credenciais: o app entra já com o token. Se só o cadastro der
+   * certo, NÃO repete o POST (daria EMAIL_DUPLICADO): devolve CONTA_CRIADA_SEM_LOGIN para a tela levar ao login.
+   */
   async signUp(input) {
     await request<unknown>('POST', endpoints.signUp, toCuidadorRequest(input));
-    return login(input.email, input.password);
+    try {
+      return await login(input.email, input.password);
+    } catch (e) {
+      const cause = toAppError(e);
+      throw new AppError(cause.kind, cause.status, ACCOUNT_CREATED_LOGIN_FAILED, 'CONTA_CRIADA_SEM_LOGIN');
+    }
   },
 
   /** DELETE /api/cuidadores/me (204): a API apaga na hora, sem prazo. */

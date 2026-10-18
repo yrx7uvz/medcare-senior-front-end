@@ -1,4 +1,4 @@
-import type { Dose, Elder, ID, LinkCode, Message, MessageAuthor, Treatment, Medication } from '../types/domain';
+import type { DateKey, Dose, Elder, ID, LinkCode, Message, MessageAuthor, Treatment, Medication } from '../types/domain';
 import type {
   AdherenceReport,
   AlertView,
@@ -59,7 +59,8 @@ export interface MedicationService {
 /** GET /api/doses/pendentes, PUT /api/doses/{id}/confirmar, /api/configuracoes/tolerancia, /api/relatorios/diario */
 export interface DoseService {
   listForDay(filter: ElderFilter, day: string): Promise<DoseView[]>;
-  get(id: ID): Promise<DoseView>;
+  /** A API não tem GET de uma dose: `hint` (idoso e dia) diz onde procurar; sem ele, vale a última lista vista. */
+  get(id: ID, hint?: { elderId: ID; day: DateKey }): Promise<DoseView>;
   confirm(id: ID): Promise<DoseView>;
   listHistory(query: HistoryQuery): Promise<DoseView[]>;
   listAlerts(): Promise<AlertView[]>;
