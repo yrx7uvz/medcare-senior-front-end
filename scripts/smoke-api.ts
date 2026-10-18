@@ -283,6 +283,27 @@ async function main() {
     console.log(`    (${segunda})`);
 
     token = sessao.token;
+    await step('histórico (GET /api/historico): filtro por idoso e status, paginação, RN-011 e idoso alheio', async () => {
+      type Pagina = { conteudo: DoseDTO[]; pagina: number; tamanho: number; totalElementos: number; totalPaginas: number };
+      const tudo = await request<Pagina>('GET', `/api/historico?idosoId=${toApiId(idosoId)}&de=${hoje.dia}`);
+      assert.ok(tudo.totalElementos >= 2, `esperava doses de hoje: ${tudo.totalElementos}`);
+      const tomadas = await request<Pagina>('GET', `/api/historico?idosoId=${toApiId(idosoId)}&de=${hoje.dia}&status=TOMADA`);
+      assert.ok(tomadas.conteudo.some((d) => d.id === dose.id) && tomadas.conteudo.every((d) => d.status === 'TOMADA'));
+      const pagina = await request<Pagina>('GET', `/api/historico?de=${hoje.dia}&size=1&page=0`);
+      assert.equal(pagina.conteudo.length, 1);
+      assert.equal(pagina.tamanho, 1);
+      assert.equal(pagina.totalPaginas, pagina.totalElementos);
+      // Do mais recente para o mais antigo
+      const horarios = tudo.conteudo.map((d) => d.horarioProgramado);
+      assert.deepEqual(horarios, [...horarios].sort().reverse());
+      await expectError(() => request('GET', `/api/historico?de=${hoje.dia}&ate=2000-01-01`), 400, 'VALIDACAO');
+      await expectError(() => request('GET', '/api/historico?status=ATRASADA'), 400, 'VALIDACAO');
+      await expectError(() => request('GET', '/api/historico?size=101'), 400, 'VALIDACAO');
+      const vazio = await request<Pagina>('GET', '/api/historico?de=1990-01-01&ate=1990-01-31');
+      assert.equal(vazio.totalElementos, 0);
+      await expectError(() => request('GET', '/api/historico?idosoId=999999999'), 404, 'RECURSO_NAO_ENCONTRADO');
+    });
+
     await step('cuidador vê a dose TOMADA (GET /api/idosos/{id}/doses)', async () => {
       const doses = await request<DoseDTO[]>('GET', `/api/idosos/${toApiId(idosoId)}/doses`);
       const vista = doses.find((d) => d.id === dose.id);
