@@ -1,3 +1,4 @@
+import { forgetLinkCodes } from '../adapters/http/HttpElderService';
 import { setTokenProvider, setUnauthorizedHandler } from '../adapters/http/httpClient';
 import { IS_DEMO } from '../config/env';
 import { useAppStore, type ViewAs } from '../store/appStore';
@@ -22,6 +23,8 @@ async function safely<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
 /** Esquece os dados já carregados: as telas abertas recarregam e os filtros/alertas da interface voltam ao padrão. */
 function clearDataCaches() {
   useAppStore.getState().resetUi();
+  // Códigos de vínculo gerados nesta abertura (memória) não podem aparecer para outra conta
+  forgetLinkCodes();
   invalidateQueries();
 }
 

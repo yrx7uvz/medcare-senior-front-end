@@ -38,11 +38,17 @@ interface Props {
   isEdit: boolean;
   submitting: boolean;
   submitError?: AppError;
+  /** Texto do botão de salvar (padrão: "Salvar medicamento e tratamento"). */
+  submitLabel?: string;
+  /** O medicamento já foi salvo e só falta o tratamento: os dados do remédio não serão reenviados. */
+  lockMedicationFields?: boolean;
   onSubmit: (v: MedicationFormValues) => void;
 }
 
 /** T06 — Formulário de medicamento + tratamento, com prévia ao vivo do PillVisual. */
-export function MedicationForm({ defaultValues, elders, lockElder, isEdit, submitting, submitError, onSubmit }: Props) {
+export function MedicationForm({
+  defaultValues, elders, lockElder, isEdit, submitting, submitError, submitLabel, lockMedicationFields, onSubmit,
+}: Props) {
   const { colors } = useTheme();
   const { control, handleSubmit, watch, setValue, getValues, formState } = useForm<MedicationFormValues>({
     resolver: zodResolver(medicationFormSchema),
@@ -313,7 +319,18 @@ export function MedicationForm({ defaultValues, elders, lockElder, isEdit, submi
         <TimeListEditor control={control} errors={errors} />
         <View style={styles.sizeRow}>
           <View style={styles.flex}>
-            <FormTextField control={control} name="startDate" label="Início" required mask="date" keyboardType="number-pad" placeholder="DD/MM/AAAA" />
+            {/* A API não deixa mudar o início de um tratamento já criado */}
+            <FormTextField
+              control={control}
+              name="startDate"
+              label="Início"
+              required
+              mask="date"
+              keyboardType="number-pad"
+              placeholder="DD/MM/AAAA"
+              editable={!isEdit}
+              hint={isEdit ? 'O início não pode ser alterado' : undefined}
+            />
           </View>
           <View style={styles.flex}>
             <FormTextField control={control} name="endDate" label="Fim (opcional)" mask="date" keyboardType="number-pad" placeholder="Contínuo" />
@@ -330,9 +347,24 @@ export function MedicationForm({ defaultValues, elders, lockElder, isEdit, submi
         </AppText>
       </View>
 
+      {lockMedicationFields ? (
+        <View style={[styles.notice, { backgroundColor: colors.warningSoft }]} accessibilityRole="alert">
+          <Info color={colors.warningText} size={18} />
+          <AppText variant="caption" color={colors.warningText} style={styles.flex}>
+            Os dados do remédio já estão salvos. Agora só os dias e horários serão enviados; mudanças no nome, na dosagem
+            ou na aparência podem ser feitas depois, editando o remédio.
+          </AppText>
+        </View>
+      ) : null}
       {submitError ? (
         <View style={[styles.notice, { backgroundColor: colors.dangerSoft }]} accessibilityRole="alert">
-          <AppText variant="bodyStrong" color={colors.danger}>{submitError.message}</AppText>
+          <View style={[styles.flex, styles.gapSm]}>
+            <AppText variant="bodyStrong" color={colors.danger}>{submitError.message}</AppText>
+            {/* Validação da API (campos[]): o motivo de cada campo, já em português */}
+            {Object.values(submitError.fieldErrors ?? {}).map((message) => (
+              <AppText key={message} variant="caption" color={colors.danger}>• {message}</AppText>
+            ))}
+          </View>
         </View>
       ) : null}
       {formState.isSubmitted && Object.keys(errors).length > 0 ? (
@@ -341,7 +373,7 @@ export function MedicationForm({ defaultValues, elders, lockElder, isEdit, submi
         </AppText>
       ) : null}
 
-      <Button title="Salvar medicamento e tratamento" icon={Save} size="lg" loading={submitting} onPress={handleSubmit(onSubmit)} />
+      <Button title={submitLabel ?? 'Salvar medicamento e tratamento'} icon={Save} size="lg" loading={submitting} onPress={handleSubmit(onSubmit)} />
     </View>
   );
 }

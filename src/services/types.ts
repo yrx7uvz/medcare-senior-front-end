@@ -15,6 +15,7 @@ import type {
   MedicationView,
   PdfResult,
   SignUpInput,
+  TreatmentInput,
 } from '../types/views';
 
 /**
@@ -49,6 +50,8 @@ export interface MedicationService {
   get(id: ID): Promise<{ medication: Medication; treatment?: Treatment }>;
   create(input: MedicationInput): Promise<MedicationView>;
   update(id: ID, input: MedicationInput): Promise<MedicationView>;
+  /** Só o tratamento, para um medicamento que ficou sem (cadastro em que a 2ª chamada falhou). */
+  createTreatment(medicationId: ID, input: TreatmentInput): Promise<MedicationView>;
   /** RN06: com tratamento ativo exige `confirmed: true`, senão 409. */
   remove(id: ID, options: { confirmed: boolean }): Promise<void>;
 }

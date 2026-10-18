@@ -1,3 +1,4 @@
+import { messageForApiError } from '../../services/errorMessages';
 import { AppError, httpError } from '../../services/errors';
 
 const DEFAULT_MESSAGE = 'Não foi possível concluir a operação.';
@@ -32,5 +33,6 @@ export function parseApiError(status: number, body: unknown, retryAfterHeader?: 
     }
   }
   const retry = Number(retryAfterHeader);
-  return httpError(status, message, code, Number.isFinite(retry) && retry > 0 ? retry : undefined, fieldErrors);
+  const retryAfterSec = Number.isFinite(retry) && retry > 0 ? retry : undefined;
+  return httpError(status, messageForApiError(code, message, retryAfterSec), code, retryAfterSec, fieldErrors);
 }

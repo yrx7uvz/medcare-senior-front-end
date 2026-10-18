@@ -1,5 +1,5 @@
 import { AppError } from '../../services/errors';
-import type { DoseService, ElderService, MedicationInfoService, MedicationService, MessageService, ReportService } from '../../services/types';
+import type { DoseService, MedicationInfoService, MessageService, ReportService } from '../../services/types';
 
 /**
  * Adapters provisórios do modo real (fora do demo): cada operação falha com uma
@@ -7,24 +7,6 @@ import type { DoseService, ElderService, MedicationInfoService, MedicationServic
  */
 const notIntegrated = (): Promise<never> =>
   Promise.reject(new AppError('HTTP', 501, 'Funcionalidade ainda não integrada com a API', 'NAO_INTEGRADO'));
-
-export const stubElderService: ElderService = {
-  list: notIntegrated,
-  get: notIntegrated,
-  create: notIntegrated,
-  generateLinkCode: notIntegrated,
-  getActiveLinkCode: notIntegrated,
-  validateLinkCode: notIntegrated,
-  getProfile: notIntegrated,
-};
-
-export const stubMedicationService: MedicationService = {
-  list: notIntegrated,
-  get: notIntegrated,
-  create: notIntegrated,
-  update: notIntegrated,
-  remove: notIntegrated,
-};
 
 export const stubDoseService: DoseService = {
   listForDay: notIntegrated,
