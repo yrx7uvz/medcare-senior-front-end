@@ -124,7 +124,7 @@ export function ProfileSwitcher() {
                   onPress={async () => {
                     getDemo()?.resetDemoData();
                     resetUi();
-                    await elderDeviceStorage.clear();
+                    await elderDeviceStorage.clear().catch(() => undefined);
                     setElderSession(null);
                     setTime(DEMO_START);
                     dev.set({ simulateError: false, offline: false, slow: false });

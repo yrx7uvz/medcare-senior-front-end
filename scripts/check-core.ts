@@ -1,10 +1,15 @@
 /// <reference types="node" />
 /**
- * Verificações do núcleo do app (sem React): decodificador de JWT.
+ * Verificações do núcleo do app (sem React): decodificador de JWT, parse do ErroResponse da API,
+ * endereço da API e mapeamento de erros por campo.
  * Uso: npm run check:core — termina com código != 0 na primeira asserção que falhar.
  */
 import assert from 'node:assert/strict';
+import { parseApiError, parseJsonBody } from '../src/adapters/http/apiError';
+import { normalizeApiBaseUrl } from '../src/config/env';
+import { mapFieldErrors } from '../src/lib/formErrors';
 import { decodeJwtPayload, getJwtExp, isJwtExpired } from '../src/lib/jwt';
+import { AppError } from '../src/services/errors';
 
 const toBase64Url = (s: string) => Buffer.from(s, 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const jwt = (payload: object) => `${toBase64Url('{"alg":"HS256"}')}.${toBase64Url(JSON.stringify(payload))}.assinatura`;
@@ -63,6 +68,84 @@ check('Malformado: payload não é base64url / não é JSON / não é objeto', (
 
 check('Malformado: exp que não é número conta como inválido', () => {
   assert.equal(isJwtExpired(jwt({ exp: '9999999999' }), NOW_MS), true);
+});
+
+// --- Parse do ErroResponse ---------------------------------------------------------------------------------------
+check('ErroResponse de validação: status, código, mensagem e erros por campo', () => {
+  const body = {
+    timestamp: '2026-10-17T12:00:00',
+    status: 400,
+    erro: 'Bad Request',
+    codigo: 'VALIDACAO',
+    mensagem: 'Um ou mais campos são inválidos',
+    campos: [
+      { campo: 'email', mensagem: 'O e-mail informado é inválido' },
+      { campo: 'senha', mensagem: 'A senha é obrigatória' },
+      { campo: 'email', mensagem: 'segunda mensagem do mesmo campo' },
+    ],
+  };
+  const e = parseApiError(400, body, null);
+  assert.ok(e instanceof AppError);
+  assert.equal(e.kind, 'HTTP');
+  assert.equal(e.status, 400);
+  assert.equal(e.code, 'VALIDACAO');
+  assert.equal(e.message, 'Um ou mais campos são inválidos');
+  assert.deepEqual(e.fieldErrors, { email: 'O e-mail informado é inválido', senha: 'A senha é obrigatória' });
+});
+
+check('ErroResponse sem campos: código de negócio e Retry-After', () => {
+  const e = parseApiError(429, { status: 429, codigo: 'LIMITE_TENTATIVAS', mensagem: 'Muitas tentativas.', campos: [] }, '120');
+  assert.equal(e.code, 'LIMITE_TENTATIVAS');
+  assert.equal(e.retryAfterSec, 120);
+  assert.equal(e.fieldErrors, undefined);
+});
+
+check('Corpo vazio, não JSON ou fora do formato vira erro genérico com o status', () => {
+  for (const body of [null, 'texto', 42, [], { mensagem: '   ' }]) {
+    const e = parseApiError(503, body, 'abc');
+    assert.equal(e.status, 503);
+    assert.equal(e.code, undefined);
+    assert.equal(e.message, 'Não foi possível concluir a operação.');
+    assert.equal(e.retryAfterSec, undefined);
+  }
+  assert.equal(parseApiError(500, { campos: [{ campo: 1 }, null, 'x'] }).fieldErrors, undefined);
+});
+
+check('parseJsonBody tolera corpo vazio e não JSON', () => {
+  assert.equal(parseJsonBody(''), null);
+  assert.equal(parseJsonBody('   '), null);
+  assert.equal(parseJsonBody('<html>erro</html>'), null);
+  assert.deepEqual(parseJsonBody('{"a":1}'), { a: 1 });
+});
+
+// --- Endereço da API ------------------------------------------------------------------------------------------------
+check('normalizeApiBaseUrl apara espaços e barras finais e exige http(s)://', () => {
+  assert.equal(normalizeApiBaseUrl('  http://192.168.0.10:8080/  '), 'http://192.168.0.10:8080');
+  assert.equal(normalizeApiBaseUrl('https://api.exemplo.com.br///'), 'https://api.exemplo.com.br');
+  assert.equal(normalizeApiBaseUrl('http://10.0.2.2:8080'), 'http://10.0.2.2:8080');
+  for (const ruim of ['', '   ', '192.168.0.10:8080', 'ftp://x', 'http://', 'localhost']) {
+    assert.equal(normalizeApiBaseUrl(ruim), null, ruim);
+  }
+});
+
+// --- Erros por campo para o formulário ------------------------------------------------------------------------------
+check('mapFieldErrors traduz nomes da API e ignora campos que o formulário não tem', () => {
+  const e = new AppError('HTTP', 400, 'x', 'VALIDACAO', undefined, {
+    nome: 'n',
+    senha: 's',
+    telefone: 't',
+    consentimentoLgpd: 'c',
+    dataNascimento: 'd',
+    email: 'e',
+    campoDesconhecido: '?',
+  });
+  type Form = { name: string; email: string; password: string; phone: string; lgpdConsent: boolean; birthDate: string };
+  assert.deepEqual(
+    Object.fromEntries(mapFieldErrors<Form>(e, ['name', 'email', 'password', 'phone', 'lgpdConsent', 'birthDate'])),
+    { name: 'n', password: 's', phone: 't', lgpdConsent: 'c', birthDate: 'd', email: 'e' },
+  );
+  assert.deepEqual(mapFieldErrors<Form>(e, ['email']), [['email', 'e']]);
+  assert.deepEqual(mapFieldErrors<Form>(undefined, ['email']), []);
 });
 
 console.log(`\n${checks} verificações OK`);

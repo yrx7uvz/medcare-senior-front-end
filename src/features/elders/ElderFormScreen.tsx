@@ -10,10 +10,13 @@ import { AppText, Button, Card, FormTextField } from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import { ageOn, dateBRToKey, toDateKey } from '../../lib/date';
+import { applyFieldErrors, mapFieldErrors } from '../../lib/formErrors';
 import { elderSchema, type ElderValues } from '../../lib/schemas';
 import { useMutation } from '../../lib/useQuery';
 import { useNow } from '../../lib/useNow';
 import { radius, spacing, useTheme } from '../../theme';
+
+const ELDER_FIELDS = ['name', 'birthDate', 'phone'] as const;
 
 /** T04 — Cadastrar paciente. Aviso (não bloqueio) para menos de 60 anos; RN03. */
 export function ElderFormScreen({ navigation }: RootScreenProps<'ElderForm'>) {
@@ -33,10 +36,14 @@ export function ElderFormScreen({ navigation }: RootScreenProps<'ElderForm'>) {
   const age = birthKey ? ageOn(birthKey, now) : null;
   const future = birthKey ? birthKey > toDateKey(now) : false;
 
+  // Erros da API mostrados nos campos: paciente duplicado (codigo IDOSO_DUPLICADO) e validação por campo (campos[])
   const duplicate = create.error?.code === 'IDOSO_DUPLICADO';
+  const inlineError = duplicate || mapFieldErrors<ElderValues>(create.error, ELDER_FIELDS).length > 0;
   useEffect(() => {
-    if (duplicate && create.error) setError('name', { message: create.error.message });
-  }, [duplicate, create.error, setError]);
+    if (!create.error) return;
+    if (create.error.code === 'IDOSO_DUPLICADO') setError('name', { message: create.error.message });
+    else applyFieldErrors(setError, create.error, ELDER_FIELDS);
+  }, [create.error, setError]);
 
   const onSubmit = handleSubmit(async (v) => {
     const key = dateBRToKey(v.birthDate);
@@ -75,7 +82,7 @@ export function ElderFormScreen({ navigation }: RootScreenProps<'ElderForm'>) {
           mesmo nome com a mesma data de nascimento (RN03).
         </AppText>
 
-        {create.error && !duplicate ? (
+        {create.error && !inlineError ? (
           <AppText color={colors.danger} accessibilityRole="alert">{create.error.message}</AppText>
         ) : null}
 

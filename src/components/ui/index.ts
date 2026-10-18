@@ -14,6 +14,7 @@ export * from './PillVisual';
 export * from './PillSizeLegend';
 export * from './EmptyState';
 export * from './ErrorState';
+export * from './RefreshFailedBanner';
 export * from './LoadingSkeleton';
 export * from './ConfirmDialog';
 export * from './ThemeToggle';

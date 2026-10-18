@@ -27,13 +27,23 @@ function clearDataCaches() {
 
 /**
  * Restaura perfil e sessões do SecureStore. Token do cuidador expirado (ou ilegível)
- * é descartado e o login mostra o aviso. Nunca trava: falha de leitura = sem dado salvo.
+ * é descartado e o login mostra o aviso. Falha de leitura não trava: vira bootError,
+ * e a tela de carregamento oferece "Tentar novamente" (que chama bootSession de novo).
  */
 export async function bootSession() {
-  const profile = await safely(() => profileStorage.load(), null);
-  const elder = await safely(() => elderDeviceStorage.loadSession(), null);
-  // No demo os dados vivem só em memória: uma sessão de cuidador salva apontaria para dados que já não existem
-  let caregiver = IS_DEMO ? null : await safely(() => caregiverSessionStorage.load(), null);
+  useAppStore.setState({ bootError: null });
+  let profile: DeviceProfile | null;
+  let elder: Awaited<ReturnType<typeof elderDeviceStorage.loadSession>>;
+  let caregiver: Awaited<ReturnType<typeof caregiverSessionStorage.load>>;
+  try {
+    profile = await profileStorage.load();
+    elder = await elderDeviceStorage.loadSession();
+    // No demo os dados vivem só em memória: uma sessão de cuidador salva apontaria para dados que já não existem
+    caregiver = IS_DEMO ? null : await caregiverSessionStorage.load();
+  } catch {
+    useAppStore.setState({ bootError: 'Não foi possível ler os dados guardados neste celular.' });
+    return;
+  }
   let flash: string | null = null;
   if (caregiver && isJwtExpired(caregiver.token)) {
     caregiver = null;

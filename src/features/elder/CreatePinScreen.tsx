@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { ElderScreen } from '../../components/layout/ElderScreen';
 import { SwitchProfileLink } from '../../components/layout/SwitchProfileLink';
-import { AppText, DigitBoxes, PinPad } from '../../components/ui';
+import { AppText, BigActionButton, DigitBoxes, PinPad } from '../../components/ui';
 import { useAppStore } from '../../store/appStore';
 import { firstName } from '../../lib/date';
 import { elderDeviceStorage } from '../../lib/secureStorage';
@@ -19,6 +19,21 @@ export function CreatePinScreen({ route }: RootScreenProps<'ElderCreatePin'>) {
   const [first, setFirst] = useState<string | null>(null);
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
+  // PIN confirmado que ainda não pôde ser gravado (falha do SecureStore): permite tentar de novo
+  const [unsaved, setUnsaved] = useState<string | null>(null);
+
+  async function persist(confirmed: string) {
+    try {
+      await elderDeviceStorage.saveSession({ elderId, token });
+      await elderDeviceStorage.savePin(confirmed);
+    } catch {
+      setUnsaved(confirmed);
+      return;
+    }
+    setUnsaved(null);
+    setUnlocked(true);
+    setElderSession({ elderId, token });
+  }
 
   useEffect(() => {
     if (pin.length !== 4) return;
@@ -34,13 +49,10 @@ export function CreatePinScreen({ route }: RootScreenProps<'ElderCreatePin'>) {
       setPin('');
       return;
     }
-    (async () => {
-      await elderDeviceStorage.saveSession({ elderId, token });
-      await elderDeviceStorage.savePin(pin);
-      setUnlocked(true);
-      setElderSession({ elderId, token });
-    })();
-  }, [pin, first, elderId, token, setElderSession, setUnlocked]);
+    void persist(pin);
+    // persist muda a cada render; o efeito reage só à digitação do PIN
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pin, first]);
 
   return (
     <ElderScreen>
@@ -53,6 +65,14 @@ export function CreatePinScreen({ route }: RootScreenProps<'ElderCreatePin'>) {
         </AppText>
       </View>
       <DigitBoxes value={pin} length={4} masked error={!!error} />
+      {unsaved ? (
+        <View style={[styles.box, { backgroundColor: colors.dangerSoft }]} accessibilityRole="alert">
+          <AppText variant="elderBody" color={colors.danger} align="center">
+            Não foi possível guardar o PIN neste celular.
+          </AppText>
+        </View>
+      ) : null}
+      {unsaved ? <BigActionButton title="Tentar novamente" variant="primary" onPress={() => void persist(unsaved)} /> : null}
       {error ? (
         <View style={[styles.box, { backgroundColor: colors.dangerSoft }]} accessibilityRole="alert">
           <AppText variant="elderBody" color={colors.danger} align="center">{error}</AppText>
