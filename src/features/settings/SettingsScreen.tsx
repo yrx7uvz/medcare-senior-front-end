@@ -8,10 +8,15 @@ import { AppText, Avatar, Button, Card, ConfirmDialog, TextField, ThemeToggle, t
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import { getDemo } from '../../config/demo';
+import { IS_DEMO } from '../../config/env';
 import { logoutCaregiver } from '../../lib/session';
 import { useMutation, useQuery } from '../../lib/useQuery';
 import { spacing, useTheme } from '../../theme';
 import { ToleranceSelector } from './ToleranceSelector';
+
+// Prazo de remoção dos dados pessoais: a API apaga na hora (0 dias); o modo demonstração simula até 30 dias
+const EXPECTED_REMOVAL_DAYS = IS_DEMO ? 30 : 0;
+const removalWhen = (days: number) => (days === 0 ? 'imediatamente' : `em até ${days} dias`);
 
 /** T08 — Configurações do cuidador. */
 export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
@@ -47,7 +52,7 @@ export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
     setSession(null);
     getDemo()?.resetDemoDb();
     resetUi();
-    setFlash(`Conta excluída. Seus dados pessoais e os dos pacientes serão removidos em até ${r.removalDeadlineDays} dias; o histórico de doses fica anonimizado (RN13).`);
+    setFlash(`Conta excluída. Seus dados pessoais e os dos pacientes serão removidos ${removalWhen(r.removalDeadlineDays)}; o histórico de doses fica anonimizado (RN13).`);
   }
 
   return (
@@ -111,7 +116,7 @@ export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
         icon={Trash2}
         tone="danger"
         title="Excluir conta e dados?"
-        message="Seus dados pessoais e os dos pacientes vinculados serão removidos em até 30 dias. O histórico de doses já registradas é mantido de forma anonimizada, sem ligação com nenhuma pessoa (RN13). Esta ação não pode ser desfeita."
+        message={`Seus dados pessoais e os dos pacientes vinculados serão removidos ${removalWhen(EXPECTED_REMOVAL_DAYS)}. O histórico de doses já registradas é mantido de forma anonimizada, sem ligação com nenhuma pessoa (RN13). Esta ação não pode ser desfeita.`}
         confirmLabel="Continuar"
         onConfirm={() => {
           setConfirmText('');
