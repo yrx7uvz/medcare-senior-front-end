@@ -1,5 +1,5 @@
 import { AppError } from '../../services/errors';
-import type { MedicationInfoService, MessageService, ReportService } from '../../services/types';
+import type { MedicationInfoService, MessageService } from '../../services/types';
 
 /**
  * Adapters provisórios do modo real (fora do demo): cada operação falha com uma
@@ -14,12 +14,6 @@ export const stubMessageService: MessageService = {
   send: notIntegrated,
   markRead: notIntegrated,
   unreadCount: notIntegrated,
-};
-
-export const stubReportService: ReportService = {
-  getDaily: notIntegrated,
-  getAdherence: notIntegrated,
-  generatePdf: notIntegrated,
 };
 
 export const stubMedicationInfoService: MedicationInfoService = {

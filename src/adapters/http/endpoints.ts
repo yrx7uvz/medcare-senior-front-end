@@ -20,7 +20,7 @@ export const endpoints = {
   pendingDoses: '/api/doses/pendentes',
   confirmDose: (id: string) => `/api/doses/${id}/confirmar`,
   tolerance: '/api/configuracoes/tolerancia',
-  dailyReport: (elderId: string) => `/api/relatorios/diario?idosoId=${elderId}`,
+  dailyReport: (elderId: string, day: string) => `/api/relatorios/diario?idosoId=${elderId}&data=${day}`,
   history: '/api/historico',
   messages: '/api/mensagens',
   pdf: '/api/relatorios/pdf',

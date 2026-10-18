@@ -74,7 +74,7 @@ export function toDoseView(dto: DoseResponse): DoseView {
 const doseOrigin = new Map<string, { elderId: string; day: DateKey }>();
 export const forgetDoseOrigins = () => doseOrigin.clear();
 
-function remember(views: DoseView[]) {
+export function remember(views: DoseView[]) {
   for (const v of views) doseOrigin.set(v.id, { elderId: v.elderId, day: v.scheduledAt.slice(0, 10) });
   return views;
 }
@@ -134,6 +134,14 @@ export const httpDoseService: DoseService = {
   },
 
   listHistory: notIntegrated,
-  getTolerance: notIntegrated,
-  setTolerance: notIntegrated,
+
+  /** GET /api/configuracoes/tolerancia: a do cuidador ou, sem configuração, a padrão. */
+  async getTolerance() {
+    return (await request<{ toleranciaMinutos: number }>('GET', endpoints.tolerance)).toleranciaMinutos;
+  },
+
+  /** PUT /api/configuracoes/tolerancia (5 a 120). Fora da faixa, a API responde 400 VALIDACAO no campo. */
+  async setTolerance(minutes) {
+    return (await request<{ toleranciaMinutos: number }>('PUT', endpoints.tolerance, { toleranciaMinutos: minutes })).toleranciaMinutos;
+  },
 };
