@@ -1,11 +1,11 @@
-import { CalendarCheck, CalendarX, UserPlus } from 'lucide-react-native';
+import { CalendarCheck, CalendarX, ClipboardList, UserPlus } from 'lucide-react-native';
 import React from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TabScreenProps } from '../../app/navigation/types';
 import { AlertBanner } from '../../components/layout/AlertBanner';
 import { CaregiverScreen } from '../../components/layout/CaregiverScreen';
-import { AppText, Avatar, EmptyState, ErrorState, LoadingSkeleton, RefreshFailedBanner } from '../../components/ui';
+import { AppText, Avatar, Button, EmptyState, ErrorState, LoadingSkeleton, RefreshFailedBanner } from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import { firstName, formatLongDate, greeting } from '../../lib/date';
@@ -79,6 +79,15 @@ export function DashboardScreen({ navigation }: TabScreenProps<'Painel'>) {
             {summary.total} {summary.total === 1 ? 'dose' : 'doses'}
           </AppText>
         </View>
+        <Button
+          title="Relatório diário"
+          icon={ClipboardList}
+          variant="secondary"
+          size="sm"
+          style={styles.reportButton}
+          onPress={() => navigation.navigate('DailyReport', filter === 'ALL' ? undefined : { elderId: filter })}
+          accessibilityHint="Abre o relatório de uso dos medicamentos de um paciente em um dia"
+        />
         {list.length === 0 ? (
           <EmptyState
             icon={CalendarCheck}
@@ -166,6 +175,7 @@ export function DashboardScreen({ navigation }: TabScreenProps<'Painel'>) {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   body: { padding: spacing.lg, gap: spacing.md },
+  reportButton: { alignSelf: 'flex-start' },
   sectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: spacing.sm },
   group: { gap: spacing.sm, marginBottom: spacing.sm },
   groupHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.xs },

@@ -8,6 +8,8 @@
  */
 import './check-core-env';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { parseApiError, parseJsonBody } from '../src/adapters/http/apiError';
 import { httpAuthService } from '../src/adapters/http/HttpAuthService';
 import { forgetDoseOrigins, httpDoseService, toDoseView } from '../src/adapters/http/HttpDoseService';
@@ -26,10 +28,13 @@ import { normalizeApiBaseUrl } from '../src/config/env';
 import { mapFieldErrors } from '../src/lib/formErrors';
 import { decodeJwtPayload, getJwtExp, isJwtExpired } from '../src/lib/jwt';
 import { apiDateTimeToEpochMs, apiTimeToHHmm, apiWeekdayToIndex, indexToApiWeekday, saoPauloDateKey } from '../src/lib/apiTime';
+import { emptyMedicationValues, toMedicationInput } from '../src/features/medications/formValues';
 import { ELDER_EXPIRED_MESSAGE, resolveStoredSessions, SESSION_EXPIRED_MESSAGE } from '../src/lib/bootRules';
+import { dailyTotals } from '../src/lib/dailyReport';
 import { liveDose } from '../src/lib/doseLive';
 import { isTreatmentActive, pickCurrentTreatment } from '../src/lib/medicationMeta';
 import { useQueryBus } from '../src/lib/queryBus';
+import { medicationFormSchema } from '../src/lib/schemas';
 import { appNowMs, appTodayKey, computeClockOffset, recordServerDate, resetServerClock, serverOffsetMs } from '../src/lib/serverClock';
 import { formatWait, messageForApiError } from '../src/services/errorMessages';
 import { AppError, TreatmentNotSavedError } from '../src/services/errors';
@@ -279,18 +284,18 @@ check('MedicamentoResponse vira Medication; tipo legado, formato e cor fora do p
   assert.equal(legado.stock, undefined);
 });
 
-check('Pedido de medicamento leva só os campos da API, idosoId numérico e bula só se for URL', () => {
+check('Pedido de medicamento leva só os campos da API, idosoId numérico e o link da bula', () => {
   const base = {
     elderId: '12', name: ' Losartana ', dosage: ' 50mg ', type: 'CAPSULA' as const, shape: 'OVAL' as const,
     primaryColor: '#3D7DCA', secondaryColor: '#FFFFFF', lengthMm: 10, imprint: 'AB', hasScore: true, stock: 0,
-    leaflet: 'Tomar após o almoço', appearanceSource: 'MANUAL' as const,
+    bulaUrl: '  ', appearanceSource: 'MANUAL' as const,
     treatment: { startDate: '2026-10-18', weekdays: [1], times: [{ time: '08:00' }] },
   };
   assert.deepEqual(toMedicamentoRequest(base), {
     nome: 'Losartana', dosagem: '50mg', tipo: 'CAPSULA', formato: undefined, cor: '#3D7DCA', quantidadeEstoque: 0,
     bulaUrl: undefined, idosoId: 12,
   });
-  const comprimido = toMedicamentoRequest({ ...base, type: 'COMPRIMIDO', leaflet: 'https://bula.exemplo/x.pdf' });
+  const comprimido = toMedicamentoRequest({ ...base, type: 'COMPRIMIDO', bulaUrl: ' https://bula.exemplo/x.pdf ' });
   assert.equal(comprimido.formato, 'OVAL');
   assert.equal(comprimido.bulaUrl, 'https://bula.exemplo/x.pdf');
   assert.throws(() => toMedicamentoRequest({ ...base, elderId: 'e-jose' }), AppError);
@@ -639,6 +644,60 @@ checkAsync('Cadastro criado e login falhou: não repete o POST e avisa para faze
   assert.equal(erro.code, 'CONTA_CRIADA_SEM_LOGIN');
   assert.equal(erro.message, 'Conta criada, mas não foi possível entrar agora. Faça login.');
   assert.deepEqual(chamadas.map((c) => `${c.method} ${c.path}`), ['POST /api/cuidadores', 'POST /api/auth/login']);
+});
+
+// --- Relatório diário (FE-24) e formulário de remédio alinhado à API (FE-19) ---------------------------------------
+check('Totais do relatório diário: aderência = (tomadas + com atraso) / (total - pendentes), 1 casa, null sem encerradas', () => {
+  assert.deepEqual(dailyTotals([]), { total: 0, taken: 0, late: 0, missed: 0, pending: 0, adherencePercent: null });
+  assert.equal(dailyTotals(['PENDENTE', 'PENDENTE']).adherencePercent, null);
+  const misto = dailyTotals(['TOMADA', 'TOMADA', 'CONFIRMADA_COM_ATRASO', 'NAO_TOMADA', 'PENDENTE', 'PENDENTE']);
+  assert.deepEqual(misto, { total: 6, taken: 2, late: 1, missed: 1, pending: 2, adherencePercent: 75 });
+  assert.equal(dailyTotals(['TOMADA', 'NAO_TOMADA', 'NAO_TOMADA']).adherencePercent, 33.3);
+  assert.equal(dailyTotals(['CONFIRMADA_COM_ATRASO', 'TOMADA', 'NAO_TOMADA']).adherencePercent, 66.7);
+});
+
+check('Formulário de remédio envia só os campos da API (sem quantidade nem observação por horário)', () => {
+  const valores = {
+    ...emptyMedicationValues('12', new Date(2026, 9, 18)),
+    name: 'Losartana',
+    dosage: '50mg',
+    type: 'GOTAS' as const,
+    shape: 'OVAL' as const,
+    bulaUrl: '  https://bula.exemplo/x.pdf ',
+    stock: '3',
+    times: [{ time: '20:00' }, { time: '08:00' }],
+  };
+  assert.deepEqual(Object.keys(valores).sort(), [
+    'bulaUrl', 'dosage', 'elderId', 'endDate', 'name', 'primaryColor', 'shape', 'startDate', 'stock', 'times', 'type', 'weekdays',
+  ]);
+  const input = toMedicationInput(valores);
+  assert.equal(input.shape, undefined);
+  assert.equal(input.bulaUrl, 'https://bula.exemplo/x.pdf');
+  assert.equal(input.stock, 3);
+  assert.deepEqual(input.treatment, { startDate: '2026-10-18', endDate: undefined, weekdays: [0, 1, 2, 3, 4, 5, 6], times: [{ time: '08:00' }, { time: '20:00' }] });
+  assert.equal(toMedicationInput({ ...valores, bulaUrl: '' }).bulaUrl, undefined);
+});
+
+check('Validação do formulário de remédio: limites da API (255, 100, 2048) e link da bula', () => {
+  const base = { ...emptyMedicationValues('12', new Date(2026, 9, 18)), name: 'Losartana', dosage: '50mg' };
+  assert.equal(medicationFormSchema.safeParse(base).success, true);
+  const erroEm = (v: object) => {
+    const r = medicationFormSchema.safeParse({ ...base, ...v });
+    return r.success ? [] : r.error.issues.map((i) => i.path[0]);
+  };
+  assert.deepEqual(erroEm({ name: 'x'.repeat(256) }), ['name']);
+  assert.deepEqual(erroEm({ dosage: 'x'.repeat(101) }), ['dosage']);
+  assert.deepEqual(erroEm({ bulaUrl: 'bula do remédio' }), ['bulaUrl']);
+  assert.deepEqual(erroEm({ bulaUrl: `https://x.com/${'a'.repeat(2048)}` }), ['bulaUrl']);
+  assert.deepEqual(erroEm({ stock: '-1' }), ['stock']);
+  assert.deepEqual(erroEm({ times: [{ time: '08:00' }, { time: '08:00' }] }), ['times']);
+});
+
+check('"Esqueci a senha" removido do login e tela "Relatório diário" registrada com esse nome', () => {
+  const ler = (p: string) => readFileSync(join(__dirname, '..', 'src', p), 'utf8');
+  assert.doesNotMatch(ler('features/auth/LoginScreen.tsx'), /Esqueci a senha|forgot/i);
+  assert.match(ler('app/navigation/RootNavigator.tsx'), /name="DailyReport" component=\{DailyReportScreen\}/);
+  assert.match(ler('features/reports/DailyReportScreen.tsx'), /title="Relatório diário"/);
 });
 
 void (async () => {

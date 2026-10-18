@@ -33,7 +33,6 @@ export interface TratamentoResponse {
 }
 
 const HEX_COLOR_RE = /^#[0-9a-f]{6}$/i;
-const URL_RE = /^https?:\/\/\S+$/i;
 
 /** Cadastros antigos podem ter tipo em texto livre: para o desenho do remédio, vira COMPRIMIDO. */
 const toType = (tipo: string): MedicationType => ((MEDICATION_TYPE_VALUES as readonly string[]).includes(tipo) ? (tipo as MedicationType) : 'COMPRIMIDO');
@@ -54,7 +53,7 @@ export function toMedication(dto: MedicamentoResponse): Medication {
     shape: toShape(dto.formato),
     primaryColor: dto.cor && HEX_COLOR_RE.test(dto.cor) ? dto.cor : undefined,
     stock: dto.quantidadeEstoque ?? undefined,
-    leaflet: dto.bulaUrl ?? undefined,
+    bulaUrl: dto.bulaUrl ?? undefined,
     appearanceSource: 'MANUAL',
     // A API não devolve a data de cadastro
     createdAt: '',
@@ -62,11 +61,10 @@ export function toMedication(dto: MedicamentoResponse): Medication {
 }
 
 /**
- * Corpo de POST/PUT /api/medicamentos (MedicamentoRequestDTO). Só os campos que a API guarda; os de
- * aparência que ela não tem (segunda cor, tamanho, gravação, sulco) não são enviados.
+ * Corpo de POST/PUT /api/medicamentos (MedicamentoRequestDTO): só os campos que a API guarda (o formulário do app já
+ * não tem outros).
  */
 export function toMedicamentoRequest(input: MedicationInput) {
-  const leaflet = input.leaflet?.trim();
   return {
     nome: input.name.trim(),
     dosagem: input.dosage.trim(),
@@ -74,8 +72,7 @@ export function toMedicamentoRequest(input: MedicationInput) {
     formato: input.type === 'COMPRIMIDO' && input.shape ? input.shape : undefined,
     cor: input.primaryColor && HEX_COLOR_RE.test(input.primaryColor) ? input.primaryColor : undefined,
     quantidadeEstoque: input.stock,
-    // A API guarda o endereço da bula, não o texto dela
-    bulaUrl: leaflet && URL_RE.test(leaflet) ? leaflet : undefined,
+    bulaUrl: input.bulaUrl?.trim() || undefined,
     idosoId: toApiId(input.elderId),
   };
 }

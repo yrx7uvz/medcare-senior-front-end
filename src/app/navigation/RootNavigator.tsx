@@ -7,6 +7,7 @@ import { AppText, Button } from '../../components/ui';
 import { LoginScreen } from '../../features/auth/LoginScreen';
 import { SignUpScreen } from '../../features/auth/SignUpScreen';
 import { DoseDetailScreen } from '../../features/dashboard/DoseDetailScreen';
+import { DailyReportScreen } from '../../features/reports/DailyReportScreen';
 import { ConfirmDoseScreen } from '../../features/elder/ConfirmDoseScreen';
 import { CreatePinScreen } from '../../features/elder/CreatePinScreen';
 import { DoseConfirmedScreen } from '../../features/elder/DoseConfirmedScreen';
@@ -100,6 +101,7 @@ export function RootNavigator() {
               <Stack.Screen name="MedicationForm" component={MedicationFormScreen} />
               <Stack.Screen name="ExportPdf" component={ExportPdfScreen} />
               <Stack.Screen name="DoseDetail" component={DoseDetailScreen} />
+              <Stack.Screen name="DailyReport" component={DailyReportScreen} />
             </Stack.Group>
           ) : (
             <Stack.Group>
