@@ -7,6 +7,7 @@ import { AppText, BigActionButton, Card, DoseStatusBadge, ErrorState, LoadingSke
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import { formatTime } from '../../lib/date';
+import { liveAt } from '../../lib/doseLive';
 import { useMutation, useQuery } from '../../lib/useQuery';
 import { minuteStamp, useNow } from '../../lib/useNow';
 import { radius, spacing, useTheme } from '../../theme';
@@ -21,12 +22,18 @@ export function ConfirmDoseScreen({ route, navigation }: RootScreenProps<'ElderC
   const profile = useQuery(['elder-profile', elderId], () => services.elders.getProfile(elderId));
   const confirm = useMutation(services.doses.confirm);
   const caregiver = profile.data?.caregiverFirstName ?? 'seu cuidador';
-  const d = dose.data;
+  // Confirmabilidade entre as atualizações: só compara agora com a janela que veio do servidor (FE-21)
+  const d = dose.data ? liveAt(dose.data, now) : undefined;
 
   async function onConfirm() {
     const result = await confirm.mutate(doseId);
-    if (result) navigation.replace('ElderDoseConfirmed', { doseId });
-    else Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => undefined);
+    if (result) {
+      navigation.replace('ElderDoseConfirmed', { doseId });
+      return;
+    }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => undefined);
+    // 409 (já registrada, cedo ou encerrada): busca a versão atual para a tela mostrar o estado certo
+    dose.refresh();
   }
 
   if (dose.loading) {

@@ -2,13 +2,17 @@
 /**
  * Verificações do núcleo do app (sem React): decodificador de JWT, parse do ErroResponse da API,
  * endereço da API, mapeamento de erros por campo, datas da API no fuso de São Paulo, mensagens de
- * erro por código e adapters HTTP de idosos e medicamentos (com fetch falso, sem rede).
+ * erro por código, relógio do servidor, dose ao vivo, sessões no boot, cache do cliente HTTP e adapters HTTP de
+ * idosos, medicamentos, doses e cadastro (com fetch falso, sem rede).
  * Uso: npm run check:core — termina com código != 0 na primeira asserção que falhar.
  */
 import './check-core-env';
 import assert from 'node:assert/strict';
 import { parseApiError, parseJsonBody } from '../src/adapters/http/apiError';
+import { httpAuthService } from '../src/adapters/http/HttpAuthService';
+import { forgetDoseOrigins, httpDoseService, toDoseView } from '../src/adapters/http/HttpDoseService';
 import { forgetLinkCodes, httpElderService, toElder, toLinkCode } from '../src/adapters/http/HttpElderService';
+import { clearHttpCache, request, setViewerProvider } from '../src/adapters/http/httpClient';
 import {
   httpMedicationService,
   toMedicamentoRequest,
@@ -22,7 +26,11 @@ import { normalizeApiBaseUrl } from '../src/config/env';
 import { mapFieldErrors } from '../src/lib/formErrors';
 import { decodeJwtPayload, getJwtExp, isJwtExpired } from '../src/lib/jwt';
 import { apiDateTimeToEpochMs, apiTimeToHHmm, apiWeekdayToIndex, indexToApiWeekday, saoPauloDateKey } from '../src/lib/apiTime';
+import { ELDER_EXPIRED_MESSAGE, resolveStoredSessions, SESSION_EXPIRED_MESSAGE } from '../src/lib/bootRules';
+import { liveDose } from '../src/lib/doseLive';
 import { isTreatmentActive, pickCurrentTreatment } from '../src/lib/medicationMeta';
+import { useQueryBus } from '../src/lib/queryBus';
+import { appNowMs, appTodayKey, computeClockOffset, recordServerDate, resetServerClock, serverOffsetMs } from '../src/lib/serverClock';
 import { formatWait, messageForApiError } from '../src/services/errorMessages';
 import { AppError, TreatmentNotSavedError } from '../src/services/errors';
 
@@ -322,6 +330,8 @@ type Resposta = { status: number; body?: unknown; headers?: Record<string, strin
 /** Troca o fetch global: cada chamada consome a próxima resposta da fila e fica registrada. */
 function fakeFetch(respostas: Resposta[]): Chamada[] {
   const chamadas: Chamada[] = [];
+  // Cada cenário começa sem leituras guardadas pelo cliente HTTP
+  clearHttpCache();
   globalThis.fetch = (async (url: string | URL, init?: RequestInit) => {
     const u = new URL(String(url));
     chamadas.push({ method: init?.method ?? 'GET', path: u.pathname + u.search, body: init?.body ? JSON.parse(String(init.body)) : undefined });
@@ -430,6 +440,205 @@ checkAsync('Vínculo: 429 traz Retry-After; código gerado fica disponível até
 
   fakeFetch([{ status: 200, body: { token: 't', tipo: 'Bearer', id: 12, nome: 'José' } }]);
   assert.deepEqual(await httpElderService.validateLinkCode(' 123456 '), { elderId: '12', elderName: 'José', token: 't' });
+});
+
+// --- Relógio do servidor e janela da dose (FE-21) -------------------------------------------------------------------
+check('Diferença de relógio pelo header Date: meio do segundo do servidor menos o meio da viagem', () => {
+  const header = 'Sun, 18 Oct 2026 15:00:00 GMT';
+  const servidor = Date.UTC(2026, 9, 18, 15, 0, 0);
+  // Aparelho 2 minutos atrasado; viagem de 200 ms
+  const envio = servidor - 120_000 - 100;
+  assert.equal(computeClockOffset(header, envio, envio + 200), 120_000 + 500);
+  assert.equal(computeClockOffset(null, 0, 0), null);
+  assert.equal(computeClockOffset('ontem', 0, 0), null);
+  recordServerDate(header, envio, envio + 200);
+  assert.equal(serverOffsetMs(), 120_500);
+  // Até 2 s é ruído: zera
+  recordServerDate(header, servidor - 1_000, servidor - 800);
+  assert.equal(serverOffsetMs(), 0);
+  // Header ausente mantém a diferença anterior
+  recordServerDate(header, envio, envio + 200);
+  recordServerDate(undefined, 0, 0);
+  assert.equal(serverOffsetMs(), 120_500);
+  assert.equal(appNowMs(new Date(1_000_000)), 1_120_500);
+  // O dia de hoje usa o relógio corrigido e o fuso de São Paulo: 02:59 UTC no aparelho + 2 min = 03:01 UTC
+  assert.equal(appTodayKey(new Date(Date.UTC(2026, 9, 18, 2, 59) - 500)), '2026-10-18');
+  resetServerClock();
+  assert.equal(appTodayKey(new Date(Date.UTC(2026, 9, 18, 2, 59))), '2026-10-17');
+});
+
+const DOSE_DTO = {
+  id: 5000, idosoId: 12, idosoNome: 'José', medicamentoId: 501, medicamentoNome: 'Losartana', dosagem: '50mg',
+  tipo: 'COMPRIMIDO', tratamentoId: 900, horarioProgramado: '2026-10-18T08:00:00', horaConfirmacao: null,
+  status: 'PENDENTE' as const, statusExibicao: 'PENDENTE' as const, toleranciaMinutos: 30,
+  janela: { abreEm: '2026-10-18T07:00:00', avisoEm: '2026-10-18T08:30:00', encerraEm: '2026-10-18T11:00:00' },
+  confirmabilidade: 'OK' as const,
+};
+const SP = (hh: number, mm: number, ss = 0) => Date.UTC(2026, 9, 18, hh + 3, mm, ss);
+
+check('DoseResponseDTO vira DoseView com status, janela e confirmabilidade do servidor', () => {
+  const v = toDoseView({ ...DOSE_DTO, horaConfirmacao: '2026-10-18T08:05:12.123456', status: 'TOMADA', statusExibicao: 'TOMADA', confirmabilidade: 'JA_REGISTRADA' });
+  assert.equal(v.id, '5000');
+  assert.equal(v.elderId, '12');
+  assert.equal(v.medication.id, '501');
+  assert.equal(v.treatmentId, '900');
+  assert.equal(v.scheduledAt, '2026-10-18T08:00');
+  assert.equal(v.confirmedAt, '2026-10-18T08:05');
+  assert.equal(v.storedStatus, 'TOMADA');
+  assert.equal(v.confirmability, 'JA_REGISTRADA');
+  assert.deepEqual(v.window, { opensAt: '2026-10-18T07:00', alertAt: '2026-10-18T08:30', closesAt: '2026-10-18T11:00' });
+  assert.equal(v.toleranceMinutes, 30);
+  assert.equal(toDoseView({ ...DOSE_DTO, tratamentoId: null }).treatmentId, null);
+});
+
+check('Dose ao vivo: só compara agora com a janela do servidor, nos limites exatos, e nunca volta atrás', () => {
+  const base = toDoseView({ ...DOSE_DTO, statusExibicao: 'PENDENTE', confirmabilidade: 'MUITO_CEDO' });
+  const em = (ms: number) => liveDose(base, ms, apiDateTimeToEpochMs);
+  assert.equal(em(SP(6, 59, 59)).confirmability, 'MUITO_CEDO');
+  assert.equal(em(SP(7, 0)).confirmability, 'OK');
+  assert.equal(em(SP(8, 30)).status, 'PENDENTE');
+  assert.equal(em(SP(8, 30, 1)).status, 'ATRASADA');
+  assert.equal(em(SP(11, 0)).confirmability, 'OK');
+  assert.equal(em(SP(11, 0, 1)).status, 'NAO_TOMADA');
+  assert.equal(em(SP(11, 0, 1)).confirmability, 'ENCERRADA');
+  // O servidor já disse ATRASADA: um aparelho atrasado não faz a dose "voltar" a PENDENTE
+  const atrasada = toDoseView({ ...DOSE_DTO, statusExibicao: 'ATRASADA', confirmabilidade: 'OK' });
+  assert.equal(liveDose(atrasada, SP(8, 0), apiDateTimeToEpochMs).status, 'ATRASADA');
+  // Registrada no servidor: não muda; janela ilegível: fica como veio
+  const tomada = toDoseView({ ...DOSE_DTO, status: 'TOMADA', statusExibicao: 'TOMADA', confirmabilidade: 'JA_REGISTRADA' });
+  assert.equal(liveDose(tomada, SP(12, 0), apiDateTimeToEpochMs), tomada);
+  assert.equal(liveDose(base, SP(12, 0), () => null), base);
+});
+
+// --- Sessões guardadas no boot (FE-56) -----------------------------------------------------------------------------
+check('Boot: token do idoso vencido apaga a conexão e avisa no perfil do idoso; no demo não confere', () => {
+  const valido = { elderId: '12', token: jwt({ sub: '12', exp: nowSec + 3600 }) };
+  const vencido = { elderId: '12', token: jwt({ sub: '12', exp: nowSec - 1 }) };
+  const cuidador = { caregiverId: '1', name: 'A', email: 'a@a', token: jwt({ sub: '1', exp: nowSec + 60 }) };
+  const ok = resolveStoredSessions({ profile: 'IDOSO', caregiver: null, elder: valido, isDemo: false, nowMs: NOW_MS });
+  assert.deepEqual(ok, { caregiver: null, elder: valido, clearCaregiver: false, clearElder: false, flash: null });
+  const venceu = resolveStoredSessions({ profile: 'IDOSO', caregiver: cuidador, elder: vencido, isDemo: false, nowMs: NOW_MS });
+  assert.equal(venceu.elder, null);
+  assert.equal(venceu.clearElder, true);
+  assert.equal(venceu.caregiver, cuidador);
+  assert.equal(venceu.flash, ELDER_EXPIRED_MESSAGE);
+  // Aparelho no perfil do cuidador: apaga a conexão do idoso, sem aviso na tela do cuidador
+  assert.equal(resolveStoredSessions({ profile: 'CUIDADOR', caregiver: cuidador, elder: vencido, isDemo: false, nowMs: NOW_MS }).flash, null);
+  // Demo: token fictício do mock não é JWT e não pode derrubar a sessão
+  const demo = { elderId: 'e-jose', token: 'mock.jwt.idoso.e-jose' };
+  assert.equal(resolveStoredSessions({ profile: 'IDOSO', caregiver: null, elder: demo, isDemo: true, nowMs: NOW_MS }).elder, demo);
+  // Cuidador vencido continua indo ao login
+  const cuidadorVencido = { ...cuidador, token: jwt({ sub: '1', exp: nowSec - 1 }) };
+  const r = resolveStoredSessions({ profile: 'CUIDADOR', caregiver: cuidadorVencido, elder: null, isDemo: false, nowMs: NOW_MS });
+  assert.equal(r.caregiver, null);
+  assert.equal(r.flash, SESSION_EXPIRED_MESSAGE);
+});
+
+// --- Cliente HTTP: dedupe, cache curto e invalidação (FE-18) -------------------------------------------------------
+checkAsync('Leituras iguais em voo viram uma chamada; cache curto; escrita limpa o cache e avisa as telas', async () => {
+  const chamadas = fakeFetch([{ status: 200, body: [] }, { status: 204 }, { status: 200, body: [] }]);
+  const [a, b] = await Promise.all([request('GET', '/api/idosos'), request('GET', '/api/idosos')]);
+  assert.deepEqual(a, []);
+  assert.equal(a, b);
+  await request('GET', '/api/idosos');
+  assert.equal(chamadas.length, 1);
+  const versao = useQueryBus.getState().version;
+  await request('DELETE', '/api/cuidadores/me/fcm-token');
+  assert.equal(useQueryBus.getState().version, versao + 1);
+  await request('GET', '/api/idosos');
+  assert.deepEqual(chamadas.map((c) => `${c.method} ${c.path}`), ['GET /api/idosos', 'DELETE /api/cuidadores/me/fcm-token', 'GET /api/idosos']);
+});
+
+checkAsync('Leitura que falha não fica guardada: a próxima tenta de novo', async () => {
+  const chamadas = fakeFetch([{ status: 503 }, { status: 200, body: [] }]);
+  await request('GET', '/api/idosos').then(() => assert.fail('deveria falhar'), () => undefined);
+  assert.deepEqual(await request('GET', '/api/idosos'), []);
+  assert.equal(chamadas.length, 2);
+});
+
+// --- Doses reais (FE-14 parte 1) -----------------------------------------------------------------------------------
+checkAsync('Doses: o idoso usa /me/doses; o cuidador, a rota do idoso; "Todos" busca os idosos', async () => {
+  setViewerProvider(() => 'ELDER');
+  let chamadas = fakeFetch([{ status: 200, body: [DOSE_DTO] }]);
+  const doIdoso = await httpDoseService.listForDay('12', '2026-10-18');
+  assert.equal(chamadas[0].path, '/api/idosos/me/doses?data=2026-10-18');
+  assert.equal(doIdoso[0].id, '5000');
+
+  setViewerProvider(() => 'CAREGIVER');
+  chamadas = fakeFetch([
+    { status: 200, body: [{ id: 12, nome: 'José', dataNascimento: '1945-01-01', telefone: null, cuidadorId: 1 }, { id: 13, nome: 'Ana', dataNascimento: '1945-01-01', telefone: null, cuidadorId: 1 }] },
+    { status: 200, body: [{ ...DOSE_DTO, horarioProgramado: '2026-10-18T09:00:00' }] },
+    { status: 200, body: [{ ...DOSE_DTO, id: 6000, idosoId: 13, idosoNome: 'Ana' }] },
+  ]);
+  const todos = await httpDoseService.listForDay('ALL', '2026-10-18');
+  assert.deepEqual(chamadas.map((c) => c.path), ['/api/idosos', '/api/idosos/12/doses?data=2026-10-18', '/api/idosos/13/doses?data=2026-10-18']);
+  assert.deepEqual(todos.map((d) => d.id), ['6000', '5000']);
+});
+
+checkAsync('Detalhe da dose: busca de novo o dia de onde ela veio; sem origem conhecida, 404 claro', async () => {
+  setViewerProvider(() => 'CAREGIVER');
+  fakeFetch([{ status: 200, body: [DOSE_DTO] }]);
+  await httpDoseService.listForDay('12', '2026-10-18');
+  const chamadas = fakeFetch([{ status: 200, body: [{ ...DOSE_DTO, statusExibicao: 'ATRASADA' }] }]);
+  const atual = await httpDoseService.get('5000');
+  assert.equal(chamadas[0].path, '/api/idosos/12/doses?data=2026-10-18');
+  assert.equal(atual.status, 'ATRASADA');
+  // Com a dica (ex.: payload do push), não precisa ter visto a lista
+  const comDica = fakeFetch([{ status: 200, body: [{ ...DOSE_DTO, id: 7000, horarioProgramado: '2026-10-17T08:00:00' }] }]);
+  assert.equal((await httpDoseService.get('7000', { elderId: '12', day: '2026-10-17' })).id, '7000');
+  assert.equal(comDica[0].path, '/api/idosos/12/doses?data=2026-10-17');
+  forgetDoseOrigins();
+  const erro = await httpDoseService.get('5000').then(() => null, (e: unknown) => e);
+  assert.ok(erro instanceof AppError && erro.status === 404);
+});
+
+checkAsync('Confirmar: PUT /api/doses/{id}/confirmar; 409 DOSE_ENCERRADA chega com código e mensagem clara', async () => {
+  setViewerProvider(() => 'ELDER');
+  const chamadas = fakeFetch([
+    { status: 200, body: { ...DOSE_DTO, status: 'TOMADA', statusExibicao: 'TOMADA', horaConfirmacao: '2026-10-18T08:01:00', confirmabilidade: 'JA_REGISTRADA' } },
+    { status: 409, body: { codigo: 'DOSE_ENCERRADA', mensagem: 'x', campos: [] } },
+    { status: 409, body: { codigo: 'DOSE_JA_REGISTRADA', mensagem: 'x', campos: [] } },
+    { status: 409, body: { codigo: 'DOSE_MUITO_CEDO', mensagem: 'x', campos: [] } },
+  ]);
+  const confirmada = await httpDoseService.confirm('5000');
+  assert.equal(confirmada.storedStatus, 'TOMADA');
+  assert.equal(chamadas[0].method, 'PUT');
+  assert.equal(chamadas[0].path, '/api/doses/5000/confirmar');
+  for (const [codigo, texto] of [['DOSE_ENCERRADA', /prazo/], ['DOSE_JA_REGISTRADA', /já foi registrada/], ['DOSE_MUITO_CEDO', /cedo/]] as const) {
+    const erro = await httpDoseService.confirm('5000').then(() => null, (e: unknown) => e);
+    assert.ok(erro instanceof AppError && erro.code === codigo && erro.status === 409, codigo);
+    assert.match((erro as AppError).message, texto);
+  }
+});
+
+checkAsync('Alertas: doses do dia ainda PENDENTES que o servidor mostra como ATRASADA ou NAO_TOMADA', async () => {
+  setViewerProvider(() => 'CAREGIVER');
+  fakeFetch([
+    { status: 200, body: [{ id: 12, nome: 'José', dataNascimento: '1945-01-01', telefone: null, cuidadorId: 1 }] },
+    {
+      status: 200,
+      body: [
+        { ...DOSE_DTO, id: 1, statusExibicao: 'ATRASADA' },
+        { ...DOSE_DTO, id: 2, statusExibicao: 'PENDENTE' },
+        { ...DOSE_DTO, id: 3, status: 'NAO_TOMADA', statusExibicao: 'NAO_TOMADA', confirmabilidade: 'JA_REGISTRADA' },
+        { ...DOSE_DTO, id: 4, statusExibicao: 'NAO_TOMADA', confirmabilidade: 'ENCERRADA' },
+      ],
+    },
+  ]);
+  const alertas = await httpDoseService.listAlerts();
+  assert.deepEqual(alertas.map((a) => `${a.doseId}:${a.status}`), ['1:ATRASADA', '4:NAO_TOMADA']);
+});
+
+// --- Cadastro em que só o POST deu certo (FE-55) -------------------------------------------------------------------
+checkAsync('Cadastro criado e login falhou: não repete o POST e avisa para fazer login', async () => {
+  const chamadas = fakeFetch([{ status: 201, body: { id: 1 } }, { status: 503 }]);
+  const erro = await httpAuthService
+    .signUp({ name: 'Ana', email: ' ana@teste.com ', password: 'Senha123', lgpdConsent: true })
+    .then(() => null, (e: unknown) => e);
+  assert.ok(erro instanceof AppError);
+  assert.equal(erro.code, 'CONTA_CRIADA_SEM_LOGIN');
+  assert.equal(erro.message, 'Conta criada, mas não foi possível entrar agora. Faça login.');
+  assert.deepEqual(chamadas.map((c) => `${c.method} ${c.path}`), ['POST /api/cuidadores', 'POST /api/auth/login']);
 });
 
 void (async () => {

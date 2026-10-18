@@ -8,7 +8,9 @@ import { CaregiverScreen } from '../../components/layout/CaregiverScreen';
 import { AppText, Avatar, EmptyState, ErrorState, LoadingSkeleton, RefreshFailedBanner } from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
-import { firstName, formatLongDate, greeting, toDateKey } from '../../lib/date';
+import { firstName, formatLongDate, greeting } from '../../lib/date';
+import { liveAt } from '../../lib/doseLive';
+import { appTodayKey } from '../../lib/serverClock';
 import { summarize } from '../../lib/doseRules';
 import { useQuery } from '../../lib/useQuery';
 import { minuteStamp, useNow } from '../../lib/useNow';
@@ -26,7 +28,7 @@ export function DashboardScreen({ navigation }: TabScreenProps<'Painel'>) {
   const dismissed = useAppStore((s) => s.dismissedAlertIds);
   const dismiss = useAppStore((s) => s.dismissAlert);
   const now = useNow();
-  const today = toDateKey(now);
+  const today = appTodayKey(now);
   const silentKey = minuteStamp(now);
 
   const elders = useQuery(['elders'], () => services.elders.list());
@@ -36,7 +38,8 @@ export function DashboardScreen({ navigation }: TabScreenProps<'Painel'>) {
   const visibleAlerts = (alerts.data ?? []).filter(
     (a) => !dismissed.includes(`${a.doseId}:${a.status}`) && (filter === 'ALL' || a.elderId === filter),
   );
-  const list = doses.data ?? [];
+  // Status entre as atualizações: só compara agora com a janela que veio do servidor (FE-21)
+  const list = (doses.data ?? []).map((d) => liveAt(d, now));
   const summary = summarize(list.map((d) => d.status));
   const selectedElder = filter === 'ALL' ? null : elders.data?.find((e) => e.id === filter);
   const openDose = (d: DoseView) => navigation.navigate('DoseDetail', { doseId: d.id });

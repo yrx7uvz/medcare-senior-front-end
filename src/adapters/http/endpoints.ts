@@ -7,6 +7,8 @@ export const endpoints = {
   elders: '/api/idosos',
   elder: (id: string) => `/api/idosos/${id}`,
   elderMe: '/api/idosos/me',
+  elderDoses: (elderId: string, day: string) => `/api/idosos/${elderId}/doses?data=${day}`,
+  myDoses: (day: string) => `/api/idosos/me/doses?data=${day}`,
   generateLinkCode: (elderId: string) => `/api/idosos/${elderId}/gerar-codigo`,
   validateLinkCode: '/api/vinculo/validar',
   medications: '/api/medicamentos',

@@ -14,7 +14,8 @@ export type RootStackParamList = {
   // Primeira abertura: escolha do perfil do aparelho
   ProfileChoice: undefined;
   // Cuidador (sem sessão)
-  Login: undefined;
+  // email: preenchido quando a conta acabou de ser criada mas o login automático falhou
+  Login: { email?: string } | undefined;
   SignUp: undefined;
   // Cuidador (com sessão)
   CaregiverTabs: NavigatorScreenParams<CaregiverTabParamList> | undefined;

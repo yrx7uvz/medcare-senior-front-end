@@ -17,14 +17,14 @@ import { radius, spacing, useTheme } from '../../theme';
 import { Logo } from './Logo';
 
 /** T01 — Login do cuidador. Erro idêntico para e-mail inexistente e senha incorreta. */
-export function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
+export function LoginScreen({ navigation, route }: RootScreenProps<'Login'>) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const setSession = useAppStore((s) => s.setSession);
   const flash = useAppStore((s) => s.flash);
   const setFlash = useAppStore((s) => s.setFlash);
   const [forgot, setForgot] = useState(false);
-  const { control, handleSubmit } = useForm<LoginValues>({ resolver: zodResolver(loginSchema), defaultValues: { email: '', password: '' } });
+  const { control, handleSubmit } = useForm<LoginValues>({ resolver: zodResolver(loginSchema), defaultValues: { email: route.params?.email ?? '', password: '' } });
   const login = useMutation(services.auth.login);
   const demo = useMutation(services.auth.loginDemo);
 

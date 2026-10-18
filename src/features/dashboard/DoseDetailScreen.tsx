@@ -7,6 +7,7 @@ import { AppText, Button, Card, DoseStatusBadge, ErrorState, LoadingSkeleton, Pi
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import { firstName, formatDateBR, formatTime } from '../../lib/date';
+import { liveAt } from '../../lib/doseLive';
 import { TYPE_LABEL, describeAppearance } from '../../lib/medicationMeta';
 import { useQuery } from '../../lib/useQuery';
 import { minuteStamp, useNow } from '../../lib/useNow';
@@ -19,7 +20,7 @@ export function DoseDetailScreen({ route, navigation }: RootScreenProps<'DoseDet
   const setSelected = useAppStore((s) => s.setSelectedElder);
   const now = useNow();
   const q = useQuery(['dose', route.params.doseId], () => services.doses.get(route.params.doseId), { silentKey: minuteStamp(now) });
-  const d = q.data;
+  const d = q.data ? liveAt(q.data, now) : undefined;
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
