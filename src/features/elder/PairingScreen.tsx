@@ -51,7 +51,8 @@ export function PairingScreen({ navigation }: RootScreenProps<'ElderPairing'>) {
 
   const errorText = blocked
     ? `Muitas tentativas. Tente de novo em ${formatCountdown((blockedUntil ?? 0) - tick)}.`
-    : validate.error && validate.error.status !== 429
+    : // 429 com Retry-After vira a contagem acima; sem o header, fica a mensagem do erro (já em português)
+      validate.error && (validate.error.status !== 429 || !validate.error.retryAfterSec)
       ? validate.error.message
       : null;
 

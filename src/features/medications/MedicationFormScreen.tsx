@@ -1,10 +1,11 @@
 import { UserPlus } from 'lucide-react-native';
+import { useState } from 'react';
 import { KeyboardAvoidingView, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { StackHeader } from '../../components/layout/StackHeader';
 import { EmptyState, ErrorState, LoadingSkeleton } from '../../components/ui';
-import { services } from '../../services';
+import { services, TreatmentNotSavedError } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import type { MedicationFormValues } from '../../lib/schemas';
 import { useMutation, useQuery } from '../../lib/useQuery';
@@ -24,9 +25,14 @@ export function MedicationFormScreen({ route, navigation }: RootScreenProps<'Med
 
   const elders = useQuery(['elders'], () => services.elders.list());
   const existing = useQuery(['med', medicationId], () => services.medications.get(medicationId!), { enabled: isEdit });
-  const save = useMutation((v: MedicationFormValues) =>
-    isEdit ? services.medications.update(medicationId!, toMedicationInput(v)) : services.medications.create(toMedicationInput(v)),
-  );
+  // Cadastro em que o medicamento foi salvo e o tratamento não: o próximo envio tenta SÓ o tratamento
+  const [orphanId, setOrphanId] = useState<string | null>(null);
+  const save = useMutation((v: MedicationFormValues) => {
+    const input = toMedicationInput(v);
+    if (isEdit) return services.medications.update(medicationId!, input);
+    if (orphanId) return services.medications.createTreatment(orphanId, input.treatment);
+    return services.medications.create(input);
+  });
 
   const loading = elders.loading || (isEdit && existing.loading);
   const error = elders.error ?? existing.error;
@@ -34,10 +40,12 @@ export function MedicationFormScreen({ route, navigation }: RootScreenProps<'Med
   const elderName = (id: string) => elders.data?.find((e) => e.id === id)?.name;
 
   async function onSubmit(v: MedicationFormValues) {
-    const result = await save.mutate(v);
-    if (result) {
+    const result = await save.run(v);
+    if (result.ok) {
       showToast(isEdit ? 'Remédio e tratamento atualizados' : 'Remédio salvo e doses geradas');
       navigation.goBack();
+    } else if (!isEdit && result.error instanceof TreatmentNotSavedError) {
+      setOrphanId(result.error.medicationId);
     }
   }
 
@@ -67,6 +75,8 @@ export function MedicationFormScreen({ route, navigation }: RootScreenProps<'Med
             isEdit={isEdit}
             submitting={save.loading}
             submitError={save.error}
+            submitLabel={orphanId ? 'Tentar salvar os horários de novo' : undefined}
+            lockMedicationFields={!!orphanId}
             onSubmit={onSubmit}
           />
         </ScrollView>
