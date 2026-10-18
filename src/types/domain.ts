@@ -56,7 +56,10 @@ export interface Medication extends MedicationAppearance {
   name: string;
   dosage: string;
   stock?: number;
+  /** Texto livre de orientações (só os dados de demonstração). */
   leaflet?: string;
+  /** Link da bula (API: bulaUrl). */
+  bulaUrl?: string;
   appearanceSource: AppearanceSource;
   createdAt: DateTimeKey;
   /** Remoção lógica (RN06/RN08): preenchido = removido, histórico preservado. */

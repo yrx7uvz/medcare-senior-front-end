@@ -3,6 +3,7 @@ import type {
   AdherenceReport,
   AlertView,
   CaregiverSession,
+  DailyReport,
   ConversationView,
   DoseView,
   ElderFilter,
@@ -77,8 +78,10 @@ export interface MessageService {
   unreadCount(elderId: ID | 'ALL', reader: MessageAuthor): Promise<number>;
 }
 
-/** GET /api/relatorios/pdf */
+/** GET /api/relatorios/diario e GET /api/relatorios/pdf */
 export interface ReportService {
+  /** Relatório diário de uso dos medicamentos de um idoso (UC-008). */
+  getDaily(elderId: ID, day: DateKey): Promise<DailyReport>;
   getAdherence(elderId: ID, from: string, to: string): Promise<AdherenceReport>;
   generatePdf(elderId: ID, from: string, to: string): Promise<PdfResult>;
 }
