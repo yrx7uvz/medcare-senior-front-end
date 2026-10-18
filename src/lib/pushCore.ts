@@ -50,8 +50,8 @@ export interface PushService {
   onOpen(listener: (data: Record<string, unknown>) => void): () => void;
   /** Dados da notificação que abriu o app fechado, se houver. */
   getLaunchData(): Promise<Record<string, unknown> | null>;
-  /** Mostra banner e som mesmo com o app em primeiro plano. */
-  showInForeground(): void;
+  /** Mostra banner e som com o app em primeiro plano, enquanto `enabled()` for verdadeiro (preferência do usuário). */
+  showInForeground(enabled?: () => boolean): void;
 }
 
 export function isPushSupported(env: PushEnvironment): boolean {
@@ -159,12 +159,15 @@ export function createPushService(env: PushEnvironment, load: () => Notification
         return response ? dataOf(response.notification.request.content.data) : null;
       }, null),
 
-    showInForeground() {
+    showInForeground(enabled = () => true) {
       const n = notifications();
       if (!n) return;
       try {
         n.setNotificationHandler({
-          handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false }),
+          handleNotification: async () => {
+            const show = enabled();
+            return { shouldShowBanner: show, shouldShowList: show, shouldPlaySound: show, shouldSetBadge: false };
+          },
         });
       } catch {
         // Sem handler, a notificação em primeiro plano só não aparece como banner

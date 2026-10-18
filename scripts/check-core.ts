@@ -37,11 +37,13 @@ import { liveDose } from '../src/lib/doseLive';
 import { toleranceError } from '../src/lib/doseRules';
 import { isTreatmentActive, pickCurrentTreatment } from '../src/lib/medicationMeta';
 import { createPushService, isPushSupported, type NotificationsModule } from '../src/lib/pushCore';
+import { parseDosePayload } from '../src/lib/pushPayload';
+import { createPushRegistration } from '../src/lib/pushRegistrationCore';
 import { useQueryBus } from '../src/lib/queryBus';
 import { medicationFormSchema } from '../src/lib/schemas';
 import { appNowMs, appTodayKey, computeClockOffset, recordServerDate, resetServerClock, serverOffsetMs } from '../src/lib/serverClock';
 import { formatWait, messageForApiError } from '../src/services/errorMessages';
-import { AppError, TreatmentNotSavedError } from '../src/services/errors';
+import { AppError, httpError, networkError, TreatmentNotSavedError } from '../src/services/errors';
 
 const toBase64Url = (s: string) => Buffer.from(s, 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const jwt = (payload: object) => `${toBase64Url('{"alg":"HS256"}')}.${toBase64Url(JSON.stringify(payload))}.assinatura`;
@@ -883,6 +885,140 @@ check('Build Android: google-services.json só por variável de ambiente e nunca
   assert.equal(eas.build.development.distribution, 'internal');
   assert.equal(eas.build.development.android.buildType, 'apk');
   assert.ok(eas.build.preview && eas.build.production);
+});
+
+// --- Push no app: payload, registro do token e alerta simulado (FE-26 a FE-29) -------------------------------------
+check('Payload do push vira a dose a abrir; qualquer coisa fora do contrato é ignorada', () => {
+  const ok = { tipo: 'DOSE_NAO_CONFIRMADA', doseId: '5000', idosoId: '12', data: '2026-10-18' };
+  assert.deepEqual(parseDosePayload(ok), { doseId: '5000', elderId: '12', day: '2026-10-18' });
+  assert.deepEqual(parseDosePayload({ ...ok, doseId: 5000, idosoId: 12 }), { doseId: '5000', elderId: '12', day: '2026-10-18' });
+  for (const ruim of [
+    null, undefined, 'texto', [], {},
+    { ...ok, tipo: 'MENSAGEM' }, { ...ok, tipo: undefined }, { ...ok, doseId: 'abc' }, { ...ok, doseId: '' },
+    { ...ok, idosoId: '-1' }, { ...ok, data: '18/10/2026' }, { ...ok, data: undefined },
+  ]) {
+    assert.equal(parseDosePayload(ruim), null, JSON.stringify(ruim));
+  }
+});
+
+/** Push falso para o registro: token configurável e ouvintes de troca de token. */
+function pushParaRegistro(opcoes: { supported?: boolean; token?: string | null } = {}) {
+  const ouvintes: ((t: string) => void)[] = [];
+  return {
+    ouvintes,
+    push: {
+      supported: opcoes.supported ?? true,
+      getDeviceToken: async () => (opcoes.token === undefined ? 'fcm-aparelho' : opcoes.token),
+      onTokenChange: (cb: (t: string) => void) => {
+        ouvintes.push(cb);
+        return () => {
+          ouvintes.splice(ouvintes.indexOf(cb), 1);
+        };
+      },
+    },
+  };
+}
+
+function pendencia() {
+  let valor = false;
+  return { get: async () => valor, set: async (p: boolean) => void (valor = p), valor: () => valor };
+}
+
+checkAsync('Token do aparelho: registra após entrar, reenvia na troca e remove na saída (204)', async () => {
+  const { push, ouvintes } = pushParaRegistro();
+  const pend = pendencia();
+  const chamadas: string[] = [];
+  const reg = createPushRegistration({
+    push,
+    putToken: async (t) => void chamadas.push(`PUT ${t}`),
+    deleteToken: async () => void chamadas.push('DELETE'),
+    pending: pend,
+  });
+  assert.equal(await reg.register(), 'REGISTERED');
+  ouvintes.forEach((cb) => cb('fcm-novo'));
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(await reg.unregister(), 'REMOVED');
+  // Depois da saída, a troca de token não é mais enviada
+  assert.equal(ouvintes.length, 0);
+  assert.deepEqual(chamadas, ['PUT fcm-aparelho', 'PUT fcm-novo', 'DELETE']);
+  assert.equal(pend.valor(), false);
+});
+
+checkAsync('Saída sem rede ou demorada não trava: vira pendência, resolvida no próximo login', async () => {
+  const pend = pendencia();
+  const semRede = createPushRegistration({
+    push: pushParaRegistro().push,
+    putToken: async () => undefined,
+    deleteToken: async () => {
+      throw networkError();
+    },
+    pending: pend,
+  });
+  assert.equal(await semRede.unregister(), 'PENDING');
+  assert.equal(await semRede.hasPendingRemoval(), true);
+  const demorada = createPushRegistration({
+    push: pushParaRegistro().push,
+    putToken: async () => undefined,
+    deleteToken: () => new Promise<void>(() => undefined),
+    pending: pend,
+    removalTimeoutMs: 20,
+  });
+  const inicio = Date.now();
+  assert.equal(await demorada.unregister(), 'PENDING');
+  assert.ok(Date.now() - inicio < 1_000);
+  // Próximo login: o PUT liga o token à conta nova (a API o tira da conta anterior) e limpa a pendência
+  assert.equal(await semRede.register(), 'REGISTERED');
+  assert.equal(pend.valor(), false);
+});
+
+checkAsync('Token recusado (TOKEN_DISPOSITIVO_INVALIDO), sem token ou sem push: nada lança erro', async () => {
+  const recusado = createPushRegistration({
+    push: pushParaRegistro().push,
+    putToken: async () => {
+      throw httpError(400, 'Token inválido', 'TOKEN_DISPOSITIVO_INVALIDO');
+    },
+    deleteToken: async () => undefined,
+    pending: pendencia(),
+  });
+  assert.equal(await recusado.register(), 'INVALID_TOKEN');
+  const falhou = createPushRegistration({
+    push: pushParaRegistro().push,
+    putToken: async () => {
+      throw networkError();
+    },
+    deleteToken: async () => undefined,
+    pending: pendencia(),
+  });
+  assert.equal(await falhou.register(), 'FAILED');
+  let chamou = false;
+  const marcar = async () => void (chamou = true);
+  const semToken = createPushRegistration({ push: pushParaRegistro({ token: null }).push, putToken: marcar, deleteToken: marcar, pending: pendencia() });
+  assert.equal(await semToken.register(), 'NO_TOKEN');
+  const semPush = createPushRegistration({ push: pushParaRegistro({ supported: false }).push, putToken: marcar, deleteToken: marcar, pending: pendencia() });
+  assert.equal(await semPush.register(), 'UNSUPPORTED');
+  assert.equal(await semPush.unregister(), 'UNSUPPORTED');
+  assert.equal(chamou, false);
+});
+
+checkAsync('Registro pelo cliente HTTP real: PUT e DELETE /api/cuidadores/me/fcm-token', async () => {
+  const chamadas = fakeFetch([{ status: 204 }, { status: 204 }]);
+  const reg = createPushRegistration({
+    push: pushParaRegistro().push,
+    putToken: (token) => request<void>('PUT', '/api/cuidadores/me/fcm-token', { token }),
+    deleteToken: () => request<void>('DELETE', '/api/cuidadores/me/fcm-token'),
+    pending: pendencia(),
+  });
+  assert.equal(await reg.register(), 'REGISTERED');
+  assert.equal(await reg.unregister(), 'REMOVED');
+  assert.deepEqual(chamadas.map((c) => `${c.method} ${c.path}`), ['PUT /api/cuidadores/me/fcm-token', 'DELETE /api/cuidadores/me/fcm-token']);
+  assert.deepEqual(chamadas[0].body, { token: 'fcm-aparelho' });
+});
+
+check('Alerta simulado só no demo; no modo real, pedido de permissão e push', () => {
+  const ler = (p: string) => readFileSync(join(__dirname, '..', 'src', p), 'utf8');
+  assert.match(ler('app/navigation/CaregiverTabs.tsx'), /\{IS_DEMO \? <AlertWatcher \/> : <PushPermissionPrompt \/>\}/);
+  assert.match(ler('app/App.tsx'), /startPush\(\)/);
+  assert.match(ler('lib/session.ts'), /pushRegistration\.unregister\(\)/);
 });
 
 void (async () => {

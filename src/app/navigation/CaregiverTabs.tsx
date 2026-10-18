@@ -2,6 +2,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { History, LayoutDashboard, MessageCircle, Pill, Settings } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AlertWatcher } from '../../components/layout/AlertWatcher';
+import { PushPermissionPrompt } from '../../components/layout/PushPermissionPrompt';
+import { IS_DEMO } from '../../config/env';
 import { DashboardScreen } from '../../features/dashboard/DashboardScreen';
 import { HistoryScreen } from '../../features/history/HistoryScreen';
 import { MedicationsScreen } from '../../features/medications/MedicationsScreen';
@@ -54,7 +56,8 @@ export function CaregiverTabs() {
         />
         <Tab.Screen name="Config" component={SettingsScreen} options={{ title: 'Config.', tabBarAccessibilityLabel: 'Configurações', tabBarIcon: ({ color, size }) => <Settings color={color} size={size} /> }} />
       </Tab.Navigator>
-      <AlertWatcher />
+      {/* FE-29: o alerta simulado só existe no demo; no modo real o aviso chega por push */}
+      {IS_DEMO ? <AlertWatcher /> : <PushPermissionPrompt />}
     </>
   );
 }

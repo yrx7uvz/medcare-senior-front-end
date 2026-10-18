@@ -7,6 +7,7 @@ import { DemoBanner } from '../components/layout/DemoBanner';
 import { ProfileSwitcher } from '../components/layout/ProfileSwitcher';
 import { Toast } from '../components/layout/Toast';
 import { IS_DEMO } from '../config/env';
+import { startPush } from '../lib/pushSession';
 import { bootSession, registerSessionHandlers } from '../lib/session';
 import { ThemeProvider, palette } from '../theme';
 import { RootNavigator } from './navigation/RootNavigator';
@@ -23,7 +24,12 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = registerSessionHandlers();
     void bootSession();
-    return unsubscribe;
+    // Push (só no app Android instalado; no Expo Go, no iOS e no demo não faz nada)
+    const stopPush = startPush();
+    return () => {
+      unsubscribe();
+      stopPush();
+    };
   }, []);
 
   if (!fontsLoaded) {

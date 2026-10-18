@@ -5,7 +5,8 @@ import { IS_DEMO } from '../config/env';
 import { useAppStore, type ViewAs } from '../store/appStore';
 import { resolveStoredSessions, SESSION_EXPIRED_MESSAGE } from './bootRules';
 import { invalidateQueries } from './queryBus';
-import { caregiverSessionStorage, elderDeviceStorage, profileStorage, type DeviceProfile } from './secureStorage';
+import { pushRegistration } from './pushSession';
+import { caregiverSessionStorage, elderDeviceStorage, notificationPrefsStorage, profileStorage, type DeviceProfile } from './secureStorage';
 
 export { ELDER_EXPIRED_MESSAGE, SESSION_EXPIRED_MESSAGE } from './bootRules';
 export const ELDER_DISCONNECTED_MESSAGE = 'Este aparelho precisa ser conectado de novo. Peça um novo código a quem cuida de você.';
@@ -55,6 +56,9 @@ export async function bootSession() {
   if (resolved.clearCaregiver) await safely(() => caregiverSessionStorage.clear(), undefined);
   if (resolved.clearElder) await safely(() => elderDeviceStorage.clear(), undefined);
   const flash = resolved.flash;
+  // Preferências de notificação do aparelho (sem elas, ficam as padrão)
+  const prefs = await safely(() => notificationPrefsStorage.load(), null);
+  if (prefs) useAppStore.getState().setNotificationPrefs(prefs);
   useAppStore.setState({
     viewAs: toViewAs(profile),
     session: resolved.caregiver,
@@ -73,12 +77,18 @@ export async function chooseProfile(viewAs: ViewAs) {
 
 /** "Não é você? Trocar perfil": limpa SÓ o perfil (a sessão do idoso já pareada fica no aparelho). */
 export async function switchProfile() {
+  // Aparelho deixa de ser do cuidador: para de receber os avisos dele (melhor esforço, antes de sair do perfil)
+  const s = useAppStore.getState();
+  if (s.viewAs === 'CAREGIVER' && s.session) await pushRegistration.unregister();
   await safely(() => profileStorage.clear(), undefined);
   useAppStore.getState().setViewAs(null);
 }
 
 /** Sair (cuidador): limpa a sessão da memória e do SecureStore e os dados carregados. */
 export async function logoutCaregiver(flash: string | null = null) {
+  // Tira o token do aparelho da conta ANTES de apagar a sessão (a remoção precisa do JWT). Melhor esforço com tempo
+  // limite: sem rede, a saída acontece e a pendência é resolvida no próximo login
+  if (useAppStore.getState().session && !flash) await pushRegistration.unregister();
   useAppStore.setState({ session: null, flash });
   await safely(() => caregiverSessionStorage.clear(), undefined);
   clearDataCaches();
@@ -112,8 +122,13 @@ export function registerSessionHandlers() {
 
   // Toda troca de sessão do cuidador (login, cadastro, saída, exclusão de conta) é refletida no SecureStore
   return useAppStore.subscribe((state, prev) => {
+    if (state.notificationPrefs !== prev.notificationPrefs) {
+      void safely(() => notificationPrefsStorage.save(state.notificationPrefs), undefined);
+    }
     if (IS_DEMO || state.session === prev.session) return;
     const next = state.session;
     void safely(() => (next ? caregiverSessionStorage.save(next) : caregiverSessionStorage.clear()), undefined);
+    // Entrou (login, cadastro ou app aberto já logado): liga o token do aparelho à conta (FE-27)
+    if (next && next.token !== prev.session?.token && state.viewAs === 'CAREGIVER') void pushRegistration.register();
   });
 }
