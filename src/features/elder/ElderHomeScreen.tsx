@@ -2,7 +2,7 @@ import { CalendarCheck, CheckCircle2, MessageCircle, Pill } from 'lucide-react-n
 import { StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { ElderScreen } from '../../components/layout/ElderScreen';
-import { AppText, BigActionButton, Card, DoseStatusBadge, EmptyState, ErrorState, LoadingSkeleton, PillVisual } from '../../components/ui';
+import { AppText, BigActionButton, Card, DoseStatusBadge, EmptyState, ErrorState, LoadingSkeleton, PillVisual, RefreshFailedBanner } from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import { firstName, formatLongDate, formatTime, greeting, toDateKey } from '../../lib/date';
@@ -38,6 +38,8 @@ export function ElderHomeScreen({ navigation }: RootScreenProps<'ElderHome'>) {
           {formatLongDate(now)}
         </AppText>
       </View>
+
+      {doses.refreshError ? <RefreshFailedBanner onRetry={doses.refresh} /> : null}
 
       {doses.loading || profile.loading ? (
         <LoadingSkeleton variant="elder" rows={2} />

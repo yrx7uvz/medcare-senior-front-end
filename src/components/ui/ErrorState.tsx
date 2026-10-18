@@ -14,16 +14,20 @@ export function ErrorState({ error, onRetry }: Props) {
   const { colors, elder } = useTheme();
   const offline = error?.kind === 'NETWORK';
   const Icon = offline ? WifiOff : AlertCircle;
+  // 4xx (ex.: 404, 403) e configuração: a mensagem da API/do app explica o problema melhor que o texto genérico
+  const specific = error && (error.kind === 'CONFIG' || (error.kind === 'HTTP' && error.status >= 400 && error.status < 500)) ? error.message : null;
   return (
     <View style={styles.wrap} accessibilityLiveRegion="polite">
       <View style={[styles.iconWrap, { backgroundColor: colors.dangerSoft }]}>
         <Icon color={colors.danger} size={elder ? 40 : 30} />
       </View>
       <AppText variant={elder ? 'elderTitle' : 'heading'} align="center">
-        {offline ? 'Sem conexão' : 'Não foi possível carregar os dados'}
+        {offline ? 'Sem conexão' : error?.kind === 'CONFIG' ? 'App não configurado' : 'Não foi possível carregar os dados'}
       </AppText>
       <AppText variant={elder ? 'elderBody' : 'body'} muted align="center">
-        {offline ? 'Verifique a internet do celular e tente de novo.' : 'Algo falhou ao buscar as informações. Tente de novo em instantes.'}
+        {offline
+          ? 'Verifique a internet do celular e tente de novo.'
+          : (specific ?? 'Algo falhou ao buscar as informações. Tente de novo em instantes.')}
       </AppText>
       <Button title="Tentar novamente" onPress={onRetry} size={elder ? 'lg' : 'md'} style={styles.btn} />
     </View>

@@ -41,7 +41,7 @@ export const mockAuthService: AuthService = {
       const account = getDb().accounts.find((a) => a.email === email.trim().toLowerCase());
       // Mesma mensagem para e-mail inexistente e senha incorreta.
       if (!account || !account.passwordHash || account.passwordHash !== mockHash(password)) {
-        throw httpError(401, GENERIC_LOGIN_ERROR);
+        throw httpError(401, GENERIC_LOGIN_ERROR, 'CREDENCIAIS_INVALIDAS');
       }
       activate(account);
       return toSession(account);
@@ -56,8 +56,8 @@ export const mockAuthService: AuthService = {
 
   signUp: (input) =>
     simulate(() => {
-      if (!input.lgpdConsent) throw httpError(400, 'É necessário aceitar o termo de consentimento (LGPD).');
-      if (!meetsPasswordPolicy(input.password)) throw httpError(400, 'A senha não atende aos requisitos (RN02).');
+      if (!input.lgpdConsent) throw httpError(400, 'É necessário aceitar o termo de consentimento (LGPD).', 'CONSENTIMENTO_OBRIGATORIO');
+      if (!meetsPasswordPolicy(input.password)) throw httpError(400, 'A senha não atende aos requisitos (RN02).', 'SENHA_FRACA');
       const email = input.email.trim().toLowerCase();
       if (getDb().accounts.some((a) => a.email === email)) {
         throw httpError(409, 'Este e-mail já está cadastrado (RN01).', 'EMAIL_DUPLICADO');

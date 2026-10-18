@@ -20,6 +20,8 @@ interface AppState {
   setViewAs: (v: ViewAs | null) => void;
   /** O boot terminou de ler perfil e sessões do SecureStore. */
   profileLoaded: boolean;
+  /** Falha ao ler o SecureStore no boot (a tela de carregamento oferece "Tentar novamente"). */
+  bootError: string | null;
 
   session: CaregiverSession | null;
   setSession: (s: CaregiverSession | null) => void;
@@ -64,6 +66,7 @@ export const useAppStore = create<AppState>()((set) => ({
   viewAs: null,
   setViewAs: (viewAs) => set(viewAs === 'ELDER' ? { viewAs, elderUnlocked: false } : { viewAs }),
   profileLoaded: false,
+  bootError: null,
 
   session: null,
   setSession: (session) => set({ session }),

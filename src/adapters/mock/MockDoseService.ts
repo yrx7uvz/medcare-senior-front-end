@@ -36,9 +36,9 @@ export const mockDoseService: DoseService = {
       if (index < 0) throw httpError(404, 'Dose não encontrada.');
       const current = db.doses[index];
       const view = toDoseView(current, now);
-      if (view.confirmability === 'JA_REGISTRADA') throw httpError(409, 'Esta dose já foi registrada.', 'JA_REGISTRADA');
-      if (view.confirmability === 'MUITO_CEDO') throw httpError(409, 'Ainda é cedo para confirmar esta dose.', 'MUITO_CEDO');
-      if (view.confirmability === 'ENCERRADA') throw httpError(409, 'O prazo para confirmar esta dose terminou.', 'ENCERRADA');
+      if (view.confirmability === 'JA_REGISTRADA') throw httpError(409, 'Esta dose já foi registrada.', 'DOSE_JA_REGISTRADA');
+      if (view.confirmability === 'MUITO_CEDO') throw httpError(409, 'Ainda é cedo para confirmar esta dose.', 'DOSE_MUITO_CEDO');
+      if (view.confirmability === 'ENCERRADA') throw httpError(409, 'O prazo para confirmar esta dose terminou.', 'DOSE_ENCERRADA');
       // Dose imutável: substitui por uma nova versão, nunca altera a anterior.
       const next = {
         ...current,

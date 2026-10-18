@@ -145,7 +145,7 @@ export const mockMedicationService: MedicationService = {
       if (!medication) throw httpError(404, 'Medicamento não encontrado.');
       const treatment = db.treatments.find((t) => t.medicationId === id && !t.removedAt);
       if (isTreatmentActive(treatment, toDateKey(now)) && !confirmed) {
-        throw httpError(409, 'Este remédio tem tratamento ativo. Confirme a remoção (RN06).', 'CONFIRMACAO_NECESSARIA');
+        throw httpError(409, 'Este remédio tem tratamento ativo. Confirme a remoção (RN06).', 'TRATAMENTO_ATIVO');
       }
       const stamp = toDateTimeKey(now);
       mutateDb(() => {
