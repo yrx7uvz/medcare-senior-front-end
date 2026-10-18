@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { DoseOpenTarget } from '../lib/pushPayload';
 import type { CaregiverSession, ElderFilter } from '../types/views';
 
 export type ViewAs = 'CAREGIVER' | 'ELDER';
@@ -34,6 +35,12 @@ interface AppState {
 
   notificationPrefs: NotificationPrefs;
   setNotificationPref: (key: keyof NotificationPrefs, value: boolean) => void;
+  /** Preferências lidas do aparelho no boot. */
+  setNotificationPrefs: (prefs: NotificationPrefs) => void;
+
+  /** Dose a abrir vinda de um toque em notificação (espera o login, se a sessão tiver expirado). */
+  pendingDoseOpen: DoseOpenTarget | null;
+  setPendingDoseOpen: (target: DoseOpenTarget | null) => void;
 
   elderHighContrast: boolean;
   toggleElderHighContrast: () => void;
@@ -79,6 +86,10 @@ export const useAppStore = create<AppState>()((set) => ({
 
   notificationPrefs: { missedDose: true, messages: true, lowStock: true },
   setNotificationPref: (key, value) => set((s) => ({ notificationPrefs: { ...s.notificationPrefs, [key]: value } })),
+  setNotificationPrefs: (notificationPrefs) => set({ notificationPrefs }),
+
+  pendingDoseOpen: null,
+  setPendingDoseOpen: (pendingDoseOpen) => set({ pendingDoseOpen }),
 
   elderHighContrast: false,
   toggleElderHighContrast: () => set((s) => ({ elderHighContrast: !s.elderHighContrast })),

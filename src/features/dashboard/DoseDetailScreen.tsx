@@ -19,7 +19,9 @@ export function DoseDetailScreen({ route, navigation }: RootScreenProps<'DoseDet
   const insets = useSafeAreaInsets();
   const setSelected = useAppStore((s) => s.setSelectedElder);
   const now = useNow();
-  const q = useQuery(['dose', route.params.doseId], () => services.doses.get(route.params.doseId), { silentKey: minuteStamp(now) });
+  const { doseId, elderId, day } = route.params;
+  const hint = elderId && day ? { elderId, day } : undefined;
+  const q = useQuery(['dose', doseId], () => services.doses.get(doseId, hint), { silentKey: minuteStamp(now) });
   const d = q.data ? liveAt(q.data, now) : undefined;
 
   return (
