@@ -3,8 +3,10 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { ElderScreen } from '../../components/layout/ElderScreen';
+import { SwitchProfileLink } from '../../components/layout/SwitchProfileLink';
 import { AppText, BigActionButton, DigitBoxes, PinPad } from '../../components/ui';
 import { services } from '../../services';
+import { useAppStore } from '../../store/appStore';
 import { formatCountdown } from '../../lib/date';
 import { useMutation } from '../../lib/useQuery';
 import { radius, spacing, useTheme } from '../../theme';
@@ -14,8 +16,11 @@ export function PairingScreen({ navigation }: RootScreenProps<'ElderPairing'>) {
   const { colors } = useTheme();
   const [code, setCode] = useState('');
   const [blockedUntil, setBlockedUntil] = useState<number | null>(null);
-  const [tick, setTick] = useState(Date.now());
+  const [tick, setTick] = useState(() => Date.now());
   const validate = useMutation(services.elders.validateLinkCode);
+  // Ex.: aparelho desconectado pela API (sessão do idoso inválida)
+  const flash = useAppStore((s) => s.flash);
+  const setFlash = useAppStore((s) => s.setFlash);
 
   useEffect(() => {
     if (!blockedUntil) return;
@@ -29,6 +34,7 @@ export function PairingScreen({ navigation }: RootScreenProps<'ElderPairing'>) {
   const blocked = blockedUntil !== null && tick < blockedUntil;
 
   async function submit() {
+    setFlash(null);
     const pairing = await validate.mutate(code);
     if (pairing) {
       navigation.navigate('ElderCreatePin', pairing);
@@ -39,6 +45,7 @@ export function PairingScreen({ navigation }: RootScreenProps<'ElderPairing'>) {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reage ao erro da mutação (estado externo ao componente); regra do React Compiler, que o projeto não usa
     if (validate.error?.status === 429 && validate.error.retryAfterSec) setBlockedUntil(Date.now() + validate.error.retryAfterSec * 1000);
   }, [validate.error]);
 
@@ -66,6 +73,11 @@ export function PairingScreen({ navigation }: RootScreenProps<'ElderPairing'>) {
           Digite os 6 números que quem cuida de você recebeu no aplicativo.
         </AppText>
       </View>
+      {flash ? (
+        <View style={[styles.error, { backgroundColor: colors.infoSoft }]} accessibilityRole="alert">
+          <AppText variant="elderBody" align="center">{flash}</AppText>
+        </View>
+      ) : null}
       <DigitBoxes value={code} length={6} error={!!errorText} />
       {errorText ? (
         <View style={[styles.error, { backgroundColor: colors.dangerSoft }]} accessibilityRole="alert">
@@ -80,6 +92,7 @@ export function PairingScreen({ navigation }: RootScreenProps<'ElderPairing'>) {
         }}
         onBackspace={() => setCode((c) => c.slice(0, -1))}
       />
+      <SwitchProfileLink />
     </ElderScreen>
   );
 }

@@ -2,14 +2,13 @@ import { Wrench, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { resetPairingAttempts } from '../../adapters/mock/MockElderService';
 import { useAppStore } from '../../store/appStore';
 import { useDevStore } from '../../store/devStore';
+import { getDemo } from '../../config/demo';
 import { DEMO_START, useClockStore } from '../../lib/clock';
 import { formatDateBR, formatTime } from '../../lib/date';
 import { elderDeviceStorage } from '../../lib/secureStorage';
 import { useNow } from '../../lib/useNow';
-import { getDb, resetDb } from '../../mocks/db';
 import { radius, spacing, useTheme } from '../../theme';
 import { AppText, Button, Chip } from '../ui';
 
@@ -24,6 +23,7 @@ const CLOCK_PRESETS: { label: string; h: number; m: number; hint?: string }[] = 
 /**
  * Menu de desenvolvedor (somente no protótipo): alterna "Visualizar como",
  * controla o relógio simulado e injeta falhas para demonstrar os estados.
+ * Renderizado apenas no modo demonstração (ver App.tsx); os mocks vêm de getDemo().
  */
 export function ProfileSwitcher() {
   const { colors } = useTheme();
@@ -38,8 +38,7 @@ export function ProfileSwitcher() {
   const setTime = useClockStore((s) => s.setTime);
   const now = useNow(1000);
 
-  const codes = open ? getDb().linkCodes : [];
-  const elderName = (id: string) => getDb().elders.find((e) => e.id === id)?.name ?? '—';
+  const codes = open ? (getDemo()?.listDemoLinkCodes() ?? []) : [];
 
   return (
     <>
@@ -97,7 +96,7 @@ export function ProfileSwitcher() {
                   ))}
                 </View>
                 <AppText variant="caption" muted>
-                  15:10 faz a Atorvastatina passar a "Não tomada" e, se o Omeprazol não foi confirmado, gera um novo alerta.
+                  15:10 faz a Atorvastatina passar a &quot;Não tomada&quot; e, se o Omeprazol não foi confirmado, gera um novo alerta.
                 </AppText>
               </Section>
 
@@ -112,7 +111,7 @@ export function ProfileSwitcher() {
                   const state = c.used ? 'já usado' : c.expiresAt <= now.getTime() ? 'expirado' : 'válido';
                   return (
                     <AppText key={c.code} variant="body">
-                      {c.code} • {elderName(c.elderId)} • {state}
+                      {c.code} • {c.elderName} • {state}
                     </AppText>
                   );
                 })}
@@ -123,10 +122,9 @@ export function ProfileSwitcher() {
                   title="Restaurar dados de demonstração"
                   variant="secondary"
                   onPress={async () => {
-                    resetDb();
+                    getDemo()?.resetDemoData();
                     resetUi();
-                    resetPairingAttempts();
-                    await elderDeviceStorage.clear();
+                    await elderDeviceStorage.clear().catch(() => undefined);
                     setElderSession(null);
                     setTime(DEMO_START);
                     dev.set({ simulateError: false, offline: false, slow: false });

@@ -4,7 +4,7 @@ import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TabScreenProps } from '../../app/navigation/types';
 import { CaregiverScreen } from '../../components/layout/CaregiverScreen';
-import { AppText, ConfirmDialog, EmptyState, ErrorState, LoadingSkeleton } from '../../components/ui';
+import { AppText, ConfirmDialog, EmptyState, ErrorState, LoadingSkeleton, RefreshFailedBanner } from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import { firstName } from '../../lib/date';
@@ -29,9 +29,17 @@ export function MedicationsScreen({ navigation }: TabScreenProps<'Remedios'>) {
 
   async function confirmRemove() {
     if (!target) return;
-    await remove.mutate(target.medication.id, { confirmed: true });
+    const result = await remove.run(target.medication.id, { confirmed: true });
+    // Falha: o diálogo continua aberto com a mensagem de erro e o item permanece na lista
+    if (!result.ok) return;
     setTarget(null);
     showToast(`${target.medication.name} removido. O histórico foi mantido.`);
+    q.refresh();
+  }
+
+  function closeDialog() {
+    setTarget(null);
+    remove.clearError();
   }
 
   return (
@@ -45,6 +53,8 @@ export function MedicationsScreen({ navigation }: TabScreenProps<'Remedios'>) {
       ) : q.error ? (
         <ErrorState error={q.error} onRetry={q.reload} />
       ) : (
+        <>
+        {q.refreshError ? <RefreshFailedBanner onRetry={q.refresh} /> : null}
         <FlatList
           data={q.data}
           keyExtractor={(i) => i.medication.id}
@@ -70,10 +80,14 @@ export function MedicationsScreen({ navigation }: TabScreenProps<'Remedios'>) {
               item={item}
               showElder={filter === 'ALL'}
               onPress={() => navigation.navigate('MedicationForm', { medicationId: item.medication.id })}
-              onRemove={() => setTarget(item)}
+              onRemove={() => {
+                remove.clearError();
+                setTarget(item);
+              }}
             />
           )}
         />
+        </>
       )}
 
       <Pressable
@@ -98,7 +112,7 @@ export function MedicationsScreen({ navigation }: TabScreenProps<'Remedios'>) {
         confirmLabel={target?.activeTreatment ? 'Remover mesmo assim' : 'Remover'}
         loading={remove.loading}
         onConfirm={confirmRemove}
-        onCancel={() => setTarget(null)}
+        onCancel={closeDialog}
       >
         {remove.error ? <AppText color={colors.danger}>{remove.error.message}</AppText> : null}
       </ConfirmDialog>

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Animated, StyleSheet, View } from 'react-native';
 import { radius, spacing, useTheme } from '../../theme';
 
@@ -10,7 +10,7 @@ function Block({ width, height, round }: { width: number | `${number}%`; height:
 /** Skeleton com pulso suave (desligado se o sistema pedir menos movimento). */
 export function LoadingSkeleton({ variant = 'list', rows = 4 }: { variant?: 'list' | 'dashboard' | 'elder'; rows?: number }) {
   const { colors } = useTheme();
-  const opacity = useRef(new Animated.Value(1)).current;
+  const [opacity] = useState(() => new Animated.Value(1));
 
   useEffect(() => {
     let loop: Animated.CompositeAnimation | undefined;

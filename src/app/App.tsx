@@ -3,10 +3,11 @@ import { NunitoSans_400Regular, NunitoSans_600SemiBold, NunitoSans_700Bold } fro
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { DemoBanner } from '../components/layout/DemoBanner';
 import { ProfileSwitcher } from '../components/layout/ProfileSwitcher';
 import { Toast } from '../components/layout/Toast';
-import { useAppStore } from '../store/appStore';
-import { elderDeviceStorage } from '../lib/secureStorage';
+import { IS_DEMO } from '../config/env';
+import { bootSession, registerSessionHandlers } from '../lib/session';
 import { ThemeProvider, palette } from '../theme';
 import { RootNavigator } from './navigation/RootNavigator';
 
@@ -18,15 +19,12 @@ export default function App() {
     NunitoSans_600SemiBold,
     NunitoSans_700Bold,
   });
-  const setElderSession = useAppStore((s) => s.setElderSession);
-
-  // Restaura o pareamento do idoso guardado no aparelho (SecureStore).
+  // Boot: liga token e 401 ao cliente HTTP e restaura perfil e sessões do SecureStore.
   useEffect(() => {
-    elderDeviceStorage
-      .loadSession()
-      .then((s) => setElderSession(s ? { elderId: s.elderId } : null))
-      .catch(() => setElderSession(null));
-  }, [setElderSession]);
+    const unsubscribe = registerSessionHandlers();
+    void bootSession();
+    return unsubscribe;
+  }, []);
 
   if (!fontsLoaded) {
     return (
@@ -39,9 +37,11 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <RootNavigator />
-        <ProfileSwitcher />
-        <Toast />
+        <DemoBanner>
+          <RootNavigator />
+          {IS_DEMO ? <ProfileSwitcher /> : null}
+          <Toast />
+        </DemoBanner>
       </ThemeProvider>
     </SafeAreaProvider>
   );

@@ -61,7 +61,7 @@ export function DoseDetailScreen({ route, navigation }: RootScreenProps<'DoseDet
             <Card tone="alt" style={styles.gap}>
               <AppText>
                 O aviso já foi enviado. {firstName(d.elderName)} ainda pode confirmar com atraso até {formatTime(d.window.closesAt)}; depois disso
-                a dose passa a "Não tomada".
+                a dose passa a &quot;Não tomada&quot;.
               </AppText>
               <Button
                 title={`Enviar mensagem para ${firstName(d.elderName)}`}

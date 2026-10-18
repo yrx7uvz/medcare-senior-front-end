@@ -6,13 +6,17 @@ import { KeyboardAvoidingView, ScrollView, StyleSheet, View } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { StackHeader } from '../../components/layout/StackHeader';
+import { SwitchProfileLink } from '../../components/layout/SwitchProfileLink';
 import { AppText, Button, Card, Checkbox, FormTextField } from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
+import { applyFieldErrors, mapFieldErrors } from '../../lib/formErrors';
 import { signUpSchema, type SignUpValues } from '../../lib/schemas';
 import { useMutation } from '../../lib/useQuery';
 import { radius, spacing, useTheme } from '../../theme';
 import { PasswordStrengthMeter } from './PasswordStrengthMeter';
+
+const SIGN_UP_FIELDS = ['name', 'email', 'phone', 'password', 'lgpdConsent'] as const;
 
 /** T02 — Cadastro do cuidador com consentimento LGPD obrigatório. */
 export function SignUpScreen({ navigation }: RootScreenProps<'SignUp'>) {
@@ -25,6 +29,8 @@ export function SignUpScreen({ navigation }: RootScreenProps<'SignUp'>) {
     defaultValues: { name: '', email: '', phone: '', password: '', confirmPassword: '', lgpdConsent: false },
   });
   const signUp = useMutation(services.auth.signUp);
+  // react-hook-form não é compatível com o React Compiler (só aviso; o projeto não usa o compilador).
+  // eslint-disable-next-line react-hooks/incompatible-library
   const consent = watch('lgpdConsent');
   const password = watch('password');
 
@@ -36,10 +42,14 @@ export function SignUpScreen({ navigation }: RootScreenProps<'SignUp'>) {
     }
   });
 
+  // Erros da API mostrados nos campos: e-mail duplicado (codigo EMAIL_DUPLICADO) e validação por campo (campos[])
   const duplicateEmail = signUp.error?.code === 'EMAIL_DUPLICADO';
+  const inlineError = duplicateEmail || mapFieldErrors<SignUpValues>(signUp.error, SIGN_UP_FIELDS).length > 0;
   useEffect(() => {
-    if (duplicateEmail && signUp.error) setError('email', { message: signUp.error.message });
-  }, [duplicateEmail, signUp.error, setError]);
+    if (!signUp.error) return;
+    if (signUp.error.code === 'EMAIL_DUPLICADO') setError('email', { message: signUp.error.message });
+    else applyFieldErrors(setError, signUp.error, SIGN_UP_FIELDS);
+  }, [signUp.error, setError]);
 
   return (
     <KeyboardAvoidingView style={[styles.flex, { backgroundColor: colors.background }]}>
@@ -106,7 +116,7 @@ export function SignUpScreen({ navigation }: RootScreenProps<'SignUp'>) {
           </View>
         </Card>
 
-        {signUp.error && !duplicateEmail ? (
+        {signUp.error && !inlineError ? (
           <View style={[styles.error, { backgroundColor: colors.dangerSoft }]} accessibilityRole="alert">
             <AppText variant="bodyStrong" color={colors.danger}>{signUp.error.message}</AppText>
           </View>
@@ -121,6 +131,7 @@ export function SignUpScreen({ navigation }: RootScreenProps<'SignUp'>) {
           disabled={!consent}
           accessibilityHint={consent ? undefined : 'Disponível depois de aceitar os termos'}
         />
+        <SwitchProfileLink />
       </ScrollView>
     </KeyboardAvoidingView>
   );

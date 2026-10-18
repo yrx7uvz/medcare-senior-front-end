@@ -19,7 +19,7 @@ export function ElderDoseRow({ dose, onPress }: { dose: DoseView; onPress: () =>
         styles.row,
         {
           backgroundColor: colors.surface,
-          borderColor: highContrast ? colors.border : colors.border,
+          borderColor: colors.border,
           borderWidth: highContrast ? 2 : 1,
           borderLeftColor: colors.status[dose.status].accent,
           opacity: pressed ? 0.85 : 1,
