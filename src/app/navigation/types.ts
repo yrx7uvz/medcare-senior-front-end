@@ -24,6 +24,8 @@ export type RootStackParamList = {
   MedicationForm: { medicationId?: string } | undefined;
   ExportPdf: undefined;
   DoseDetail: { doseId: string };
+  // UC-008: relatório diário de um idoso (idoso e dia opcionais)
+  DailyReport: { elderId?: string; day?: string } | undefined;
   // Comum
   Legal: { doc: 'termos' | 'lgpd' };
   // Idoso

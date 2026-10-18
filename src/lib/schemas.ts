@@ -37,30 +37,27 @@ export const elderSchema = z.object({
 });
 export type ElderValues = z.infer<typeof elderSchema>;
 
-const optionalMm = z
-  .string()
-  .refine((v) => v.trim() === '' || (/^\d+([.,]\d)?$/.test(v.trim()) && Number(v.replace(',', '.')) > 0 && Number(v.replace(',', '.')) <= 60), 'Use um número entre 1 e 60');
-
+/**
+ * Formulário de remédio + tratamento: só os campos que a API guarda (MedicamentoRequestDTO e TratamentoRequestDTO),
+ * com os mesmos limites de tamanho dela.
+ */
 export const medicationFormSchema = z
   .object({
     elderId: z.string().min(1, 'Escolha o paciente'),
-    name: z.string().trim().min(1, 'Informe o nome do remédio (RN05)'),
-    dosage: z.string().trim().min(1, 'Informe a dosagem (RN05)'),
+    name: z.string().trim().min(1, 'Informe o nome do remédio (RN05)').max(255, 'Até 255 caracteres'),
+    dosage: z.string().trim().min(1, 'Informe a dosagem (RN05)').max(100, 'Até 100 caracteres'),
     type: z.enum(MEDICATION_TYPE_VALUES, { errorMap: () => ({ message: 'Escolha o tipo (RN05)' }) }),
     shape: z.enum(PILL_SHAPE_VALUES),
-    primaryColor: z.string(),
-    secondaryColor: z.string(),
-    lengthMm: optionalMm,
-    widthMm: optionalMm,
-    imprint: z.string().max(12, 'Até 12 caracteres'),
-    hasScore: z.boolean(),
+    primaryColor: z.string().max(50),
     stock: z.string().refine((v) => v.trim() === '' || /^\d{1,5}$/.test(v.trim()), 'Use um número inteiro'),
-    doseQuantity: z.string().max(40, 'Até 40 caracteres'),
-    leaflet: z.string().max(2000, 'Até 2.000 caracteres'),
-    appearanceSource: z.enum(['MANUAL', 'EXTERNA']),
+    bulaUrl: z
+      .string()
+      .trim()
+      .max(2048, 'Até 2.048 caracteres')
+      .refine((v) => v === '' || /^https?:\/\/\S+$/i.test(v), 'Use um link que comece com http:// ou https://'),
     weekdays: z.array(z.number().int().min(0).max(6)).min(1, 'Escolha ao menos um dia'),
     times: z
-      .array(z.object({ time: z.string().regex(TIME_RE, 'Use HH:MM'), note: z.string().max(60, 'Até 60 caracteres') }))
+      .array(z.object({ time: z.string().regex(TIME_RE, 'Use HH:MM') }))
       .min(1, 'Adicione ao menos um horário')
       .superRefine((times, ctx) => {
         const seen = new Set<string>();
@@ -83,4 +80,3 @@ export const medicationFormSchema = z
   });
 export type MedicationFormValues = z.infer<typeof medicationFormSchema>;
 
-export const parseMm = (v: string): number | undefined => (v.trim() === '' ? undefined : Number(v.replace(',', '.')));
