@@ -6,6 +6,7 @@
  */
 import assert from 'node:assert/strict';
 import { parseApiError, parseJsonBody } from '../src/adapters/http/apiError';
+import { fromApiId, toApiId } from '../src/adapters/http/ids';
 import { normalizeApiBaseUrl } from '../src/config/env';
 import { mapFieldErrors } from '../src/lib/formErrors';
 import { decodeJwtPayload, getJwtExp, isJwtExpired } from '../src/lib/jwt';
@@ -146,6 +147,23 @@ check('mapFieldErrors traduz nomes da API e ignora campos que o formulário não
   );
   assert.deepEqual(mapFieldErrors<Form>(e, ['email']), [['email', 'e']]);
   assert.deepEqual(mapFieldErrors<Form>(undefined, ['email']), []);
+});
+
+// --- IDs opacos <-> IDs numéricos da API ---------------------------------------------------------------------------
+check('toApiId converte string numérica e recusa NaN, negativo, fracionário e enorme', () => {
+  assert.equal(toApiId('42'), 42);
+  assert.equal(toApiId(' 7 '), 7);
+  for (const ruim of ['', 'abc', 'e-jose', '-1', '1.5', '1e3', 'NaN', '99999999999999999999']) {
+    assert.throws(() => toApiId(ruim), (e: unknown) => e instanceof AppError && e.code === 'ID_INVALIDO', ruim);
+  }
+});
+
+check('fromApiId devolve string e recusa número inválido', () => {
+  assert.equal(fromApiId(42), '42');
+  assert.equal(toApiId(fromApiId(123456)), 123456);
+  for (const ruim of [NaN, -1, 1.5, Number.MAX_SAFE_INTEGER + 2]) {
+    assert.throws(() => fromApiId(ruim), AppError, String(ruim));
+  }
 });
 
 console.log(`\n${checks} verificações OK`);

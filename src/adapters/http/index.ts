@@ -1,6 +1,6 @@
 import type { Services } from '../../services/types';
+import { httpAuthService } from './HttpAuthService';
 import {
-  stubAuthService,
   stubDoseService,
   stubElderService,
   stubMedicationInfoService,
@@ -14,7 +14,7 @@ import {
  * pelos adapters HTTP à medida que forem implementados.
  */
 export const httpServices: Services = {
-  auth: stubAuthService,
+  auth: httpAuthService,
   elders: stubElderService,
   medications: stubMedicationService,
   doses: stubDoseService,

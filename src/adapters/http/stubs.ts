@@ -1,5 +1,5 @@
 import { AppError } from '../../services/errors';
-import type { AuthService, DoseService, ElderService, MedicationInfoService, MedicationService, MessageService, ReportService } from '../../services/types';
+import type { DoseService, ElderService, MedicationInfoService, MedicationService, MessageService, ReportService } from '../../services/types';
 
 /**
  * Adapters provisórios do modo real (fora do demo): cada operação falha com uma
@@ -7,13 +7,6 @@ import type { AuthService, DoseService, ElderService, MedicationInfoService, Med
  */
 const notIntegrated = (): Promise<never> =>
   Promise.reject(new AppError('HTTP', 501, 'Funcionalidade ainda não integrada com a API', 'NAO_INTEGRADO'));
-
-export const stubAuthService: AuthService = {
-  login: notIntegrated,
-  loginDemo: notIntegrated,
-  signUp: notIntegrated,
-  deleteAccount: notIntegrated,
-};
 
 export const stubElderService: ElderService = {
   list: notIntegrated,
