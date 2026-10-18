@@ -3,10 +3,10 @@ import { httpAuthService } from './HttpAuthService';
 import { httpDoseService } from './HttpDoseService';
 import { httpElderService } from './HttpElderService';
 import { httpMedicationService } from './HttpMedicationService';
+import { httpReportService } from './HttpReportService';
 import {
   stubMedicationInfoService,
   stubMessageService,
-  stubReportService,
 } from './stubs';
 
 /**
@@ -19,6 +19,6 @@ export const httpServices: Services = {
   medications: httpMedicationService,
   doses: httpDoseService,
   messages: stubMessageService,
-  reports: stubReportService,
+  reports: httpReportService,
   medicationInfo: stubMedicationInfoService,
 };

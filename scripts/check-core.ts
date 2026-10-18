@@ -8,13 +8,15 @@
  */
 import './check-core-env';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseApiError, parseJsonBody } from '../src/adapters/http/apiError';
 import { httpAuthService } from '../src/adapters/http/HttpAuthService';
 import { forgetDoseOrigins, httpDoseService, toDoseView } from '../src/adapters/http/HttpDoseService';
 import { forgetLinkCodes, httpElderService, toElder, toLinkCode } from '../src/adapters/http/HttpElderService';
 import { clearHttpCache, request, setViewerProvider } from '../src/adapters/http/httpClient';
+import { httpReportService } from '../src/adapters/http/HttpReportService';
+import appConfig from '../app.config';
 import {
   httpMedicationService,
   toMedicamentoRequest,
@@ -32,7 +34,9 @@ import { emptyMedicationValues, toMedicationInput } from '../src/features/medica
 import { ELDER_EXPIRED_MESSAGE, resolveStoredSessions, SESSION_EXPIRED_MESSAGE } from '../src/lib/bootRules';
 import { dailyTotals } from '../src/lib/dailyReport';
 import { liveDose } from '../src/lib/doseLive';
+import { toleranceError } from '../src/lib/doseRules';
 import { isTreatmentActive, pickCurrentTreatment } from '../src/lib/medicationMeta';
+import { createPushService, isPushSupported, type NotificationsModule } from '../src/lib/pushCore';
 import { useQueryBus } from '../src/lib/queryBus';
 import { medicationFormSchema } from '../src/lib/schemas';
 import { appNowMs, appTodayKey, computeClockOffset, recordServerDate, resetServerClock, serverOffsetMs } from '../src/lib/serverClock';
@@ -698,6 +702,187 @@ check('"Esqueci a senha" removido do login e tela "Relatório diário" registrad
   assert.doesNotMatch(ler('features/auth/LoginScreen.tsx'), /Esqueci a senha|forgot/i);
   assert.match(ler('app/navigation/RootNavigator.tsx'), /name="DailyReport" component=\{DailyReportScreen\}/);
   assert.match(ler('features/reports/DailyReportScreen.tsx'), /title="Relatório diário"/);
+});
+
+// --- Tolerância (FE-14 p2 / FE-20) e relatório diário real ---------------------------------------------------------
+check('Tolerância: faixa local igual à da API (5 a 120, inteiro)', () => {
+  for (const ok of [5, 30, 120]) assert.equal(toleranceError(ok), null, String(ok));
+  for (const ruim of [4, 121, 0, 30.5, Number.NaN]) assert.equal(toleranceError(ruim), 'A tolerância deve ficar entre 5 e 120 minutos', String(ruim));
+});
+
+checkAsync('Tolerância real: GET e PUT /api/configuracoes/tolerancia; 400 VALIDACAO traz a mensagem do campo', async () => {
+  const chamadas = fakeFetch([
+    { status: 200, body: { toleranciaMinutos: 30 } },
+    { status: 200, body: { toleranciaMinutos: 45 } },
+    {
+      status: 400,
+      body: { codigo: 'VALIDACAO', mensagem: 'Um ou mais campos são inválidos', campos: [{ campo: 'toleranciaMinutos', mensagem: 'A tolerância deve ficar entre 5 e 120 minutos' }] },
+    },
+  ]);
+  assert.equal(await httpDoseService.getTolerance(), 30);
+  assert.equal(await httpDoseService.setTolerance(45), 45);
+  const erro = await httpDoseService.setTolerance(121).then(() => null, (e: unknown) => e);
+  assert.ok(erro instanceof AppError && erro.code === 'VALIDACAO');
+  assert.equal((erro as AppError).fieldErrors?.toleranciaMinutos, 'A tolerância deve ficar entre 5 e 120 minutos');
+  assert.deepEqual(chamadas.map((c) => `${c.method} ${c.path}`), [
+    'GET /api/configuracoes/tolerancia',
+    'PUT /api/configuracoes/tolerancia',
+    'PUT /api/configuracoes/tolerancia',
+  ]);
+  assert.deepEqual(chamadas[1].body, { toleranciaMinutos: 45 });
+});
+
+checkAsync('Relatório diário real: GET /api/relatorios/diario com idoso e data; totais, aderência e doses abrem o detalhe', async () => {
+  setViewerProvider(() => 'CAREGIVER');
+  forgetDoseOrigins();
+  const chamadas = fakeFetch([
+    {
+      status: 200,
+      body: {
+        idoso: { id: 12, nome: 'José' },
+        data: '2026-10-17',
+        totais: { total: 2, tomadas: 1, confirmadasComAtraso: 0, naoTomadas: 1, pendentes: 0, aderenciaPercentual: 50.0 },
+        doses: [{ ...DOSE_DTO, horarioProgramado: '2026-10-17T08:00:00' }],
+      },
+    },
+    { status: 200, body: [{ ...DOSE_DTO, horarioProgramado: '2026-10-17T08:00:00' }] },
+  ]);
+  const r = await httpReportService.getDaily('12', '2026-10-17');
+  assert.equal(chamadas[0].path, '/api/relatorios/diario?idosoId=12&data=2026-10-17');
+  assert.deepEqual(r.elder, { id: '12', name: 'José' });
+  assert.deepEqual(r.totals, { total: 2, taken: 1, late: 0, missed: 1, pending: 0, adherencePercent: 50 });
+  assert.equal(r.doses[0].id, '5000');
+  // O detalhe da dose do relatório é achado no dia dela (17), não no de hoje
+  await httpDoseService.get('5000');
+  assert.equal(chamadas[1].path, '/api/idosos/12/doses?data=2026-10-17');
+});
+
+// --- Push no app (FE-25) e build Android (FE-30) -------------------------------------------------------------------
+check('Push só existe no Android fora do Expo Go e do demo; nos outros casos é inerte e nem carrega o módulo', () => {
+  const casos = [
+    { os: 'ios', isExpoGo: false, isDemo: false },
+    { os: 'android', isExpoGo: true, isDemo: false },
+    { os: 'android', isExpoGo: false, isDemo: true },
+    { os: 'web', isExpoGo: false, isDemo: false },
+  ];
+  for (const env of casos) {
+    let carregou = false;
+    const servico = createPushService(env, () => {
+      carregou = true;
+      throw new Error('não deveria carregar');
+    });
+    assert.equal(servico.supported, false, JSON.stringify(env));
+    assert.equal(isPushSupported(env), false);
+    servico.onTokenChange(() => undefined)();
+    servico.onOpen(() => undefined)();
+    servico.showInForeground();
+    assert.equal(carregou, false, JSON.stringify(env));
+  }
+  assert.equal(isPushSupported({ os: 'android', isExpoGo: false, isDemo: false }), true);
+});
+
+/** expo-notifications falso: registra as chamadas e permite disparar eventos. */
+function notificacoesFalsas(opcoes: { token?: unknown; falhaToken?: boolean; permissao?: string } = {}) {
+  const ouvintes: { token: ((t: { data: unknown }) => void)[]; abrir: ((r: unknown) => void)[] } = { token: [], abrir: [] };
+  const canais: { id: string; canal: { importance: number; name: string } }[] = [];
+  let handler: unknown = null;
+  const mod = {
+    AndroidImportance: { HIGH: 6, MAX: 7 },
+    getDevicePushTokenAsync: async () => {
+      if (opcoes.falhaToken) throw new Error('FCM indisponível');
+      return { type: 'android', data: opcoes.token ?? 'fcm-bruto-123' };
+    },
+    addPushTokenListener: (cb: (t: { data: unknown }) => void) => {
+      ouvintes.token.push(cb);
+      return { remove: () => ouvintes.token.splice(ouvintes.token.indexOf(cb), 1) };
+    },
+    setNotificationChannelAsync: async (id: string, canal: { importance: number; name: string }) => {
+      canais.push({ id, canal });
+      return null;
+    },
+    getPermissionsAsync: async () => ({ status: opcoes.permissao ?? 'undetermined' }),
+    requestPermissionsAsync: async () => ({ status: 'granted' }),
+    addNotificationResponseReceivedListener: (cb: (r: unknown) => void) => {
+      ouvintes.abrir.push(cb);
+      return { remove: () => ouvintes.abrir.splice(ouvintes.abrir.indexOf(cb), 1) };
+    },
+    getLastNotificationResponseAsync: async () => ({ notification: { request: { content: { data: { tipo: 'DOSE_NAO_CONFIRMADA', doseId: '5' } } } } }),
+    setNotificationHandler: (h: unknown) => {
+      handler = h;
+    },
+  };
+  return { mod: mod as unknown as NotificationsModule, ouvintes, canais, handler: () => handler };
+}
+
+checkAsync('Push suportado: token FCM bruto, troca de token, canal "Alertas de dose", permissão e toque na notificação', async () => {
+  const falso = notificacoesFalsas();
+  const servico = createPushService({ os: 'android', isExpoGo: false, isDemo: false }, () => falso.mod);
+  assert.equal(servico.supported, true);
+  assert.equal(await servico.getDeviceToken(), 'fcm-bruto-123');
+
+  const novos: string[] = [];
+  const parar = servico.onTokenChange((t) => novos.push(t));
+  falso.ouvintes.token.forEach((cb) => cb({ data: 'fcm-novo' }));
+  falso.ouvintes.token.forEach((cb) => cb({ data: '' }));
+  parar();
+  assert.deepEqual(novos, ['fcm-novo']);
+  assert.equal(falso.ouvintes.token.length, 0);
+
+  await servico.ensureAlertChannel();
+  assert.equal(falso.canais[0].id, 'alertas-dose');
+  assert.equal(falso.canais[0].canal.name, 'Alertas de dose');
+  assert.equal(falso.canais[0].canal.importance, 6);
+
+  assert.equal(await servico.getPermission(), 'undetermined');
+  assert.equal(await servico.requestPermission(), 'granted');
+
+  const abertos: Record<string, unknown>[] = [];
+  servico.onOpen((d) => abertos.push(d));
+  falso.ouvintes.abrir.forEach((cb) => cb({ notification: { request: { content: { data: { doseId: '9' } } } } }));
+  assert.deepEqual(abertos, [{ doseId: '9' }]);
+  assert.deepEqual(await servico.getLaunchData(), { tipo: 'DOSE_NAO_CONFIRMADA', doseId: '5' });
+
+  servico.showInForeground();
+  assert.ok(falso.handler());
+});
+
+checkAsync('Push suportado mas com falha: módulo que não carrega ou FCM fora do ar nunca derrubam o app', async () => {
+  const semModulo = createPushService({ os: 'android', isExpoGo: false, isDemo: false }, () => {
+    throw new Error('módulo nativo ausente');
+  });
+  assert.equal(await semModulo.getDeviceToken(), null);
+  assert.equal(await semModulo.requestPermission(), 'unavailable');
+  semModulo.onTokenChange(() => undefined)();
+  const fcmFora = createPushService({ os: 'android', isExpoGo: false, isDemo: false }, () => notificacoesFalsas({ falhaToken: true }).mod);
+  assert.equal(await fcmFora.getDeviceToken(), null);
+  const tokenEstranho = createPushService({ os: 'android', isExpoGo: false, isDemo: false }, () => notificacoesFalsas({ token: 42 }).mod);
+  assert.equal(await tokenEstranho.getDeviceToken(), null);
+});
+
+check('Build Android: google-services.json só por variável de ambiente e nunca no repositório', () => {
+  const raiz = join(__dirname, '..');
+  const ignorados = readFileSync(join(raiz, '.gitignore'), 'utf8').split(/\r?\n/);
+  for (const padrao of ['google-services.json', 'android/', 'ios/', '.env']) assert.ok(ignorados.includes(padrao), padrao);
+  assert.equal(existsSync(join(raiz, 'google-services.json')), false);
+  const base = JSON.parse(readFileSync(join(raiz, 'app.json'), 'utf8')).expo;
+  const antes = process.env.GOOGLE_SERVICES_JSON;
+  delete process.env.GOOGLE_SERVICES_JSON;
+  const semArquivo = appConfig({ config: base } as never);
+  process.env.GOOGLE_SERVICES_JSON = 'C:/segredos/google-services.json';
+  const comArquivo = appConfig({ config: base } as never);
+  if (antes === undefined) delete process.env.GOOGLE_SERVICES_JSON;
+  else process.env.GOOGLE_SERVICES_JSON = antes;
+  assert.equal(semArquivo.android?.package, 'br.ucb.medcaresenior');
+  assert.equal(semArquivo.android?.googleServicesFile, undefined);
+  assert.equal(comArquivo.android?.googleServicesFile, 'C:/segredos/google-services.json');
+  const plugins = JSON.stringify(comArquivo.plugins);
+  assert.match(plugins, /expo-dev-client/);
+  assert.match(plugins, /"expo-notifications",\{[^}]*"defaultChannel":"alertas-dose"/);
+  const eas = JSON.parse(readFileSync(join(raiz, 'eas.json'), 'utf8'));
+  assert.equal(eas.build.development.developmentClient, true);
+  assert.equal(eas.build.development.distribution, 'internal');
+  assert.equal(eas.build.development.android.buildType, 'apk');
+  assert.ok(eas.build.preview && eas.build.production);
 });
 
 void (async () => {

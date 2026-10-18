@@ -52,6 +52,7 @@ async function main() {
   const { httpElderService } = await import('../src/adapters/http/HttpElderService');
   const { httpMedicationService } = await import('../src/adapters/http/HttpMedicationService');
   const { httpDoseService } = await import('../src/adapters/http/HttpDoseService');
+  const { httpReportService } = await import('../src/adapters/http/HttpReportService');
   const { fromApiId, toApiId } = await import('../src/adapters/http/ids');
   const { AppError } = await import('../src/services/errors');
 
@@ -243,6 +244,30 @@ async function main() {
       // O remédio removido sai também do dia (a dose registrada fica no histórico, RN08)
       const doIdoso = await httpDoseService.listForDay(idosoId, hoje.dia);
       assert.ok(!doIdoso.some((d) => d.id === doseApp.id));
+    });
+
+    await step('app: tolerância (GET padrão 30; PUT 4 e 121 -> 400 VALIDACAO; PUT 45 -> GET 45; doses com 45)', async () => {
+      assert.equal(await httpDoseService.getTolerance(), 30);
+      for (const fora of [4, 121]) {
+        await expectError(() => httpDoseService.setTolerance(fora), 400, 'VALIDACAO');
+      }
+      assert.equal(await httpDoseService.setTolerance(5), 5);
+      assert.equal(await httpDoseService.setTolerance(120), 120);
+      assert.equal(await httpDoseService.setTolerance(45), 45);
+      assert.equal(await httpDoseService.getTolerance(), 45);
+      const doIdoso = await httpDoseService.listForDay(idosoId, hoje.dia);
+      assert.ok(doIdoso.length > 0 && doIdoso.every((d) => d.toleranceMinutes === 45));
+    });
+
+    await step('app: relatório diário de hoje (GET /api/relatorios/diario) com totais e doses', async () => {
+      const r = await httpReportService.getDaily(idosoId, hoje.dia);
+      assert.equal(r.elder.id, idosoId);
+      assert.equal(r.elder.name, 'Idoso Smoke');
+      assert.equal(r.day, hoje.dia);
+      assert.equal(r.totals.total, r.doses.length);
+      assert.equal(r.totals.taken + r.totals.late + r.totals.missed + r.totals.pending, r.totals.total);
+      assert.ok(r.doses.some((d) => d.id === String(dose.id)));
+      await expectError(() => httpReportService.getDaily(outroIdoso.id, 'ontem'), 400, 'VALIDACAO');
     });
 
     token = tokenIdoso;

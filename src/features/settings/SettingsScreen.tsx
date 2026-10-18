@@ -4,7 +4,8 @@ import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TabScreenProps } from '../../app/navigation/types';
 import { CaregiverScreen } from '../../components/layout/CaregiverScreen';
-import { AppText, Avatar, Button, Card, ConfirmDialog, TextField, ThemeToggle, type IconComponent } from '../../components/ui';
+import { AppText, Avatar, Button, Card, ConfirmDialog, ErrorState, LoadingSkeleton, TextField, ThemeToggle, type IconComponent } from '../../components/ui';
+import { toleranceError } from '../../lib/doseRules';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import { getDemo } from '../../config/demo';
@@ -44,6 +45,8 @@ export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
   }, [tolerance.data, draft]);
 
   const changed = draft !== null && tolerance.data !== undefined && draft !== tolerance.data;
+  // Mesma faixa da API (5 a 120): fora dela não envia
+  const draftError = draft !== null ? toleranceError(draft) : null;
 
   async function doDelete() {
     const r = await deleteAccount.mutate();
@@ -63,16 +66,28 @@ export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
           <AppText muted>
             Quanto tempo esperar a confirmação antes de avisar você. Padrão: 30 minutos.
           </AppText>
-          {draft !== null ? <ToleranceSelector value={draft} onChange={setDraft} /> : null}
-          {saveTolerance.error ? <AppText color={colors.danger}>{saveTolerance.error.message}</AppText> : null}
+          {tolerance.loading ? (
+            <LoadingSkeleton rows={1} />
+          ) : tolerance.error ? (
+            <ErrorState error={tolerance.error} onRetry={tolerance.reload} />
+          ) : draft !== null ? (
+            <ToleranceSelector value={draft} onChange={setDraft} />
+          ) : null}
+          {draftError || saveTolerance.error ? (
+            <AppText color={colors.danger} accessibilityRole="alert">
+              {/* Validação da API no campo (400 VALIDACAO) ou a mensagem geral */}
+              {draftError ?? saveTolerance.error?.fieldErrors?.toleranciaMinutos ?? saveTolerance.error?.message}
+            </AppText>
+          ) : null}
           <Button
             title={changed ? `Salvar ${draft} minutos` : 'Tolerância salva'}
-            disabled={!changed}
+            disabled={!changed || !!draftError}
             loading={saveTolerance.loading}
             onPress={async () => {
-              if (draft === null) return;
+              if (draft === null || toleranceError(draft)) return;
               const v = await saveTolerance.mutate(draft);
-              if (v !== undefined) showToast(`Tolerância ajustada para ${v} minutos`);
+              // A escrita atualiza o painel e as doses abertas (nova janela de aviso)
+              if (v !== undefined) showToast(`Tolerância ajustada para ${v} minutos. Vale para os próximos avisos.`);
             }}
           />
         </Card>
