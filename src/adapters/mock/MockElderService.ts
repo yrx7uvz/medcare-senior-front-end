@@ -85,7 +85,7 @@ export const mockElderService: ElderService = {
       failures = failures.filter((t) => realNow - t < FAILURE_WINDOW_MS);
       if (failures.length >= MAX_FAILURES) {
         const retryAfterSec = Math.ceil((failures[0] + FAILURE_WINDOW_MS - realNow) / 1000);
-        throw httpError(429, 'Muitas tentativas. Aguarde para tentar de novo.', 'BLOQUEADO', retryAfterSec);
+        throw httpError(429, 'Muitas tentativas. Aguarde para tentar de novo.', 'LIMITE_TENTATIVAS', retryAfterSec);
       }
       const now = getNow().getTime();
       const db = getDb();

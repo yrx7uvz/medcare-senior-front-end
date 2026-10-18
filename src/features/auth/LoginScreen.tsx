@@ -7,6 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { AppText, Button, Card, FormTextField } from '../../components/ui';
 import { OfflineBanner } from '../../components/layout/OfflineBanner';
+import { SwitchProfileLink } from '../../components/layout/SwitchProfileLink';
+import { IS_DEMO } from '../../config/env';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import { loginSchema, type LoginValues } from '../../lib/schemas';
@@ -65,7 +67,9 @@ export function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
             </Pressable>
             {forgot ? (
               <AppText variant="caption" muted>
-                A recuperação de senha por e-mail entra junto com a API. Neste protótipo, use a conta de demonstração.
+                {IS_DEMO
+                  ? 'A recuperação de senha por e-mail entra junto com a API. Neste protótipo, use a conta de demonstração.'
+                  : 'A recuperação de senha por e-mail ainda não está disponível.'}
               </AppText>
             ) : null}
             {error ? (
@@ -78,17 +82,19 @@ export function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
             <Button title="Entrar" icon={LogIn} onPress={onSubmit} loading={login.loading} size="lg" />
           </Card>
 
-          <Button
-            title="Usar conta de demonstração (Maria)"
-            variant="secondary"
-            icon={UserRoundCheck}
-            loading={demo.loading}
-            onPress={async () => {
-              setFlash(null);
-              const s = await demo.mutate();
-              if (s) setSession(s);
-            }}
-          />
+          {IS_DEMO ? (
+            <Button
+              title="Usar conta de demonstração (Maria)"
+              variant="secondary"
+              icon={UserRoundCheck}
+              loading={demo.loading}
+              onPress={async () => {
+                setFlash(null);
+                const s = await demo.mutate();
+                if (s) setSession(s);
+              }}
+            />
+          ) : null}
 
           <View style={styles.signup}>
             <AppText muted>Primeira vez?</AppText>
@@ -98,6 +104,8 @@ export function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
               </AppText>
             </Pressable>
           </View>
+
+          <SwitchProfileLink />
 
           <View style={[styles.lgpd, { borderColor: colors.border }]}>
             <ShieldCheck color={colors.status.TOMADA.fg} size={18} />

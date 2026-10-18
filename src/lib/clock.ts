@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { IS_DEMO } from '../config/env';
 
 /**
  * Relógio do protótipo. Começa em 05/06/2026 às 14:02 (data base dos mocks) e
@@ -20,7 +21,9 @@ export const useClockStore = create<ClockState>()((set) => ({
   setTime: (date) => set({ baseMs: date.getTime(), setAtRealMs: Date.now() }),
 }));
 
+/** Hora atual: a real fora do modo demonstração; no demo, o relógio simulado. */
 export function getNow(): Date {
+  if (!IS_DEMO) return new Date();
   const { baseMs, setAtRealMs } = useClockStore.getState();
   return new Date(baseMs + (Date.now() - setAtRealMs));
 }

@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { AlarmClockCheck, CheckCircle2, Home } from 'lucide-react-native';
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Animated, StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { ElderScreen } from '../../components/layout/ElderScreen';
@@ -22,7 +22,7 @@ export function DoseConfirmedScreen({ route, navigation }: RootScreenProps<'Elde
   const dose = useQuery(['dose', doseId], () => services.doses.get(doseId));
   const day = useQuery(['elder-day', elderId, toDateKey(now)], () => services.doses.listForDay(elderId, toDateKey(now)));
   const profile = useQuery(['elder-profile', elderId], () => services.elders.getProfile(elderId));
-  const scale = useRef(new Animated.Value(0.6)).current;
+  const [scale] = useState(() => new Animated.Value(0.6));
   const d = dose.data;
   const late = d?.status === 'CONFIRMADA_COM_ATRASO';
   const caregiver = profile.data?.caregiverFirstName ?? 'seu cuidador';

@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TabScreenProps } from '../../app/navigation/types';
 import { AlertBanner } from '../../components/layout/AlertBanner';
 import { CaregiverScreen } from '../../components/layout/CaregiverScreen';
-import { AppText, Avatar, EmptyState, ErrorState, LoadingSkeleton } from '../../components/ui';
+import { AppText, Avatar, EmptyState, ErrorState, LoadingSkeleton, RefreshFailedBanner } from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import { firstName, formatLongDate, greeting, toDateKey } from '../../lib/date';
@@ -138,6 +138,14 @@ export function DashboardScreen({ navigation }: TabScreenProps<'Painel'>) {
           />
         }
       >
+        {doses.refreshError || alerts.refreshError ? (
+          <RefreshFailedBanner
+            onRetry={() => {
+              doses.refresh();
+              alerts.refresh();
+            }}
+          />
+        ) : null}
         {visibleAlerts.length > 0 ? (
           <AlertBanner
             alert={visibleAlerts[0]}

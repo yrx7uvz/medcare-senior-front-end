@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { AppText, Button } from '../../components/ui';
 import { LoginScreen } from '../../features/auth/LoginScreen';
 import { SignUpScreen } from '../../features/auth/SignUpScreen';
 import { DoseDetailScreen } from '../../features/dashboard/DoseDetailScreen';
@@ -18,6 +19,8 @@ import { LinkCodeScreen } from '../../features/elders/LinkCodeScreen';
 import { ExportPdfScreen } from '../../features/history/ExportPdfScreen';
 import { LegalScreen } from '../../features/legal/LegalScreen';
 import { MedicationFormScreen } from '../../features/medications/MedicationFormScreen';
+import { ProfileChoiceScreen } from '../../features/profile/ProfileChoiceScreen';
+import { bootSession } from '../../lib/session';
 import { useAppStore } from '../../store/appStore';
 import { elderHighContrastColors, elderColors, useTheme, withElderTheme } from '../../theme';
 import { CaregiverTabs } from './CaregiverTabs';
@@ -33,22 +36,35 @@ const ElderHome = withElderTheme(ElderHomeScreen);
 const ElderConfirmDose = withElderTheme(ConfirmDoseScreen);
 const ElderDoseConfirmed = withElderTheme(DoseConfirmedScreen);
 const ElderMessages = withElderTheme(ElderMessagesScreen);
+const ProfileChoice = withElderTheme(ProfileChoiceScreen);
 
 function ElderLoading() {
+  const bootError = useAppStore((s) => s.bootError);
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: elderColors.background }}>
-      <ActivityIndicator size="large" color={elderColors.primary} />
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, backgroundColor: elderColors.background }}>
+      {bootError ? (
+        <>
+          <AppText variant="elderBody" color={elderColors.text} align="center" accessibilityRole="alert">
+            {bootError}
+          </AppText>
+          <Button title="Tentar novamente" size="lg" onPress={() => void bootSession()} />
+        </>
+      ) : (
+        <ActivityIndicator size="large" color={elderColors.primary} />
+      )}
     </View>
   );
 }
 
 /**
- * Navegação condicional por estado: perfil visualizado (cuidador/idoso),
- * sessão do cuidador, pareamento e PIN do idoso.
+ * Navegação condicional por estado: perfil do aparelho (null = escolher),
+ * sessão do cuidador, pareamento e PIN do idoso. Enquanto o boot lê o
+ * SecureStore, mostra o carregamento.
  */
 export function RootNavigator() {
   const { colors, mode } = useTheme();
   const viewAs = useAppStore((s) => s.viewAs);
+  const profileLoaded = useAppStore((s) => s.profileLoaded);
   const session = useAppStore((s) => s.session);
   const elderSession = useAppStore((s) => s.elderSession);
   const elderLoaded = useAppStore((s) => s.elderSessionLoaded);
@@ -57,7 +73,8 @@ export function RootNavigator() {
 
   const navTheme = useMemo<NavTheme>(() => {
     const base = mode === 'dark' ? DarkTheme : DefaultTheme;
-    const c = viewAs === 'ELDER' ? (highContrast ? elderHighContrastColors : elderColors) : colors;
+    // Escolha de perfil e carregamento usam o tema do idoso
+    const c = viewAs !== 'CAREGIVER' ? (highContrast ? elderHighContrastColors : elderColors) : colors;
     return {
       ...base,
       colors: { ...base.colors, primary: c.primary, background: c.background, card: c.surface, text: c.text, border: c.border, notification: c.danger },
@@ -70,7 +87,11 @@ export function RootNavigator() {
     <NavigationContainer theme={navTheme}>
       <StatusBar style={statusLight ? 'light' : 'dark'} />
       <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-        {viewAs === 'CAREGIVER' ? (
+        {!profileLoaded ? (
+          <Stack.Screen name="ElderLoading" component={ElderLoading} />
+        ) : viewAs === null ? (
+          <Stack.Screen name="ProfileChoice" component={ProfileChoice} />
+        ) : viewAs === 'CAREGIVER' ? (
           session ? (
             <Stack.Group>
               <Stack.Screen name="CaregiverTabs" component={CaregiverTabs} />
