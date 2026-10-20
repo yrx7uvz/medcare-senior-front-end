@@ -1,14 +1,16 @@
-import { CalendarCheck, CalendarX, UserPlus } from 'lucide-react-native';
+import { CalendarCheck, CalendarX, ClipboardList, UserPlus } from 'lucide-react-native';
 import React from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TabScreenProps } from '../../app/navigation/types';
 import { AlertBanner } from '../../components/layout/AlertBanner';
 import { CaregiverScreen } from '../../components/layout/CaregiverScreen';
-import { AppText, Avatar, EmptyState, ErrorState, LoadingSkeleton, RefreshFailedBanner } from '../../components/ui';
+import { AppText, Avatar, Button, EmptyState, ErrorState, LoadingSkeleton, RefreshFailedBanner } from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
-import { firstName, formatLongDate, greeting, toDateKey } from '../../lib/date';
+import { firstName, formatLongDate, greeting } from '../../lib/date';
+import { liveAt } from '../../lib/doseLive';
+import { appTodayKey } from '../../lib/serverClock';
 import { summarize } from '../../lib/doseRules';
 import { useQuery } from '../../lib/useQuery';
 import { minuteStamp, useNow } from '../../lib/useNow';
@@ -26,7 +28,7 @@ export function DashboardScreen({ navigation }: TabScreenProps<'Painel'>) {
   const dismissed = useAppStore((s) => s.dismissedAlertIds);
   const dismiss = useAppStore((s) => s.dismissAlert);
   const now = useNow();
-  const today = toDateKey(now);
+  const today = appTodayKey(now);
   const silentKey = minuteStamp(now);
 
   const elders = useQuery(['elders'], () => services.elders.list());
@@ -36,7 +38,8 @@ export function DashboardScreen({ navigation }: TabScreenProps<'Painel'>) {
   const visibleAlerts = (alerts.data ?? []).filter(
     (a) => !dismissed.includes(`${a.doseId}:${a.status}`) && (filter === 'ALL' || a.elderId === filter),
   );
-  const list = doses.data ?? [];
+  // Status entre as atualizações: só compara agora com a janela que veio do servidor (FE-21)
+  const list = (doses.data ?? []).map((d) => liveAt(d, now));
   const summary = summarize(list.map((d) => d.status));
   const selectedElder = filter === 'ALL' ? null : elders.data?.find((e) => e.id === filter);
   const openDose = (d: DoseView) => navigation.navigate('DoseDetail', { doseId: d.id });
@@ -76,6 +79,15 @@ export function DashboardScreen({ navigation }: TabScreenProps<'Painel'>) {
             {summary.total} {summary.total === 1 ? 'dose' : 'doses'}
           </AppText>
         </View>
+        <Button
+          title="Relatório diário"
+          icon={ClipboardList}
+          variant="secondary"
+          size="sm"
+          style={styles.reportButton}
+          onPress={() => navigation.navigate('DailyReport', filter === 'ALL' ? undefined : { elderId: filter })}
+          accessibilityHint="Abre o relatório de uso dos medicamentos de um paciente em um dia"
+        />
         {list.length === 0 ? (
           <EmptyState
             icon={CalendarCheck}
@@ -163,6 +175,7 @@ export function DashboardScreen({ navigation }: TabScreenProps<'Painel'>) {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   body: { padding: spacing.lg, gap: spacing.md },
+  reportButton: { alignSelf: 'flex-start' },
   sectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: spacing.sm },
   group: { gap: spacing.sm, marginBottom: spacing.sm },
   groupHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.xs },

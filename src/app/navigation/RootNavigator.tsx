@@ -1,12 +1,13 @@
 import { DarkTheme, DefaultTheme, NavigationContainer, type Theme as NavTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { AppText, Button } from '../../components/ui';
 import { LoginScreen } from '../../features/auth/LoginScreen';
 import { SignUpScreen } from '../../features/auth/SignUpScreen';
 import { DoseDetailScreen } from '../../features/dashboard/DoseDetailScreen';
+import { DailyReportScreen } from '../../features/reports/DailyReportScreen';
 import { ConfirmDoseScreen } from '../../features/elder/ConfirmDoseScreen';
 import { CreatePinScreen } from '../../features/elder/CreatePinScreen';
 import { DoseConfirmedScreen } from '../../features/elder/DoseConfirmedScreen';
@@ -21,6 +22,7 @@ import { LegalScreen } from '../../features/legal/LegalScreen';
 import { MedicationFormScreen } from '../../features/medications/MedicationFormScreen';
 import { ProfileChoiceScreen } from '../../features/profile/ProfileChoiceScreen';
 import { bootSession } from '../../lib/session';
+import { navigationRef } from './navigationRef';
 import { useAppStore } from '../../store/appStore';
 import { elderHighContrastColors, elderColors, useTheme, withElderTheme } from '../../theme';
 import { CaregiverTabs } from './CaregiverTabs';
@@ -70,6 +72,21 @@ export function RootNavigator() {
   const elderLoaded = useAppStore((s) => s.elderSessionLoaded);
   const elderUnlocked = useAppStore((s) => s.elderUnlocked);
   const highContrast = useAppStore((s) => s.elderHighContrast);
+  const pendingDoseOpen = useAppStore((s) => s.pendingDoseOpen);
+  const [navReady, setNavReady] = useState(false);
+
+  // Toque numa notificação de dose (FE-28): abre a dose assim que houver sessão de cuidador. Com a sessão expirada, o
+  // cuidador cai no login e, depois de entrar, vai direto para a dose
+  useEffect(() => {
+    if (!navReady || viewAs !== 'CAREGIVER' || !session || !pendingDoseOpen) return;
+    const target = pendingDoseOpen;
+    useAppStore.getState().setPendingDoseOpen(null);
+    // Depois do render em que as telas do cuidador passam a existir
+    const id = setTimeout(() => {
+      if (navigationRef.isReady()) navigationRef.navigate('DoseDetail', target);
+    }, 0);
+    return () => clearTimeout(id);
+  }, [navReady, viewAs, session, pendingDoseOpen]);
 
   const navTheme = useMemo<NavTheme>(() => {
     const base = mode === 'dark' ? DarkTheme : DefaultTheme;
@@ -84,7 +101,7 @@ export function RootNavigator() {
   const statusLight = viewAs === 'CAREGIVER' || highContrast;
 
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer ref={navigationRef} theme={navTheme} onReady={() => setNavReady(true)}>
       <StatusBar style={statusLight ? 'light' : 'dark'} />
       <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
         {!profileLoaded ? (
@@ -100,6 +117,7 @@ export function RootNavigator() {
               <Stack.Screen name="MedicationForm" component={MedicationFormScreen} />
               <Stack.Screen name="ExportPdf" component={ExportPdfScreen} />
               <Stack.Screen name="DoseDetail" component={DoseDetailScreen} />
+              <Stack.Screen name="DailyReport" component={DailyReportScreen} />
             </Stack.Group>
           ) : (
             <Stack.Group>

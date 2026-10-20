@@ -5,7 +5,9 @@ import { ElderScreen } from '../../components/layout/ElderScreen';
 import { AppText, BigActionButton, Card, DoseStatusBadge, EmptyState, ErrorState, LoadingSkeleton, PillVisual, RefreshFailedBanner } from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
-import { firstName, formatLongDate, formatTime, greeting, toDateKey } from '../../lib/date';
+import { firstName, formatLongDate, formatTime, greeting } from '../../lib/date';
+import { liveAt } from '../../lib/doseLive';
+import { appTodayKey } from '../../lib/serverClock';
 import { useQuery } from '../../lib/useQuery';
 import { minuteStamp, useNow } from '../../lib/useNow';
 import { radius, spacing, useTheme } from '../../theme';
@@ -17,14 +19,15 @@ export function ElderHomeScreen({ navigation }: RootScreenProps<'ElderHome'>) {
   const { colors } = useTheme();
   const elderId = useAppStore((s) => s.elderSession?.elderId ?? '');
   const now = useNow();
-  const today = toDateKey(now);
+  const today = appTodayKey(now);
   const silentKey = minuteStamp(now);
   const profile = useQuery(['elder-profile', elderId], () => services.elders.getProfile(elderId));
   const doses = useQuery(['elder-day', elderId, today], () => services.doses.listForDay(elderId, today), { silentKey });
   const unread = useQuery(['elder-unread', elderId], () => services.messages.unreadCount(elderId, 'IDOSO'), { silentKey });
 
   const caregiver = profile.data?.caregiverFirstName ?? 'cuidador';
-  const list = doses.data ?? [];
+  // Status entre as atualizações: só compara agora com a janela que veio do servidor (FE-21)
+  const list = (doses.data ?? []).map((d) => liveAt(d, now));
   const next = pickNextDose(list);
   const allDone = list.length > 0 && !next && list.every((d) => d.storedStatus !== 'PENDENTE' || d.status === 'NAO_TOMADA');
 

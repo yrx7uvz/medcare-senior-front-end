@@ -6,14 +6,9 @@ import { getNow } from '../../lib/clock';
 import { toDateKey, toDateTimeKey } from '../../lib/date';
 import { GENERATION_WINDOW_DAYS, generateDoses } from '../../lib/doseGenerator';
 import { uid } from '../../lib/ids';
-import { isLowStock, scheduleSummary } from '../../lib/medicationMeta';
+import { isLowStock, isTreatmentActive, scheduleSummary } from '../../lib/medicationMeta';
 import { getDb, mutateDb } from '../../mocks/db';
 import { simulate } from './simulate';
-
-export function isTreatmentActive(t: Treatment | undefined, todayKey: string): boolean {
-  if (!t || t.removedAt) return false;
-  return !t.endDate || t.endDate >= todayKey;
-}
 
 function toView(m: Medication): MedicationView {
   const db = getDb();
@@ -56,7 +51,7 @@ function medicationFields(input: MedicationInput) {
     imprint: input.imprint?.trim() || undefined,
     hasScore: input.type === 'COMPRIMIDO' ? input.hasScore : false,
     stock: input.stock,
-    leaflet: input.leaflet?.trim() || undefined,
+    bulaUrl: input.bulaUrl?.trim() || undefined,
     appearanceSource: input.appearanceSource,
   };
 }
@@ -136,6 +131,19 @@ export const mockMedicationService: MedicationService = {
       generate(treatment, medication, now);
       return toView(medication);
     }, 400),
+
+  createTreatment: (medicationId, input) =>
+    simulate(() => {
+      const now = getNow();
+      const medication = getDb().medications.find((m) => m.id === medicationId && !m.removedAt);
+      if (!medication) throw httpError(404, 'Medicamento não encontrado.');
+      const treatment: Treatment = { id: uid('t'), medicationId, ...input };
+      mutateDb((db) => {
+        db.treatments.push(treatment);
+      });
+      generate(treatment, medication, now);
+      return toView(medication);
+    }, 300),
 
   remove: (id, { confirmed }) =>
     simulate(() => {

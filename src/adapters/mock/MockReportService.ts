@@ -3,6 +3,7 @@ import type { AdherenceItem } from '../../types/views';
 import { httpError } from '../../services/errors';
 import { getNow } from '../../lib/clock';
 import { toDateTimeKey } from '../../lib/date';
+import { dailyTotals } from '../../lib/dailyReport';
 import { isConfirmed } from '../../lib/doseRules';
 import { getDb } from '../../mocks/db';
 import { toDoseView } from './doseViews';
@@ -54,6 +55,19 @@ function adherence(elderId: string, from: string, to: string) {
 }
 
 export const mockReportService: ReportService = {
+  getDaily: (elderId, day) =>
+    simulate(() => {
+      const db = getDb();
+      const elder = db.elders.find((e) => e.id === elderId);
+      if (!elder) throw httpError(404, 'Paciente não encontrado.');
+      const now = getNow();
+      const doses = db.doses
+        .filter((d) => d.elderId === elderId && d.scheduledAt.startsWith(day))
+        .map((d) => toDoseView(d, now))
+        .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
+      return { elder: { id: elder.id, name: elder.name }, day, totals: dailyTotals(doses.map((d) => d.storedStatus)), doses };
+    }),
+
   getAdherence: (elderId, from, to) => simulate(() => adherence(elderId, from, to)),
 
   generatePdf: (elderId, from, to) =>

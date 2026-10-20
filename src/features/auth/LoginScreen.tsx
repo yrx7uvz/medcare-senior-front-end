@@ -1,6 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { LogIn, ShieldCheck, UserRoundCheck } from 'lucide-react-native';
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,14 +16,13 @@ import { radius, spacing, useTheme } from '../../theme';
 import { Logo } from './Logo';
 
 /** T01 — Login do cuidador. Erro idêntico para e-mail inexistente e senha incorreta. */
-export function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
+export function LoginScreen({ navigation, route }: RootScreenProps<'Login'>) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const setSession = useAppStore((s) => s.setSession);
   const flash = useAppStore((s) => s.flash);
   const setFlash = useAppStore((s) => s.setFlash);
-  const [forgot, setForgot] = useState(false);
-  const { control, handleSubmit } = useForm<LoginValues>({ resolver: zodResolver(loginSchema), defaultValues: { email: '', password: '' } });
+  const { control, handleSubmit } = useForm<LoginValues>({ resolver: zodResolver(loginSchema), defaultValues: { email: route.params?.email ?? '', password: '' } });
   const login = useMutation(services.auth.login);
   const demo = useMutation(services.auth.loginDemo);
 
@@ -60,18 +58,6 @@ export function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
             </AppText>
             <FormTextField control={control} name="email" label="E-mail" keyboardType="email-address" autoCapitalize="none" autoComplete="email" textContentType="emailAddress" />
             <FormTextField control={control} name="password" label="Senha" password autoComplete="password" textContentType="password" onSubmitEditing={onSubmit} />
-            <Pressable accessibilityRole="link" onPress={() => setForgot((f) => !f)} style={styles.link} hitSlop={8}>
-              <AppText variant="label" color={colors.primary}>
-                Esqueci a senha
-              </AppText>
-            </Pressable>
-            {forgot ? (
-              <AppText variant="caption" muted>
-                {IS_DEMO
-                  ? 'A recuperação de senha por e-mail entra junto com a API. Neste protótipo, use a conta de demonstração.'
-                  : 'A recuperação de senha por e-mail ainda não está disponível.'}
-              </AppText>
-            ) : null}
             {error ? (
               <View style={[styles.error, { backgroundColor: colors.dangerSoft }]} accessibilityRole="alert">
                 <AppText variant="bodyStrong" color={colors.danger}>

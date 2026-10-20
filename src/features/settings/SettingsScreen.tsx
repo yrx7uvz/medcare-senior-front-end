@@ -1,14 +1,17 @@
 import { Bell, ChevronRight, FileText, KeyRound, LogOut, ShieldCheck, SlidersHorizontal, Trash2, UserPlus } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TabScreenProps } from '../../app/navigation/types';
 import { CaregiverScreen } from '../../components/layout/CaregiverScreen';
-import { AppText, Avatar, Button, Card, ConfirmDialog, TextField, ThemeToggle, type IconComponent } from '../../components/ui';
+import { AppText, Avatar, Button, Card, ConfirmDialog, ErrorState, LoadingSkeleton, TextField, ThemeToggle, type IconComponent } from '../../components/ui';
+import { toleranceError } from '../../lib/doseRules';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import { getDemo } from '../../config/demo';
 import { IS_DEMO } from '../../config/env';
+import { push, type PushPermission } from '../../lib/push';
+import { pushRegistration } from '../../lib/pushSession';
 import { logoutCaregiver } from '../../lib/session';
 import { useMutation, useQuery } from '../../lib/useQuery';
 import { spacing, useTheme } from '../../theme';
@@ -44,10 +47,18 @@ export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
   }, [tolerance.data, draft]);
 
   const changed = draft !== null && tolerance.data !== undefined && draft !== tolerance.data;
+  // Mesma faixa da API (5 a 120): fora dela não envia
+  const draftError = draft !== null ? toleranceError(draft) : null;
 
   async function doDelete() {
+    // Tira o token do aparelho da conta antes de excluí-la (melhor esforço; a exclusão apaga o token de qualquer jeito)
+    await pushRegistration.unregister();
     const r = await deleteAccount.mutate();
-    if (!r) return;
+    if (!r) {
+      // A conta continua: o aparelho volta a receber os avisos dela
+      void pushRegistration.register();
+      return;
+    }
     setStep(0);
     setSession(null);
     getDemo()?.resetDemoDb();
@@ -63,16 +74,28 @@ export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
           <AppText muted>
             Quanto tempo esperar a confirmação antes de avisar você. Padrão: 30 minutos.
           </AppText>
-          {draft !== null ? <ToleranceSelector value={draft} onChange={setDraft} /> : null}
-          {saveTolerance.error ? <AppText color={colors.danger}>{saveTolerance.error.message}</AppText> : null}
+          {tolerance.loading ? (
+            <LoadingSkeleton rows={1} />
+          ) : tolerance.error ? (
+            <ErrorState error={tolerance.error} onRetry={tolerance.reload} />
+          ) : draft !== null ? (
+            <ToleranceSelector value={draft} onChange={setDraft} />
+          ) : null}
+          {draftError || saveTolerance.error ? (
+            <AppText color={colors.danger} accessibilityRole="alert">
+              {/* Validação da API no campo (400 VALIDACAO) ou a mensagem geral */}
+              {draftError ?? saveTolerance.error?.fieldErrors?.toleranciaMinutos ?? saveTolerance.error?.message}
+            </AppText>
+          ) : null}
           <Button
             title={changed ? `Salvar ${draft} minutos` : 'Tolerância salva'}
-            disabled={!changed}
+            disabled={!changed || !!draftError}
             loading={saveTolerance.loading}
             onPress={async () => {
-              if (draft === null) return;
+              if (draft === null || toleranceError(draft)) return;
               const v = await saveTolerance.mutate(draft);
-              if (v !== undefined) showToast(`Tolerância ajustada para ${v} minutos`);
+              // A escrita atualiza o painel e as doses abertas (nova janela de aviso)
+              if (v !== undefined) showToast(`Tolerância ajustada para ${v} minutos. Vale para os próximos avisos.`);
             }}
           />
         </Card>
@@ -93,6 +116,7 @@ export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
         <Card style={styles.card}>
           <SectionTitle icon={Bell} title="Notificações" />
           <PrefRow label="Dose não confirmada" hint="Aviso quando passar da tolerância" value={prefs.missedDose} onChange={(v) => setPref('missedDose', v)} />
+          {IS_DEMO ? null : <PushStatus />}
           <PrefRow label="Mensagens dos pacientes" value={prefs.messages} onChange={(v) => setPref('messages', v)} />
           <PrefRow label="Estoque baixo" value={prefs.lowStock} onChange={(v) => setPref('lowStock', v)} />
         </Card>
@@ -153,6 +177,44 @@ function SectionTitle({ icon: Icon, title }: { icon: IconComponent; title: strin
   );
 }
 
+/** FE-26: estado da permissão de notificações neste aparelho, com a ação que cabe. */
+function PushStatus() {
+  const { colors } = useTheme();
+  const [permission, setPermission] = useState<PushPermission | null>(null);
+  useEffect(() => {
+    let active = true;
+    void push.getPermission().then((p) => {
+      if (active) setPermission(p);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (!push.supported) {
+    return (
+      <AppText variant="caption" muted>
+        Os avisos por notificação funcionam no app Android instalado (não no Expo Go nem no iPhone).
+      </AppText>
+    );
+  }
+  if (permission === 'granted') {
+    return <AppText variant="caption" color={colors.status.TOMADA.fg}>Avisos ativados neste celular.</AppText>;
+  }
+  if (permission === 'denied') {
+    return (
+      <View style={styles.gapSm}>
+        <AppText variant="caption" color={colors.warningText}>As notificações estão bloqueadas neste celular. Sem elas, os avisos de dose não aparecem.</AppText>
+        <Button title="Abrir configurações do Android" size="sm" variant="secondary" onPress={() => void Linking.openSettings()} />
+      </View>
+    );
+  }
+  if (permission === 'undetermined') {
+    return <Button title="Ativar avisos de dose" size="sm" variant="secondary" onPress={() => void push.requestPermission().then(setPermission)} />;
+  }
+  return null;
+}
+
 function PrefRow({ label, hint, value, onChange }: { label: string; hint?: string; value: boolean; onChange: (v: boolean) => void }) {
   const { colors } = useTheme();
   return (
@@ -178,6 +240,7 @@ function LinkRow({ icon: Icon, label, onPress }: { icon: IconComponent; label: s
 }
 
 const styles = StyleSheet.create({
+  gapSm: { gap: spacing.sm },
   flex: { flex: 1 },
   body: { padding: spacing.lg, gap: spacing.lg },
   card: { gap: spacing.md },

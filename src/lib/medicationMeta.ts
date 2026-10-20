@@ -95,6 +95,21 @@ export function isLowStock(m: Pick<Medication, 'type' | 'stock'>): boolean {
   return isBottle(m.type) ? m.stock <= 1 : m.stock <= 10;
 }
 
+/** Tratamento ativo (RN06): não removido e sem fim, ou com fim hoje ou depois. */
+export function isTreatmentActive(t: Treatment | undefined, todayKey: string): boolean {
+  if (!t || t.removedAt) return false;
+  return !t.endDate || t.endDate >= todayKey;
+}
+
+/**
+ * O app mostra UM tratamento por remédio; a API permite vários (do mais antigo para o mais recente).
+ * Vale o mais recente ainda ativo; se nenhum estiver, o mais recente.
+ */
+export function pickCurrentTreatment(treatments: readonly Treatment[], todayKey: string): Treatment | undefined {
+  const active = treatments.filter((t) => isTreatmentActive(t, todayKey));
+  return active[active.length - 1] ?? treatments[treatments.length - 1];
+}
+
 export function weekdaySummary(weekdays: number[]): string {
   if (weekdays.length === 7) return 'Todos os dias';
   if (weekdays.length === 5 && [1, 2, 3, 4, 5].every((d) => weekdays.includes(d))) return 'Segunda a sexta';

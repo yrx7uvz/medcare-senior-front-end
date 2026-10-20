@@ -24,6 +24,7 @@ export function SignUpScreen({ navigation }: RootScreenProps<'SignUp'>) {
   const insets = useSafeAreaInsets();
   const setSession = useAppStore((s) => s.setSession);
   const showToast = useAppStore((s) => s.showToast);
+  const setFlash = useAppStore((s) => s.setFlash);
   const { control, handleSubmit, watch, setError } = useForm<SignUpValues>({
     resolver: zodResolver(signUpSchema),
     defaultValues: { name: '', email: '', phone: '', password: '', confirmPassword: '', lgpdConsent: false },
@@ -35,10 +36,14 @@ export function SignUpScreen({ navigation }: RootScreenProps<'SignUp'>) {
   const password = watch('password');
 
   const onSubmit = handleSubmit(async (v) => {
-    const session = await signUp.mutate({ name: v.name, email: v.email, phone: v.phone, password: v.password, lgpdConsent: v.lgpdConsent });
-    if (session) {
+    const result = await signUp.run({ name: v.name, email: v.email, phone: v.phone, password: v.password, lgpdConsent: v.lgpdConsent });
+    if (result.ok) {
       showToast('Conta criada. Bem-vinda!');
-      setSession(session);
+      setSession(result.data);
+    } else if (result.error.code === 'CONTA_CRIADA_SEM_LOGIN') {
+      // A conta existe: enviar de novo daria e-mail duplicado. Vai ao login com o e-mail preenchido.
+      setFlash(result.error.message);
+      navigation.replace('Login', { email: v.email.trim() });
     }
   });
 
