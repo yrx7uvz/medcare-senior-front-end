@@ -16,7 +16,9 @@ import { forgetDoseOrigins, httpDoseService, toDoseView } from '../src/adapters/
 import { forgetLinkCodes, httpElderService, toElder, toLinkCode } from '../src/adapters/http/HttpElderService';
 import { clearHttpCache, request, setViewerProvider } from '../src/adapters/http/httpClient';
 import { httpReportService } from '../src/adapters/http/HttpReportService';
-import appConfig from '../app.config';
+import appConfig, { ANDROID_BLOCKED_PERMISSIONS, ANDROID_PERMISSIONS, withCleartextPolicy } from '../app.config';
+import { randomBytes } from 'node:crypto';
+import { createPinGuard, createPinRecord, PIN_ITERATIONS } from '../src/lib/pinCore';
 import {
   httpMedicationService,
   toMedicamentoRequest,
@@ -26,7 +28,7 @@ import {
   toTreatment,
 } from '../src/adapters/http/HttpMedicationService';
 import { fromApiId, toApiId } from '../src/adapters/http/ids';
-import { normalizeApiBaseUrl } from '../src/config/env';
+import { apiUrlProblem, normalizeApiBaseUrl } from '../src/config/env';
 import { mapFieldErrors } from '../src/lib/formErrors';
 import { decodeJwtPayload, getJwtExp, isJwtExpired } from '../src/lib/jwt';
 import { apiDateTimeToEpochMs, apiTimeToHHmm, apiWeekdayToIndex, indexToApiWeekday, saoPauloDateKey } from '../src/lib/apiTime';
@@ -1088,6 +1090,57 @@ check('Estoque: só o campo opcional do cadastro; sem "Estoque baixo", alerta ne
   assert.match(ler('features/medications/MedicationForm.tsx'), /name="stock"/);
   assert.equal(toMedicamentoRequest({ ...MED_INPUT, stock: 12 }).quantidadeEstoque, 12);
   assert.equal(toMedication({ ...MED_DTO, quantidadeEstoque: 7 }).stock, 7);
+});
+
+// --- Segurança do aparelho: HTTPS no release, texto claro, permissões e PIN ------------------------------------------
+check('Endereço da API: http:// recusado no release; aceito em desenvolvimento; https:// aceito; demo não usa', () => {
+  const release = { dev: false, demo: false };
+  const dev = { dev: true, demo: false };
+  assert.match(apiUrlProblem('http://192.168.0.10:8080', release) ?? '', /https:\/\//);
+  assert.match(apiUrlProblem('HTTP://api.exemplo.com', release) ?? '', /conexão segura/);
+  assert.equal(apiUrlProblem('https://api.exemplo.com/', release), null);
+  assert.equal(apiUrlProblem('http://192.168.0.10:8080', dev), null);
+  assert.equal(apiUrlProblem('https://api.exemplo.com', dev), null);
+  assert.match(apiUrlProblem('', release) ?? '', /não está configurado/);
+  assert.match(apiUrlProblem('ftp://x', dev) ?? '', /não está configurado/);
+  assert.equal(apiUrlProblem('', { dev: false, demo: true }), null);
+});
+
+check('Texto claro só no perfil development; release com usesCleartextTraffic=false e permissões mínimas', () => {
+  const plugins = withCleartextPolicy(['expo-font', ['expo-build-properties', { android: { minSdkVersion: 26 } }]], false);
+  assert.deepEqual(plugins, ['expo-font', ['expo-build-properties', { android: { minSdkVersion: 26, usesCleartextTraffic: false } }]]);
+  assert.deepEqual(withCleartextPolicy([['expo-build-properties', {}]], true), [['expo-build-properties', { android: { usesCleartextTraffic: true } }]]);
+  const eas = JSON.parse(readFileSync(join(__dirname, '..', 'eas.json'), 'utf8'));
+  assert.equal(eas.build.development.env.ANDROID_ALLOW_CLEARTEXT, 'true');
+  assert.equal(eas.build.preview.env.ANDROID_ALLOW_CLEARTEXT, undefined);
+  assert.equal(eas.build.production.env.ANDROID_ALLOW_CLEARTEXT, undefined);
+  assert.deepEqual([...ANDROID_PERMISSIONS].sort(), [
+    'android.permission.ACCESS_NETWORK_STATE', 'android.permission.INTERNET', 'android.permission.POST_NOTIFICATIONS',
+    'android.permission.VIBRATE', 'android.permission.WAKE_LOCK', 'com.google.android.c2dm.permission.RECEIVE',
+  ]);
+  for (const p of ['android.permission.CAMERA', 'android.permission.RECORD_AUDIO', 'android.permission.READ_EXTERNAL_STORAGE', 'android.permission.SYSTEM_ALERT_WINDOW']) {
+    assert.ok(ANDROID_BLOCKED_PERMISSIONS.includes(p), p);
+  }
+  assert.equal(ANDROID_PERMISSIONS.some((p) => ANDROID_BLOCKED_PERMISSIONS.includes(p)), false);
+  const config = appConfig({ config: { name: 'MedCare Sênior', slug: 'medcare-senior' } } as Parameters<typeof appConfig>[0]);
+  assert.deepEqual(config.android?.permissions, ANDROID_PERMISSIONS);
+  assert.deepEqual(config.android?.blockedPermissions, ANDROID_BLOCKED_PERMISSIONS);
+});
+
+checkAsync('PIN: só hash com sal, 5 erros bloqueiam (mesmo com o PIN certo) e o PIN antigo em texto é convertido', async () => {
+  const dados = new Map<string, string>([['medcare.elder.pin', '2580']]);
+  const store = { get: async (k: string) => dados.get(k) ?? null, set: async (k: string, v: string) => void dados.set(k, v), remove: async (k: string) => void dados.delete(k) };
+  const relogio = { agora: 0 };
+  const guard = createPinGuard({ store, randomBytes: (n) => new Uint8Array(randomBytes(n)), monotonicNow: () => relogio.agora, iterations: 10 });
+  assert.deepEqual(await guard.verify('2580'), { result: 'OK' });
+  assert.equal(dados.has('medcare.elder.pin'), false);
+  assert.ok(![...dados.values()].some((v) => v.includes('2580')));
+  for (let i = 0; i < 4; i += 1) await guard.verify('0000');
+  assert.deepEqual(await guard.verify('0000'), { result: 'LOCKED', remainingMs: 30_000 });
+  assert.deepEqual(await guard.verify('2580'), { result: 'LOCKED', remainingMs: 30_000 });
+  relogio.agora += 30_000;
+  assert.deepEqual(await guard.verify('2580'), { result: 'OK' });
+  assert.equal(createPinRecord('1234', (n) => new Uint8Array(randomBytes(n))).iterations, PIN_ITERATIONS);
 });
 
 void (async () => {

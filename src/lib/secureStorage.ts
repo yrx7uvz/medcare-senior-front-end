@@ -1,14 +1,14 @@
 import * as SecureStore from 'expo-secure-store';
+import { createPinGuard, type PinCheck } from './pinCore';
 
 /**
  * Dados guardados no aparelho: o perfil escolhido (cuidador ou idoso), a sessão
- * do cuidador, a sessão do idoso (token de dispositivo) e o PIN local de 4 dígitos
- * (HU07). Usa o Keystore do Android via expo-secure-store; se indisponível (ex.:
- * web), cai para memória e nada é persistido.
+ * do cuidador, a sessão do idoso (token de dispositivo) e o hash do PIN local de 4
+ * dígitos com as tentativas (HU07, chaves em pinCore). Usa o Keystore do Android via
+ * expo-secure-store; se indisponível (ex.: web), cai para memória e nada é persistido.
  */
 const KEYS = {
   elderSession: 'medcare.elder.session',
-  elderPin: 'medcare.elder.pin',
   profile: 'medcare.device.profile',
   caregiverSession: 'medcare.caregiver.session',
   notificationPrefs: 'medcare.notification.prefs',
@@ -84,6 +84,23 @@ export const caregiverSessionStorage = {
   },
 };
 
+/**
+ * Gerador criptográfico do expo-crypto, carregado só quando um PIN é criado: um development build antigo, sem o
+ * módulo nativo, abre normalmente e só falha ao gravar um PIN novo (a tela oferece tentar de novo).
+ */
+function secureRandomBytes(n: number): Uint8Array {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { getRandomBytes } = require('expo-crypto') as typeof import('expo-crypto');
+  return getRandomBytes(n);
+}
+
+const pinGuard = createPinGuard({
+  store: { get: getItem, set: setItem, remove: removeItem },
+  randomBytes: secureRandomBytes,
+  // Monotônico: o bloqueio não muda se o relógio do aparelho for adiantado
+  monotonicNow: () => globalThis.performance.now(),
+});
+
 export interface StoredElderSession {
   elderId: string;
   token: string;
@@ -97,15 +114,24 @@ export const elderDeviceStorage = {
     const s = parseJson<StoredElderSession>(await getItem(KEYS.elderSession));
     return s && typeof s.elderId === 'string' && typeof s.token === 'string' ? s : null;
   },
+  /** Grava só o hash do PIN (com sal aleatório) e zera as tentativas. */
   async savePin(pin: string) {
-    await setItem(KEYS.elderPin, pin);
+    await pinGuard.save(pin);
   },
-  async verifyPin(pin: string) {
-    return (await getItem(KEYS.elderPin)) === pin;
+  /** Confere o PIN respeitando o limite de tentativas; converte o PIN antigo em texto, se houver. */
+  async checkPin(pin: string): Promise<PinCheck> {
+    return pinGuard.verify(pin);
+  },
+  async pinLockRemainingMs() {
+    return pinGuard.lockRemainingMs();
+  },
+  /** Grava quanto falta do bloqueio (ao sair da tela ou ir para o segundo plano). */
+  async persistPinAttempts() {
+    await pinGuard.persist();
   },
   async clear() {
     await removeItem(KEYS.elderSession);
-    await removeItem(KEYS.elderPin);
+    await pinGuard.clear();
   },
 };
 
