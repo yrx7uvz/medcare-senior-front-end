@@ -10,6 +10,7 @@ import { liveAt } from '../../lib/doseLive';
 import { appTodayKey } from '../../lib/serverClock';
 import { useQuery } from '../../lib/useQuery';
 import { minuteStamp, useNow } from '../../lib/useNow';
+import { useRefreshOnFocus } from '../../lib/useScreenActivity';
 import { radius, spacing, useTheme } from '../../theme';
 import { ElderDoseRow } from './ElderDoseRow';
 import { pickNextDose } from './nextDose';
@@ -23,7 +24,9 @@ export function ElderHomeScreen({ navigation }: RootScreenProps<'ElderHome'>) {
   const silentKey = minuteStamp(now);
   const profile = useQuery(['elder-profile', elderId], () => services.elders.getProfile(elderId));
   const doses = useQuery(['elder-day', elderId, today], () => services.doses.listForDay(elderId, today), { silentKey });
-  const unread = useQuery(['elder-unread', elderId], () => services.messages.unreadCount(elderId, 'IDOSO'), { silentKey });
+  // Contador de mensagens: ao voltar para esta tela (ex.: da conversa) e ao voltar ao app, sem atualização periódica
+  const unread = useQuery(['elder-unread', elderId], () => services.messages.unreadCount(elderId, 'IDOSO'));
+  useRefreshOnFocus(unread.refresh);
 
   const caregiver = profile.data?.caregiverFirstName ?? 'cuidador';
   // Status entre as atualizações: só compara agora com a janela que veio do servidor (FE-21)

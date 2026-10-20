@@ -1,17 +1,23 @@
 import { MessageCircle } from 'lucide-react-native';
-import { useEffect } from 'react';
 import { FlatList, KeyboardAvoidingView, Pressable, StyleSheet, View } from 'react-native';
 import type { TabScreenProps } from '../../app/navigation/types';
 import { CaregiverScreen } from '../../components/layout/CaregiverScreen';
 import { AppText, Avatar, ChatThread, EmptyState, ErrorState, LoadingSkeleton } from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
-import { firstName, formatDayHeader, formatTime, toDateKey } from '../../lib/date';
-import { useMutation, useQuery } from '../../lib/useQuery';
+import { firstName, formatDayHeader, formatTime } from '../../lib/date';
+import { MESSAGE_POLL_MS, unreadBadge } from '../../lib/messages';
+import { appTodayKey } from '../../lib/serverClock';
+import { useMessageThread } from '../../lib/useMessageThread';
+import { useQuery } from '../../lib/useQuery';
 import { useNow } from '../../lib/useNow';
+import { usePolling, useScreenActive } from '../../lib/useScreenActivity';
 import { cardShadow, radius, spacing, useTheme } from '../../theme';
 
-/** T09 — Mensagens do cuidador. "Todos" mostra a lista de conversas por idoso. */
+/**
+ * T09 — Mensagens do cuidador (UC-010). "Todos" mostra a lista de conversas por idoso; um idoso, a conversa. Atualiza
+ * sozinha só enquanto esta tela está visível.
+ */
 export function CaregiverMessagesScreen(_: TabScreenProps<'Mensagens'>) {
   const filter = useAppStore((s) => s.selectedElderId);
   return (
@@ -25,7 +31,10 @@ function ConversationList() {
   const { colors, mode } = useTheme();
   const setSelected = useAppStore((s) => s.setSelectedElder);
   const now = useNow();
+  const today = appTodayKey(now);
+  const active = useScreenActive();
   const q = useQuery(['conversations'], () => services.messages.listConversations());
+  usePolling(q.refresh, MESSAGE_POLL_MS, active && q.data !== undefined);
   if (q.loading) return <View style={styles.pad}><LoadingSkeleton rows={2} /></View>;
   if (q.error) return <ErrorState error={q.error} onRetry={q.reload} />;
   return (
@@ -36,7 +45,8 @@ function ConversationList() {
       ListEmptyComponent={<EmptyState icon={MessageCircle} title="Nenhuma conversa" description="Cadastre um paciente para trocar mensagens." />}
       renderItem={({ item }) => {
         const last = item.lastMessage;
-        const when = last ? (last.sentAt.slice(0, 10) === toDateKey(now) ? formatTime(last.sentAt) : formatDayHeader(last.sentAt.slice(0, 10), toDateKey(now))) : '';
+        const when = last ? (last.sentAt.slice(0, 10) === today ? formatTime(last.sentAt) : formatDayHeader(last.sentAt.slice(0, 10), today)) : '';
+        const badge = unreadBadge(item.unread);
         return (
           <Pressable
             accessibilityRole="button"
@@ -54,9 +64,9 @@ function ConversationList() {
                 {last ? `${last.from === 'CUIDADOR' ? 'Você: ' : ''}${last.text}` : 'Sem mensagens ainda'}
               </AppText>
             </View>
-            {item.unread ? (
+            {badge ? (
               <View style={[styles.unread, { backgroundColor: colors.primary }]}>
-                <AppText variant="caption" color={colors.onPrimary} style={styles.bold}>{item.unread}</AppText>
+                <AppText variant="caption" color={colors.onPrimary} style={styles.bold}>{badge}</AppText>
               </View>
             ) : null}
           </Pressable>
@@ -68,25 +78,25 @@ function ConversationList() {
 
 function Conversation({ elderId }: { elderId: string }) {
   const now = useNow();
-  const thread = useQuery(['thread', elderId], () => services.messages.listThread(elderId), { silentKey: Math.floor(now.getTime() / 20_000) });
+  const thread = useMessageThread(elderId, 'CUIDADOR');
   const elder = useQuery(['elder', elderId], () => services.elders.get(elderId));
-  const send = useMutation((text: string) => services.messages.send(elderId, 'CUIDADOR', text));
-
-  useEffect(() => {
-    if (thread.data?.some((m) => m.from === 'IDOSO' && !m.read)) services.messages.markRead(elderId, 'CUIDADOR').catch(() => undefined);
-  }, [thread.data, elderId]);
 
   if (thread.loading) return <View style={styles.pad}><LoadingSkeleton rows={3} /></View>;
   if (thread.error) return <ErrorState error={thread.error} onRetry={thread.reload} />;
   return (
     <KeyboardAvoidingView style={styles.flex}>
       <ChatThread
-        messages={thread.data ?? []}
+        messages={thread.messages}
         viewer="CUIDADOR"
         otherName={firstName(elder.data?.name ?? 'Paciente')}
-        todayKey={toDateKey(now)}
-        sending={send.loading}
-        onSend={async (text) => !!(await send.mutate(text))}
+        todayKey={appTodayKey(now)}
+        sending={thread.sending}
+        sendError={thread.sendError}
+        onSend={thread.send}
+        hasOlder={thread.hasOlder}
+        loadingOlder={thread.loadingOlder}
+        olderError={thread.olderError?.message}
+        onLoadOlder={thread.loadOlder}
       />
     </KeyboardAvoidingView>
   );

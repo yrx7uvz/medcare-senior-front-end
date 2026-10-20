@@ -15,6 +15,7 @@ import type {
   MedicationInfo,
   MedicationInput,
   MedicationView,
+  MessagePage,
   PdfResult,
   SignUpInput,
   TreatmentInput,
@@ -71,12 +72,19 @@ export interface DoseService {
   setTolerance(minutes: number): Promise<number>;
 }
 
-/** POST, GET /api/mensagens */
+/**
+ * /api/mensagens (UC-010). Na API, quem escreve e quem lê vem do token: `from`/`reader` só servem ao demo.
+ */
 export interface MessageService {
+  /** Cuidador: uma por idoso (inclusive sem mensagens); idoso: a sua única conversa. */
   listConversations(): Promise<ConversationView[]>;
-  listThread(elderId: ID): Promise<Message[]>;
+  /** Página da conversa (0 = as mais recentes; as seguintes são mais antigas). */
+  listThread(elderId: ID, page?: number): Promise<MessagePage>;
+  /** 1 a 500 caracteres; vazio ou maior: 400 VALIDACAO. */
   send(elderId: ID, from: MessageAuthor, text: string): Promise<Message>;
-  markRead(elderId: ID, reader: MessageAuthor): Promise<void>;
+  /** Marca como lidas as mensagens que `reader` recebeu na conversa; devolve quantas mudaram. */
+  markRead(elderId: ID, reader: MessageAuthor): Promise<number>;
+  /** Total recebido e não lido por quem chama (cuidador: todos os idosos; idoso: a conversa dele). */
   unreadCount(elderId: ID | 'ALL', reader: MessageAuthor): Promise<number>;
 }
 

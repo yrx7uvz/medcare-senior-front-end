@@ -3,11 +3,9 @@ import { httpAuthService } from './HttpAuthService';
 import { httpDoseService } from './HttpDoseService';
 import { httpElderService } from './HttpElderService';
 import { httpMedicationService } from './HttpMedicationService';
+import { httpMessageService } from './HttpMessageService';
 import { httpReportService } from './HttpReportService';
-import {
-  stubMedicationInfoService,
-  stubMessageService,
-} from './stubs';
+import { stubMedicationInfoService } from './stubs';
 
 /**
  * Serviços do modo real (API Spring Boot). Os stubs são trocados aqui, um a um,
@@ -18,7 +16,7 @@ export const httpServices: Services = {
   elders: httpElderService,
   medications: httpMedicationService,
   doses: httpDoseService,
-  messages: stubMessageService,
+  messages: httpMessageService,
   reports: httpReportService,
   medicationInfo: stubMedicationInfoService,
 };

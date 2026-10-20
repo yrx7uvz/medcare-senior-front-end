@@ -5,11 +5,11 @@ import { httpError } from '../../services/errors';
 import { getNow } from '../../lib/clock';
 import { toDateTimeKey } from '../../lib/date';
 import { uid } from '../../lib/ids';
+import { byConversationOrder, MESSAGE_PAGE_SIZE, messageError } from '../../lib/messages';
 import { getDb, mutateDb } from '../../mocks/db';
 import { simulate } from './simulate';
 
-const MAX_LENGTH = 500;
-
+/** Mesmo contrato de /api/mensagens: conversa paginada da mais recente, validação de 1 a 500 caracteres. */
 export const mockMessageService: MessageService = {
   listConversations: () =>
     simulate(() => {
@@ -27,19 +27,24 @@ export const mockMessageService: MessageService = {
         .sort((a, b) => (b.lastMessage?.sentAt ?? '').localeCompare(a.lastMessage?.sentAt ?? ''));
     }),
 
-  listThread: (elderId) =>
-    simulate(() =>
-      getDb()
+  listThread: (elderId, page = 0) =>
+    simulate(() => {
+      const all = getDb()
         .messages.filter((m) => m.elderId === elderId)
-        .sort((a, b) => a.sentAt.localeCompare(b.sentAt)),
-    ),
+        .sort((a, b) => byConversationOrder(b, a));
+      return {
+        items: all.slice(page * MESSAGE_PAGE_SIZE, (page + 1) * MESSAGE_PAGE_SIZE),
+        page,
+        totalPages: Math.ceil(all.length / MESSAGE_PAGE_SIZE),
+        totalElements: all.length,
+      };
+    }),
 
   send: (elderId, from, text) =>
     simulate(() => {
-      const clean = text.trim();
-      if (!clean) throw httpError(400, 'Escreva uma mensagem antes de enviar.');
-      if (clean.length > MAX_LENGTH) throw httpError(400, `A mensagem pode ter até ${MAX_LENGTH} caracteres.`);
-      const message: Message = { id: uid('msg'), elderId, from, text: clean, sentAt: toDateTimeKey(getNow()), read: false };
+      const problem = messageError(text);
+      if (problem) throw httpError(400, problem, 'VALIDACAO');
+      const message: Message = { id: uid('msg'), elderId, from, text: text.trim(), sentAt: toDateTimeKey(getNow()), read: false };
       mutateDb((db) => {
         db.messages.push(message);
       });
@@ -50,12 +55,13 @@ export const mockMessageService: MessageService = {
     simulate(() => {
       const author = reader === 'CUIDADOR' ? 'IDOSO' : 'CUIDADOR';
       const pending = getDb().messages.filter((m) => m.elderId === elderId && m.from === author && !m.read);
-      if (!pending.length) return;
+      if (!pending.length) return 0;
       mutateDb(() => {
         pending.forEach((m) => {
           m.read = true;
         });
       });
+      return pending.length;
     }, -200),
 
   unreadCount: (elderId, reader) =>
