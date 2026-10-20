@@ -112,17 +112,24 @@ export const elderDeviceStorage = {
 export interface StoredNotificationPrefs {
   missedDose: boolean;
   messages: boolean;
-  lowStock: boolean;
 }
 
-/** Preferências de notificação do aparelho (não são dado de saúde). Valor ilegível volta como null (padrão). */
+/**
+ * Lê as preferências guardadas. Versões antigas guardavam também "estoque baixo", que não existe mais: a chave extra
+ * é ignorada (e some no próximo salvamento). Valor ilegível volta como null (padrão).
+ */
+export function parseNotificationPrefs(raw: string | null): StoredNotificationPrefs | null {
+  const p = parseJson<Partial<Record<keyof StoredNotificationPrefs, unknown>>>(raw);
+  return p && typeof p.missedDose === 'boolean' && typeof p.messages === 'boolean' ? { missedDose: p.missedDose, messages: p.messages } : null;
+}
+
+/** Preferências de notificação do aparelho (não são dado de saúde). */
 export const notificationPrefsStorage = {
   async save(prefs: StoredNotificationPrefs) {
     await setItem(KEYS.notificationPrefs, JSON.stringify(prefs));
   },
   async load(): Promise<StoredNotificationPrefs | null> {
-    const p = parseJson<StoredNotificationPrefs>(await getItem(KEYS.notificationPrefs));
-    return p && typeof p.missedDose === 'boolean' && typeof p.messages === 'boolean' && typeof p.lowStock === 'boolean' ? p : null;
+    return parseNotificationPrefs(await getItem(KEYS.notificationPrefs));
   },
 };
 

@@ -18,11 +18,11 @@ async function main() {
   for (const elder of ['e-jose', 'e-helena']) {
     const r = await services.reports.getAdherence(elder, '2026-05-07', day);
     console.log(`PDF ${r.elder.name} (geral ${r.overallRate}%):`, r.items.map((i) => `${i.medication.name} ${i.rate}% (${i.confirmed}/${i.confirmed + i.missed}, abertas ${i.open})`));
-    const hist = await services.doses.listHistory({ elder: elder, from: '2026-05-07', to: day, status: 'MISSED' });
-    console.log('  histórico não confirmadas:', hist.length);
+    const hist = await services.doses.listHistory({ elder: elder, from: '2026-05-07', to: day, status: 'NAO_TOMADA' });
+    console.log('  histórico não tomadas:', hist.totalElements);
   }
-  const atrasoHelena = await services.doses.listHistory({ elder: 'e-helena', from: '2026-05-07', to: day, status: 'LATE' });
-  console.log('Helena com atraso:', atrasoHelena.length);
+  const atrasoHelena = await services.doses.listHistory({ elder: 'e-helena', from: '2026-05-07', to: day, status: 'CONFIRMADA_COM_ATRASO' });
+  console.log('Helena com atraso:', atrasoHelena.totalElements);
   const info = await services.medicationInfo.lookup('omeprazol');
   console.log('Lookup omeprazol:', info?.type, info?.primaryColor);
   try { await services.elders.validateLinkCode('111111'); } catch (e) { console.log('Código expirado →', (e as Error).message); }

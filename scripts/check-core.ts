@@ -34,6 +34,7 @@ import { emptyMedicationValues, toMedicationInput } from '../src/features/medica
 import { ELDER_EXPIRED_MESSAGE, resolveStoredSessions, SESSION_EXPIRED_MESSAGE } from '../src/lib/bootRules';
 import { dailyTotals } from '../src/lib/dailyReport';
 import { liveDose } from '../src/lib/doseLive';
+import { emptyHistoryNotice, hasMoreHistory, historyPath, historyRange, mergeHistory } from '../src/lib/history';
 import { toleranceError } from '../src/lib/doseRules';
 import { isTreatmentActive, pickCurrentTreatment } from '../src/lib/medicationMeta';
 import { createPushService, isPushSupported, type NotificationsModule } from '../src/lib/pushCore';
@@ -1019,6 +1020,74 @@ check('Alerta simulado só no demo; no modo real, pedido de permissão e push', 
   assert.match(ler('app/navigation/CaregiverTabs.tsx'), /\{IS_DEMO \? <AlertWatcher \/> : <PushPermissionPrompt \/>\}/);
   assert.match(ler('app/App.tsx'), /startPush\(\)/);
   assert.match(ler('lib/session.ts'), /pushRegistration\.unregister\(\)/);
+});
+
+// --- Histórico real, cor da dose e estoque ---------------------------------------------------------------------------
+check('Cor do remédio na dose: #RRGGBB vira a cor do desenho; texto livre, nulo ou ausente fica sem cor', () => {
+  assert.equal(toDoseView({ ...DOSE_DTO, cor: '#3D7DCA' }).medication.primaryColor, '#3D7DCA');
+  assert.equal(toDoseView({ ...DOSE_DTO, cor: 'Branco' }).medication.primaryColor, undefined);
+  assert.equal(toDoseView({ ...DOSE_DTO, cor: null }).medication.primaryColor, undefined);
+  assert.equal(toDoseView(DOSE_DTO).medication.primaryColor, undefined);
+});
+
+check('Período do histórico: 7 e 30 dias contando hoje (SP), personalizado em DD/MM/AAAA e início depois do fim recusado', () => {
+  assert.deepEqual(historyRange('7', '2026-10-18', '', ''), { from: '2026-10-12', to: '2026-10-18', error: null });
+  assert.deepEqual(historyRange('30', '2026-03-01', '', ''), { from: '2026-01-31', to: '2026-03-01', error: null });
+  assert.deepEqual(historyRange('custom', '2026-10-18', '01/10/2026', '05/10/2026'), { from: '2026-10-01', to: '2026-10-05', error: null });
+  assert.equal(historyRange('custom', '2026-10-18', '05/10/2026', '05/10/2026').error, null);
+  assert.match(historyRange('custom', '2026-10-18', '06/10/2026', '05/10/2026').error ?? '', /início não pode ser depois/);
+  assert.match(historyRange('custom', '2026-10-18', '31/02/2026', '05/10/2026').error ?? '', /DD\/MM\/AAAA/);
+});
+
+check('Caminho do histórico só com os filtros informados; carregar mais e junção sem repetir dose', () => {
+  const base = { from: '2026-10-01', to: '2026-10-18', page: 0, size: 20 };
+  assert.equal(historyPath('/api/historico', { ...base, status: 'ALL' }), '/api/historico?de=2026-10-01&ate=2026-10-18&page=0&size=20');
+  assert.equal(
+    historyPath('/api/historico', { ...base, elderApiId: 12, medicationApiId: 501, status: 'NAO_TOMADA', page: 2 }),
+    '/api/historico?idosoId=12&medicamentoId=501&de=2026-10-01&ate=2026-10-18&status=NAO_TOMADA&page=2&size=20',
+  );
+  assert.equal(hasMoreHistory({ page: 0, totalPages: 2 }), true);
+  assert.equal(hasMoreHistory({ page: 1, totalPages: 2 }), false);
+  assert.equal(hasMoreHistory({ page: 0, totalPages: 0 }), false);
+  const a = toDoseView({ ...DOSE_DTO, id: 3 });
+  const b = toDoseView({ ...DOSE_DTO, id: 2 });
+  const c = toDoseView({ ...DOSE_DTO, id: 1 });
+  assert.deepEqual(mergeHistory([a, b], [b, c]).map((d) => d.id), ['3', '2', '1']);
+  assert.match(emptyHistoryNotice({ from: '2026-10-01', to: '2026-10-18' }, false).description, /entre 01\/10\/2026 e 18\/10\/2026/);
+  assert.match(emptyHistoryNotice({ from: '2026-10-18', to: '2026-10-18' }, true).description, /em 18\/10\/2026 com os filtros/);
+});
+
+checkAsync('Histórico real: GET /api/historico com filtros e página; 400 VALIDACAO chega com a mensagem da API', async () => {
+  setViewerProvider(() => 'CAREGIVER');
+  const chamadas = fakeFetch([
+    { status: 200, body: { conteudo: [{ ...DOSE_DTO, cor: '#FF0000', status: 'NAO_TOMADA', statusExibicao: 'NAO_TOMADA' }], pagina: 1, tamanho: 20, totalElementos: 21, totalPaginas: 2 } },
+  ]);
+  const pagina = await httpDoseService.listHistory({ elder: '12', medicationId: '501', from: '2026-10-01', to: '2026-10-18', status: 'NAO_TOMADA', page: 1 });
+  assert.equal(chamadas[0].path, '/api/historico?idosoId=12&medicamentoId=501&de=2026-10-01&ate=2026-10-18&status=NAO_TOMADA&page=1&size=20');
+  assert.deepEqual({ page: pagina.page, size: pagina.size, total: pagina.totalElements, pages: pagina.totalPages }, { page: 1, size: 20, total: 21, pages: 2 });
+  assert.equal(pagina.items[0].status, 'NAO_TOMADA');
+  assert.equal(pagina.items[0].medication.primaryColor, '#FF0000');
+  // A dose do histórico abre o detalhe (fica registrado de onde veio)
+  fakeFetch([{ status: 200, body: [DOSE_DTO] }]);
+  assert.equal((await httpDoseService.get('5000')).id, '5000');
+  const invertido = fakeFetch([
+    { status: 400, body: { codigo: 'VALIDACAO', mensagem: 'A data de início não pode ser posterior à data de fim', campos: [{ campo: 'de', mensagem: 'x' }] } },
+  ]);
+  const erro = await httpDoseService.listHistory({ elder: 'ALL', from: '2026-10-18', to: '2026-10-01', status: 'ALL' }).then(() => null, (e: unknown) => e);
+  assert.ok(erro instanceof AppError && erro.status === 400 && erro.code === 'VALIDACAO');
+  assert.match((erro as AppError).message, /início não pode ser posterior/);
+  assert.equal(invertido[0].path, '/api/historico?de=2026-10-18&ate=2026-10-01&page=0&size=20');
+  setViewerProvider(() => null);
+});
+
+check('Estoque: só o campo opcional do cadastro; sem "Estoque baixo", alerta nem preferência', () => {
+  const ler = (p: string) => readFileSync(join(__dirname, '..', 'src', p), 'utf8');
+  for (const arquivo of ['features/settings/SettingsScreen.tsx', 'features/medications/MedicationCard.tsx', 'store/appStore.ts', 'lib/medicationMeta.ts', 'lib/secureStorage.ts', 'types/views.ts']) {
+    assert.doesNotMatch(ler(arquivo), /lowStock|isLowStock|Estoque baixo/, arquivo);
+  }
+  assert.match(ler('features/medications/MedicationForm.tsx'), /name="stock"/);
+  assert.equal(toMedicamentoRequest({ ...MED_INPUT, stock: 12 }).quantidadeEstoque, 12);
+  assert.equal(toMedication({ ...MED_DTO, quantidadeEstoque: 7 }).stock, 7);
 });
 
 void (async () => {

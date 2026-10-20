@@ -154,7 +154,7 @@ async function main() {
       return encontrada;
     });
 
-    // ---- Fluxo do app pelos adapters HTTP (marco da semana 1) ----
+    // ---- Fluxo do app pelos adapters HTTP ----
     token = sessao.token;
     viewer = 'CAREGIVER';
     await step('app: idosos do cuidador (httpElderService.list/get)', async () => {
@@ -206,6 +206,15 @@ async function main() {
       assert.ok(todos.some((d) => d.id === daMetformina.id));
     });
 
+    await step('app: cor do remédio na dose (DoseResponseDTO.cor; sem cor = null)', async () => {
+      const cruas = await request<(DoseDTO & { cor: string | null })[]>('GET', `/api/idosos/${toApiId(idosoId)}/doses`);
+      assert.equal(cruas.find((d) => d.medicamentoId === toApiId(remedio2.medication.id))?.cor, '#3D7DCA');
+      assert.equal(cruas.find((d) => d.medicamentoId === medicamento.id)?.cor, null);
+      const doIdoso = await httpDoseService.listForDay(idosoId, hoje.dia);
+      assert.equal(doIdoso.find((d) => d.medication.id === remedio2.medication.id)?.medication.primaryColor, '#3D7DCA');
+      assert.equal(doIdoso.find((d) => d.medication.id === fromApiId(medicamento.id))?.medication.primaryColor, undefined);
+    });
+
     token = tokenIdoso;
     viewer = 'ELDER';
     const doseApp = await step('app: idoso lista as doses de hoje (/me/doses) e confirma pelo adapter -> TOMADA', async () => {
@@ -232,6 +241,8 @@ async function main() {
         name: 'Metformina',
         dosage: '850mg',
         type: 'CAPSULA',
+        // O formulário do app sempre manda a cor (o PUT substitui o cadastro inteiro)
+        primaryColor: '#3D7DCA',
         appearanceSource: 'MANUAL',
         treatment: { startDate: atual.treatment.startDate, weekdays: [0, 1, 2, 3, 4, 5, 6], times: [{ time: alvo2.hora }, { time: '22:00' }] },
       });
@@ -302,6 +313,28 @@ async function main() {
       const vazio = await request<Pagina>('GET', '/api/historico?de=1990-01-01&ate=1990-01-31');
       assert.equal(vazio.totalElementos, 0);
       await expectError(() => request('GET', '/api/historico?idosoId=999999999'), 404, 'RECURSO_NAO_ENCONTRADO');
+    });
+
+    viewer = 'CAREGIVER';
+    await step('app: histórico pelo adapter (filtros, página, cor de remédio removido, 400 e período vazio)', async () => {
+      const base = { elder: idosoId, from: hoje.dia, to: hoje.dia };
+      const tudo = await httpDoseService.listHistory({ ...base, status: 'ALL' });
+      assert.ok(tudo.totalElements >= 2 && tudo.page === 0 && tudo.size === 20);
+      // Remédio removido continua no histórico (RN08), com a cor do cadastro
+      const daMetformina = tudo.items.find((d) => d.id === doseApp.id);
+      assert.equal(daMetformina?.storedStatus, 'TOMADA');
+      assert.equal(daMetformina?.medication.primaryColor, '#3D7DCA');
+      const soLosartana = await httpDoseService.listHistory({ ...base, medicationId: fromApiId(medicamento.id), status: 'TOMADA' });
+      assert.ok(soLosartana.items.length > 0 && soLosartana.items.every((d) => d.medication.name === 'Losartana' && d.storedStatus === 'TOMADA'));
+      const pag0 = await httpDoseService.listHistory({ ...base, status: 'ALL', size: 1 });
+      const pag1 = await httpDoseService.listHistory({ ...base, status: 'ALL', size: 1, page: 1 });
+      assert.equal(pag0.totalPages, pag0.totalElements);
+      assert.notEqual(pag0.items[0].id, pag1.items[0].id);
+      // A dose vinda do histórico abre o detalhe
+      assert.equal((await httpDoseService.get(pag1.items[0].id)).id, pag1.items[0].id);
+      await expectError(() => httpDoseService.listHistory({ elder: 'ALL', from: hoje.dia, to: '2000-01-01', status: 'ALL' }), 400, 'VALIDACAO');
+      const vazio = await httpDoseService.listHistory({ elder: 'ALL', from: '1990-01-01', to: '1990-01-31', status: 'ALL' });
+      assert.deepEqual([vazio.items.length, vazio.totalElements, vazio.totalPages], [0, 0, 0]);
     });
 
     await step('cuidador vê a dose TOMADA (GET /api/idosos/{id}/doses)', async () => {

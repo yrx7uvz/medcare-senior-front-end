@@ -10,6 +10,7 @@ import type {
   ElderInput,
   ElderPairing,
   ElderProfile,
+  HistoryPage,
   HistoryQuery,
   MedicationInfo,
   MedicationInput,
@@ -57,13 +58,14 @@ export interface MedicationService {
   remove(id: ID, options: { confirmed: boolean }): Promise<void>;
 }
 
-/** GET /api/doses/pendentes, PUT /api/doses/{id}/confirmar, /api/configuracoes/tolerancia, /api/relatorios/diario */
+/** Doses do dia, PUT /api/doses/{id}/confirmar, GET /api/historico e /api/configuracoes/tolerancia */
 export interface DoseService {
   listForDay(filter: ElderFilter, day: string): Promise<DoseView[]>;
   /** A API não tem GET de uma dose: `hint` (idoso e dia) diz onde procurar; sem ele, vale a última lista vista. */
   get(id: ID, hint?: { elderId: ID; day: DateKey }): Promise<DoseView>;
   confirm(id: ID): Promise<DoseView>;
-  listHistory(query: HistoryQuery): Promise<DoseView[]>;
+  /** Histórico paginado (UC-011). Período invertido: 400 VALIDACAO; período sem registros: página vazia (RN-011). */
+  listHistory(query: HistoryQuery): Promise<HistoryPage>;
   listAlerts(): Promise<AlertView[]>;
   getTolerance(): Promise<number>;
   setTolerance(minutes: number): Promise<number>;

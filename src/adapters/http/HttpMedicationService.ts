@@ -1,5 +1,5 @@
 import { apiTimeToHHmm, apiWeekdayToIndex, indexToApiWeekday, saoPauloDateKey } from '../../lib/apiTime';
-import { isLowStock, isTreatmentActive, pickCurrentTreatment, scheduleSummary } from '../../lib/medicationMeta';
+import { isTreatmentActive, pickCurrentTreatment, scheduleSummary } from '../../lib/medicationMeta';
 import { toAppError, TreatmentNotSavedError } from '../../services/errors';
 import type { MedicationService } from '../../services/types';
 import { MEDICATION_TYPE_VALUES, PILL_SHAPE_VALUES, type Medication, type MedicationType, type PillShape, type Treatment } from '../../types/domain';
@@ -34,6 +34,9 @@ export interface TratamentoResponse {
 
 const HEX_COLOR_RE = /^#[0-9a-f]{6}$/i;
 
+/** A cor guardada na API é texto livre; o desenho do remédio só usa '#RRGGBB'. Outro texto fica sem cor. */
+export const apiColorToHex = (cor: string | null | undefined): string | undefined => (cor && HEX_COLOR_RE.test(cor) ? cor : undefined);
+
 /** Cadastros antigos podem ter tipo em texto livre: para o desenho do remédio, vira COMPRIMIDO. */
 const toType = (tipo: string): MedicationType => ((MEDICATION_TYPE_VALUES as readonly string[]).includes(tipo) ? (tipo as MedicationType) : 'COMPRIMIDO');
 
@@ -51,7 +54,7 @@ export function toMedication(dto: MedicamentoResponse): Medication {
     dosage: dto.dosagem,
     type: toType(dto.tipo),
     shape: toShape(dto.formato),
-    primaryColor: dto.cor && HEX_COLOR_RE.test(dto.cor) ? dto.cor : undefined,
+    primaryColor: apiColorToHex(dto.cor),
     stock: dto.quantidadeEstoque ?? undefined,
     bulaUrl: dto.bulaUrl ?? undefined,
     appearanceSource: 'MANUAL',
@@ -70,7 +73,7 @@ export function toMedicamentoRequest(input: MedicationInput) {
     dosagem: input.dosage.trim(),
     tipo: input.type,
     formato: input.type === 'COMPRIMIDO' && input.shape ? input.shape : undefined,
-    cor: input.primaryColor && HEX_COLOR_RE.test(input.primaryColor) ? input.primaryColor : undefined,
+    cor: apiColorToHex(input.primaryColor),
     quantidadeEstoque: input.stock,
     bulaUrl: input.bulaUrl?.trim() || undefined,
     idosoId: toApiId(input.elderId),
@@ -124,7 +127,6 @@ function toView(medication: Medication, treatments: Treatment[], elderName: stri
     elderName,
     treatment,
     activeTreatment: isTreatmentActive(treatment, todayKey()),
-    lowStock: isLowStock(medication),
     scheduleSummary: scheduleSummary(treatment),
   };
 }
