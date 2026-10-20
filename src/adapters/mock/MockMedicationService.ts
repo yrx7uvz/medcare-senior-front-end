@@ -6,7 +6,7 @@ import { getNow } from '../../lib/clock';
 import { toDateKey, toDateTimeKey } from '../../lib/date';
 import { GENERATION_WINDOW_DAYS, generateDoses } from '../../lib/doseGenerator';
 import { uid } from '../../lib/ids';
-import { isLowStock, isTreatmentActive, scheduleSummary } from '../../lib/medicationMeta';
+import { isTreatmentActive, scheduleSummary } from '../../lib/medicationMeta';
 import { getDb, mutateDb } from '../../mocks/db';
 import { simulate } from './simulate';
 
@@ -18,7 +18,6 @@ function toView(m: Medication): MedicationView {
     elderName: db.elders.find((e) => e.id === m.elderId)?.name ?? 'Paciente',
     treatment,
     activeTreatment: isTreatmentActive(treatment, toDateKey(getNow())),
-    lowStock: isLowStock(m),
     scheduleSummary: scheduleSummary(treatment),
   };
 }

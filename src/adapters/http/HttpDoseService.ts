@@ -1,14 +1,15 @@
+import { HISTORY_PAGE_SIZE, historyPath } from '../../lib/history';
 import { defaultDoseQuantity, routeLabel } from '../../lib/medicationMeta';
 import { appTodayKey } from '../../lib/serverClock';
 import { httpError } from '../../services/errors';
 import type { DoseService } from '../../services/types';
 import { MEDICATION_TYPE_VALUES, type DateKey, type DoseStatus, type MedicationType } from '../../types/domain';
-import type { AlertView, Confirmability, DoseView } from '../../types/views';
+import type { AlertView, Confirmability, DoseView, HistoryPage } from '../../types/views';
 import { endpoints } from './endpoints';
 import { toElder, type IdosoResponse } from './HttpElderService';
 import { getViewer, request } from './httpClient';
+import { apiColorToHex } from './HttpMedicationService';
 import { fromApiId, toApiId } from './ids';
-import { notIntegrated } from './stubs';
 
 /** GET /api/idosos/{id}/doses, GET /api/idosos/me/doses e PUT /api/doses/{id}/confirmar (DoseResponseDTO). */
 export interface DoseResponse {
@@ -19,6 +20,8 @@ export interface DoseResponse {
   medicamentoNome: string;
   dosagem: string;
   tipo: string;
+  /** Cor do medicamento como foi cadastrada (texto livre; o app grava '#RRGGBB'), ou null. */
+  cor?: string | null;
   tratamentoId: number | null;
   horarioProgramado: string;
   horaConfirmacao: string | null;
@@ -35,8 +38,8 @@ const toKey = (value: string) => value.slice(0, 16);
 const toType = (tipo: string): MedicationType => ((MEDICATION_TYPE_VALUES as readonly string[]).includes(tipo) ? (tipo as MedicationType) : 'COMPRIMIDO');
 
 /**
- * DoseResponseDTO para DoseView. Status de exibição, janela e confirmabilidade vêm do servidor como estão. A dose
- * não traz a aparência do remédio (cor e formato): o desenho usa a aparência padrão do tipo.
+ * DoseResponseDTO para DoseView. Status de exibição, janela e confirmabilidade vêm do servidor como estão. A cor do
+ * remédio vem do servidor (só '#RRGGBB' é desenhada); o formato não vem, e o desenho usa o padrão do tipo.
  */
 export function toDoseView(dto: DoseResponse): DoseView {
   const type = toType(dto.tipo);
@@ -51,6 +54,7 @@ export function toDoseView(dto: DoseResponse): DoseView {
       name: dto.medicamentoNome,
       dosage: dto.dosagem,
       type,
+      primaryColor: apiColorToHex(dto.cor),
       appearanceSource: 'MANUAL',
       createdAt: '',
     },
@@ -79,6 +83,25 @@ export function remember(views: DoseView[]) {
   return views;
 }
 
+/** GET /api/historico (HistoricoResponseDTO). */
+export interface HistoricoResponse {
+  conteudo: DoseResponse[];
+  pagina: number;
+  tamanho: number;
+  totalElementos: number;
+  totalPaginas: number;
+}
+
+export function toHistoryPage(dto: HistoricoResponse): HistoryPage {
+  return {
+    items: remember(dto.conteudo.map(toDoseView)),
+    page: dto.pagina,
+    size: dto.tamanho,
+    totalElements: dto.totalElementos,
+    totalPages: dto.totalPaginas,
+  };
+}
+
 const byTime = (a: DoseView, b: DoseView) => a.scheduledAt.localeCompare(b.scheduledAt) || a.elderName.localeCompare(b.elderName);
 
 /** Doses de um idoso num dia: o cuidador usa a rota do idoso; o idoso, a rota "me" (o idoso vem do token). */
@@ -96,9 +119,8 @@ async function listForDay(filter: string, day: DateKey): Promise<DoseView[]> {
 }
 
 /**
- * Doses reais na API (FE-14, parte 1). Confirmar é só do idoso (PUT /api/doses/{id}/confirmar): os erros 409
- * DOSE_JA_REGISTRADA, DOSE_MUITO_CEDO e DOSE_ENCERRADA chegam como AppError com o código e a mensagem clara.
- * Histórico e tolerância são integrados nos próximos lotes.
+ * Doses reais na API. Confirmar é só do idoso (PUT /api/doses/{id}/confirmar): os erros 409 DOSE_JA_REGISTRADA,
+ * DOSE_MUITO_CEDO e DOSE_ENCERRADA chegam como AppError com o código e a mensagem clara.
  */
 export const httpDoseService: DoseService = {
   listForDay,
@@ -133,7 +155,22 @@ export const httpDoseService: DoseService = {
       }));
   },
 
-  listHistory: notIntegrated,
+  /**
+   * GET /api/historico (só cuidador): idoso "Todos" não manda idosoId (a API restringe aos idosos do cuidador).
+   * Período invertido chega como 400 VALIDACAO com a mensagem da API; idoso alheio, 404.
+   */
+  async listHistory(query) {
+    const path = historyPath(endpoints.history, {
+      elderApiId: query.elder === 'ALL' ? undefined : toApiId(query.elder),
+      medicationApiId: query.medicationId ? toApiId(query.medicationId) : undefined,
+      from: query.from,
+      to: query.to,
+      status: query.status,
+      page: query.page ?? 0,
+      size: query.size ?? HISTORY_PAGE_SIZE,
+    });
+    return toHistoryPage(await request<HistoricoResponse>('GET', path));
+  },
 
   /** GET /api/configuracoes/tolerancia: a do cuidador ou, sem configuração, a padrão. */
   async getTolerance() {

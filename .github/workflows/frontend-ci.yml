@@ -32,3 +32,9 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Testes (Jest)
+        run: npm test -- --ci
+
+      - name: Verificações do núcleo
+        run: npm run check:core

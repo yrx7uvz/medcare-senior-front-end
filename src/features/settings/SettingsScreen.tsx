@@ -117,9 +117,7 @@ export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
           <SectionTitle icon={Bell} title="Notificações" />
           <PrefRow label="Dose não confirmada" hint="Aviso quando passar da tolerância" value={prefs.missedDose} onChange={(v) => setPref('missedDose', v)} />
           {IS_DEMO ? null : <PushStatus />}
-          <PrefRow label="Mensagens dos pacientes" value={prefs.messages} onChange={(v) => setPref('messages', v)} />
-          <PrefRow label="Estoque baixo" value={prefs.lowStock} onChange={(v) => setPref('lowStock', v)} />
-        </Card>
+          <PrefRow label="Mensagens dos pacientes" value={prefs.messages} onChange={(v) => setPref('messages', v)} />        </Card>
 
         <Card style={styles.card}>
           <ThemeToggle />
