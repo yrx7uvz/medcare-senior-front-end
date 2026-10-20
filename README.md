@@ -11,7 +11,14 @@ npm install
 npx expo start          # abra no Expo Go (Android) ou pressione "a" com um emulador aberto
 npm run typecheck       # tsc --noEmit
 npm run check:mocks     # confere se painel, histórico e PDF fecham entre si
+npm test                # Jest: regras, validações, datas, máscaras, mapeadores, PIN e env
+npm run check:core      # verificações do núcleo sem rede (adapters HTTP com fetch falso)
+npm run check:permissions  # permissões finais do Android (prebuild numa pasta temporária; não deixa android/)
+npm run smoke:api       # ponta a ponta contra a API (EXPO_PUBLIC_API_URL, padrão http://localhost:8080)
 ```
+
+No APK gerado pelo EAS, as permissões do manifesto mesclado podem ser conferidas com
+`aapt dump permissions app.apk` (Android SDK build-tools).
 
 Requisitos: Node 18+ e um aparelho/emulador Android 8.0 (API 26) ou superior.
 `expo-build-properties` fixa o `minSdkVersion` em 26 (RNF04) para builds nativos (`npx expo run:android` / EAS).
@@ -90,6 +97,16 @@ aparência do medicamento (formato, cores, tamanho em mm, imprint, sulco) — ho
   para o roteiro funcionar com uma conta nova.
 - **Armazenamento local**: apenas a sessão e o PIN do idoso, no SecureStore (Keystore do Android). Nenhum dado de
   saúde vai para AsyncStorage; os dados mock somem ao fechar o app.
+- **PIN do idoso**: guardado só como hash PBKDF2-HMAC-SHA256 (2.000 iterações, sal aleatório de 16 bytes do
+  `expo-crypto`, comparação em tempo constante). A cada 5 erros seguidos o teclado bloqueia por 30 s, 2 min e
+  10 min; o bloqueio conta pelo relógio monotônico (adiantar o relógio não adianta) e continua se o app for fechado.
+  PIN antigo em texto é convertido no primeiro uso. O `expo-crypto` é nativo: exige um development build novo.
+- **HTTPS no release**: fora do desenvolvimento, `EXPO_PUBLIC_API_URL` precisa ser `https://` (senão o app abre uma
+  tela de configuração inválida e não chama a API) e os perfis `preview`/`production` desligam o tráfego em texto
+  claro (`usesCleartextTraffic=false`); o perfil `development` continua aceitando `http://` da rede local.
+- **Permissões do Android**: só INTERNET, ACCESS_NETWORK_STATE, POST_NOTIFICATIONS, VIBRATE, WAKE_LOCK e o
+  recebimento do FCM; armazenamento, câmera, microfone, localização, sobreposição de tela e afins ficam bloqueados
+  em `app.config.ts`.
 - **Tamanho real**: a régua da `PillSizeLegend` usa 1 mm ≈ 6,3 dp (densidade de referência do Android). É uma
   aproximação; a medida exata depende da tela.
 - **Acessibilidade (RNF01)**: textos do idoso ≥ 20 sp, botões principais ≥ 88 dp, teclado numérico com teclas de 72 dp,
