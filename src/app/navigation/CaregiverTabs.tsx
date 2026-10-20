@@ -10,8 +10,9 @@ import { MedicationsScreen } from '../../features/medications/MedicationsScreen'
 import { CaregiverMessagesScreen } from '../../features/messages/CaregiverMessagesScreen';
 import { SettingsScreen } from '../../features/settings/SettingsScreen';
 import { services } from '../../services';
+import { unreadBadge } from '../../lib/messages';
 import { useQuery } from '../../lib/useQuery';
-import { useNow } from '../../lib/useNow';
+import { useRefreshOnAppActive } from '../../lib/useScreenActivity';
 import { fonts, useTheme } from '../../theme';
 import type { CaregiverTabParamList } from './types';
 
@@ -20,10 +21,10 @@ const Tab = createBottomTabNavigator<CaregiverTabParamList>();
 export function CaregiverTabs() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const now = useNow(20_000);
-  const unread = useQuery(['unread-caregiver'], () => services.messages.unreadCount('ALL', 'CUIDADOR'), {
-    silentKey: Math.floor(now.getTime() / 20_000),
-  });
+  // Sem atualização periódica fora da tela de mensagens: ao voltar ao app e a cada escrita (cache invalidado)
+  const unread = useQuery(['unread-caregiver'], () => services.messages.unreadCount('ALL', 'CUIDADOR'));
+  useRefreshOnAppActive(unread.refresh);
+  const badge = unreadBadge(unread.data ?? 0);
 
   return (
     <>
@@ -50,7 +51,7 @@ export function CaregiverTabs() {
           component={CaregiverMessagesScreen}
           options={{
             tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} />,
-            tabBarBadge: unread.data ? unread.data : undefined,
+            tabBarBadge: badge,
             tabBarAccessibilityLabel: unread.data ? `Mensagens, ${unread.data} não lidas` : 'Mensagens',
           }}
         />

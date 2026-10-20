@@ -37,6 +37,8 @@ import { ELDER_EXPIRED_MESSAGE, resolveStoredSessions, SESSION_EXPIRED_MESSAGE }
 import { dailyTotals } from '../src/lib/dailyReport';
 import { liveDose } from '../src/lib/doseLive';
 import { emptyHistoryNotice, hasMoreHistory, historyPath, historyRange, mergeHistory } from '../src/lib/history';
+import { MESSAGE_POLL_MS, messageSendError } from '../src/lib/messages';
+import { httpMessageService } from '../src/adapters/http/HttpMessageService';
 import { toleranceError } from '../src/lib/doseRules';
 import { isTreatmentActive, pickCurrentTreatment } from '../src/lib/medicationMeta';
 import { createPushService, isPushSupported, type NotificationsModule } from '../src/lib/pushCore';
@@ -1141,6 +1143,66 @@ checkAsync('PIN: só hash com sal, 5 erros bloqueiam (mesmo com o PIN certo) e o
   relogio.agora += 30_000;
   assert.deepEqual(await guard.verify('2580'), { result: 'OK' });
   assert.equal(createPinRecord('1234', (n) => new Uint8Array(randomBytes(n))).iterations, PIN_ITERATIONS);
+});
+
+// --- Mensagens (UC-010) ----------------------------------------------------------------------------------------------
+const MSG = (id: number, remetente: 'CUIDADOR' | 'IDOSO', criadaEm: string, lidaEm: string | null = null) => ({ id, remetente, conteudo: `m${id}`, criadaEm, lidaEm });
+
+checkAsync('Mensagens pelo cliente HTTP: conversas, conversa paginada, envio, leitura e contador', async () => {
+  setViewerProvider(() => 'CAREGIVER');
+  const chamadas = fakeFetch([
+    { status: 200, body: [{ idosoId: 12, idosoNome: 'Maria', ultimaMensagem: { conteudo: 'Oi', remetente: 'IDOSO', criadaEm: '2026-10-20T08:00:00' }, naoLidas: 3 }] },
+    { status: 200, body: { conteudo: [MSG(2, 'IDOSO', '2026-10-20T08:01:00'), MSG(1, 'CUIDADOR', '2026-10-20T08:00:00', '2026-10-20T08:02:00')], pagina: 0, tamanho: 20, totalElementos: 22, totalPaginas: 2 } },
+    { status: 201, body: MSG(3, 'CUIDADOR', '2026-10-20T08:03:00') },
+    { status: 200, body: { marcadas: 1 } },
+    { status: 200, body: { naoLidas: 4 } },
+  ]);
+  const conversas = await httpMessageService.listConversations();
+  assert.deepEqual([conversas[0].elder.id, conversas[0].unread, conversas[0].lastMessage?.text], ['12', 3, 'Oi']);
+  const pagina = await httpMessageService.listThread('12');
+  assert.deepEqual(pagina.items.map((m) => [m.id, m.from, m.read]), [['2', 'IDOSO', false], ['1', 'CUIDADOR', true]]);
+  assert.equal(pagina.totalPages, 2);
+  const enviada = await httpMessageService.send('12', 'CUIDADOR', 'Bom dia');
+  assert.deepEqual([enviada.id, enviada.elderId, enviada.from], ['3', '12', 'CUIDADOR']);
+  assert.equal(await httpMessageService.markRead('12', 'CUIDADOR'), 1);
+  assert.equal(await httpMessageService.unreadCount('ALL', 'CUIDADOR'), 4);
+  assert.deepEqual(chamadas.map((c) => `${c.method} ${c.path}`), [
+    'GET /api/mensagens/conversas',
+    'GET /api/mensagens?idosoId=12&page=0&size=20',
+    'POST /api/mensagens',
+    'PUT /api/mensagens/lidas?idosoId=12',
+    'GET /api/mensagens/nao-lidas',
+  ]);
+  assert.deepEqual(chamadas[2].body, { idosoId: 12, conteudo: 'Bom dia' });
+  setViewerProvider(() => null);
+});
+
+checkAsync('Mensagens: erros da API chegam com o código (VALIDACAO no campo, ACESSO_NEGADO, RECURSO_NAO_ENCONTRADO, SESSAO_INVALIDA)', async () => {
+  const casos: [number, string, Record<string, unknown>][] = [
+    [400, 'VALIDACAO', { campos: [{ campo: 'conteudo', mensagem: 'A mensagem não pode ser vazia' }] }],
+    [403, 'ACESSO_NEGADO', {}],
+    [404, 'RECURSO_NAO_ENCONTRADO', {}],
+    [401, 'SESSAO_INVALIDA', {}],
+  ];
+  for (const [status, codigo, extra] of casos) {
+    fakeFetch([{ status, body: { codigo, mensagem: 'x', campos: [], ...extra } }]);
+    const erro = await httpMessageService.send('12', 'IDOSO', 'Oi').then(() => null, (e: unknown) => e);
+    assert.ok(erro instanceof AppError && erro.status === status && erro.code === codigo, codigo);
+    if (codigo === 'VALIDACAO') assert.equal(messageSendError(erro), 'A mensagem não pode ser vazia');
+  }
+});
+
+check('Mensagens: atualização automática só na tela de mensagens; contadores ao focar o app; demo com o mesmo contrato', () => {
+  const ler = (p: string) => readFileSync(join(__dirname, '..', 'src', p), 'utf8');
+  assert.match(ler('lib/useMessageThread.ts'), /usePolling\(latest\.refresh, MESSAGE_POLL_MS, active/);
+  assert.match(ler('features/messages/CaregiverMessagesScreen.tsx'), /usePolling\(q\.refresh, MESSAGE_POLL_MS, active/);
+  const abas = ler('app/navigation/CaregiverTabs.tsx');
+  assert.match(abas, /useRefreshOnAppActive\(unread\.refresh\)/);
+  assert.doesNotMatch(abas, /silentKey/);
+  assert.match(ler('features/elder/ElderHomeScreen.tsx'), /useRefreshOnFocus\(unread\.refresh\)/);
+  assert.match(ler('adapters/http/index.ts'), /messages: httpMessageService/);
+  assert.match(ler('adapters/mock/demo.ts'), /messages: mockMessageService/);
+  assert.equal(MESSAGE_POLL_MS, 10_000);
 });
 
 void (async () => {

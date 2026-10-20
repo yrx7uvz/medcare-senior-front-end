@@ -6,6 +6,7 @@ import type {
   Elder,
   ID,
   Medication,
+  Message,
   MedicationType,
   PillShape,
   ScheduleTime,
@@ -60,6 +61,14 @@ export interface AlertView {
   dosage: string;
   scheduledAt: DateTimeKey;
   status: 'ATRASADA' | 'NAO_TOMADA';
+}
+
+/** Uma página da conversa (GET /api/mensagens), da mensagem mais recente para a mais antiga. */
+export interface MessagePage {
+  items: Message[];
+  page: number;
+  totalPages: number;
+  totalElements: number;
 }
 
 export interface ConversationView {
