@@ -18,6 +18,7 @@
     "check:mocks": "cross-env EXPO_PUBLIC_DEMO=true tsx scripts/check-mocks.ts",
     "check:core": "tsx scripts/check-core.ts",
     "check:permissions": "tsx scripts/check-android-permissions.ts",
+    "check:contrast": "tsx scripts/check-contrast.ts",
     "smoke:api": "tsx scripts/smoke-api.ts",
     "test": "jest",
     "test:coverage": "jest --coverage",

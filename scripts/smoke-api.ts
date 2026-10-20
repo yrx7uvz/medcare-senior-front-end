@@ -346,6 +346,22 @@ async function main() {
       assert.deepEqual([vazio.items.length, vazio.totalElements, vazio.totalPages], [0, 0, 0]);
     });
 
+    await step('PDF do histórico (GET /api/relatorios/pdf): arquivo com anexo e no-store; período vazio -> 422', async () => {
+      const base = getApiBaseUrl();
+      const pedir = (de: string, ate: string) =>
+        fetch(`${base}/api/relatorios/pdf?idosoId=${toApiId(idosoId)}&de=${de}&ate=${ate}`, { headers: { Authorization: `Bearer ${sessao.token}` } });
+      const res = await pedir(hoje.dia, hoje.dia);
+      assert.equal(res.status, 200);
+      assert.equal(res.headers.get('content-type'), 'application/pdf');
+      assert.match(res.headers.get('content-disposition') ?? '', /^attachment; filename="historico-adesao-\d+-.+\.pdf"$/);
+      assert.match(res.headers.get('cache-control') ?? '', /no-store/);
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      assert.equal(new TextDecoder().decode(bytes.slice(0, 5)), '%PDF-');
+      const vazio = await pedir('1990-01-01', '1990-01-31');
+      assert.equal(vazio.status, 422);
+      assert.equal(((await vazio.json()) as { codigo: string }).codigo, 'PERIODO_SEM_REGISTROS');
+    });
+
     // ---- Mensagens (UC-010) pelos adapters, nos dois papéis ----
     token = sessao.token;
     viewer = 'CAREGIVER';
