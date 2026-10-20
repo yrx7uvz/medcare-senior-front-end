@@ -23,22 +23,32 @@ export function MedicationsScreen({ navigation }: TabScreenProps<'Remedios'>) {
   const elders = useQuery(['elders'], () => services.elders.list());
   const remove = useMutation(services.medications.remove);
   const [target, setTarget] = useState<MedicationView | null>(null);
+  // RN06: o servidor recusou com 409 TRATAMENTO_ATIVO; a próxima confirmação força a remoção
+  const [mustForce, setMustForce] = useState(false);
+  const needsForce = mustForce || !!target?.activeTreatment;
 
   const elderName = filter === 'ALL' ? null : elders.data?.find((e) => e.id === filter)?.name;
   const count = q.data?.length ?? 0;
 
   async function confirmRemove() {
     if (!target) return;
-    const result = await remove.run(target.medication.id, { confirmed: true });
-    // Falha: o diálogo continua aberto com a mensagem de erro e o item permanece na lista
-    if (!result.ok) return;
+    // Sem tratamento ativo conhecido, pede sem forçar: se a API disser que há (409 TRATAMENTO_ATIVO), o diálogo
+    // passa a pedir a confirmação forçada (RN06) e só o próximo toque remove de fato
+    const result = await remove.run(target.medication.id, { confirmed: needsForce });
+    if (!result.ok) {
+      if (result.error.code === 'TRATAMENTO_ATIVO') setMustForce(true);
+      // Falha: o diálogo continua aberto com a mensagem de erro e o item permanece na lista
+      return;
+    }
     setTarget(null);
+    setMustForce(false);
     showToast(`${target.medication.name} removido. O histórico foi mantido.`);
     q.refresh();
   }
 
   function closeDialog() {
     setTarget(null);
+    setMustForce(false);
     remove.clearError();
   }
 
@@ -82,6 +92,7 @@ export function MedicationsScreen({ navigation }: TabScreenProps<'Remedios'>) {
               onPress={() => navigation.navigate('MedicationForm', { medicationId: item.medication.id })}
               onRemove={() => {
                 remove.clearError();
+                setMustForce(false);
                 setTarget(item);
               }}
             />
@@ -105,16 +116,20 @@ export function MedicationsScreen({ navigation }: TabScreenProps<'Remedios'>) {
         tone="danger"
         title={`Remover ${target?.medication.name ?? ''}?`}
         message={
-          target?.activeTreatment
+          needsForce
             ? 'Este remédio tem tratamento ativo. Ao remover, as próximas doses deixam de ser lembradas. As doses já registradas continuam no histórico (RN06, RN08).'
             : 'O remédio sai da lista. As doses já registradas continuam no histórico.'
         }
-        confirmLabel={target?.activeTreatment ? 'Remover mesmo assim' : 'Remover'}
+        confirmLabel={needsForce ? 'Remover mesmo assim' : 'Remover'}
         loading={remove.loading}
         onConfirm={confirmRemove}
         onCancel={closeDialog}
       >
-        {remove.error ? <AppText color={colors.danger}>{remove.error.message}</AppText> : null}
+        {remove.error ? (
+          <AppText color={remove.error.code === 'TRATAMENTO_ATIVO' ? colors.warningText : colors.danger} accessibilityRole="alert">
+            {remove.error.message}
+          </AppText>
+        ) : null}
       </ConfirmDialog>
     </CaregiverScreen>
   );

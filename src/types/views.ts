@@ -89,6 +89,26 @@ export interface AdherenceReport {
   totalDoses: number;
 }
 
+/** Totais do relatório diário (UC-008), pelo status gravado das doses. */
+export interface DailyReportTotals {
+  total: number;
+  taken: number;
+  late: number;
+  missed: number;
+  pending: number;
+  /** (tomadas + com atraso) / (total - pendentes) * 100, 1 casa; null sem dose encerrada. */
+  adherencePercent: number | null;
+}
+
+/** GET /api/relatorios/diario?idosoId=&data= (UC-008 / HU06). */
+export interface DailyReport {
+  elder: { id: ID; name: string };
+  day: DateKey;
+  totals: DailyReportTotals;
+  /** Doses do dia, por horário. */
+  doses: DoseView[];
+}
+
 export interface PdfResult {
   fileName: string;
   sizeKb: number;
@@ -149,7 +169,8 @@ export interface MedicationInput {
   imprint?: string;
   hasScore?: boolean;
   stock?: number;
-  leaflet?: string;
+  /** Link da bula (MedicamentoRequestDTO.bulaUrl). */
+  bulaUrl?: string;
   appearanceSource: 'MANUAL' | 'EXTERNA';
   treatment: TreatmentInput;
 }

@@ -1,12 +1,12 @@
 import type { Services } from '../../services/types';
 import { httpAuthService } from './HttpAuthService';
+import { httpDoseService } from './HttpDoseService';
+import { httpElderService } from './HttpElderService';
+import { httpMedicationService } from './HttpMedicationService';
+import { httpReportService } from './HttpReportService';
 import {
-  stubDoseService,
-  stubElderService,
   stubMedicationInfoService,
-  stubMedicationService,
   stubMessageService,
-  stubReportService,
 } from './stubs';
 
 /**
@@ -15,10 +15,10 @@ import {
  */
 export const httpServices: Services = {
   auth: httpAuthService,
-  elders: stubElderService,
-  medications: stubMedicationService,
-  doses: stubDoseService,
+  elders: httpElderService,
+  medications: httpMedicationService,
+  doses: httpDoseService,
   messages: stubMessageService,
-  reports: stubReportService,
+  reports: httpReportService,
   medicationInfo: stubMedicationInfoService,
 };

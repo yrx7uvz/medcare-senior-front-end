@@ -11,6 +11,9 @@ const KEYS = {
   elderPin: 'medcare.elder.pin',
   profile: 'medcare.device.profile',
   caregiverSession: 'medcare.caregiver.session',
+  notificationPrefs: 'medcare.notification.prefs',
+  pushPendingRemoval: 'medcare.push.pendingRemoval',
+  pushPromptAnswered: 'medcare.push.promptAnswered',
 } as const;
 const memory = new Map<string, string>();
 
@@ -103,5 +106,39 @@ export const elderDeviceStorage = {
   async clear() {
     await removeItem(KEYS.elderSession);
     await removeItem(KEYS.elderPin);
+  },
+};
+
+export interface StoredNotificationPrefs {
+  missedDose: boolean;
+  messages: boolean;
+  lowStock: boolean;
+}
+
+/** Preferências de notificação do aparelho (não são dado de saúde). Valor ilegível volta como null (padrão). */
+export const notificationPrefsStorage = {
+  async save(prefs: StoredNotificationPrefs) {
+    await setItem(KEYS.notificationPrefs, JSON.stringify(prefs));
+  },
+  async load(): Promise<StoredNotificationPrefs | null> {
+    const p = parseJson<StoredNotificationPrefs>(await getItem(KEYS.notificationPrefs));
+    return p && typeof p.missedDose === 'boolean' && typeof p.messages === 'boolean' && typeof p.lowStock === 'boolean' ? p : null;
+  },
+};
+
+/** Marcas do push: remoção do token pendente (saída sem rede) e explicação de permissão já respondida. */
+export const pushStorage = {
+  async getPendingRemoval() {
+    return (await getItem(KEYS.pushPendingRemoval)) === '1';
+  },
+  async setPendingRemoval(pending: boolean) {
+    if (pending) await setItem(KEYS.pushPendingRemoval, '1');
+    else await removeItem(KEYS.pushPendingRemoval);
+  },
+  async getPromptAnswered() {
+    return (await getItem(KEYS.pushPromptAnswered)) === '1';
+  },
+  async setPromptAnswered() {
+    await setItem(KEYS.pushPromptAnswered, '1');
   },
 };

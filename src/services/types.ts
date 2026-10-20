@@ -1,8 +1,9 @@
-import type { Dose, Elder, ID, LinkCode, Message, MessageAuthor, Treatment, Medication } from '../types/domain';
+import type { DateKey, Dose, Elder, ID, LinkCode, Message, MessageAuthor, Treatment, Medication } from '../types/domain';
 import type {
   AdherenceReport,
   AlertView,
   CaregiverSession,
+  DailyReport,
   ConversationView,
   DoseView,
   ElderFilter,
@@ -15,6 +16,7 @@ import type {
   MedicationView,
   PdfResult,
   SignUpInput,
+  TreatmentInput,
 } from '../types/views';
 
 /**
@@ -49,6 +51,8 @@ export interface MedicationService {
   get(id: ID): Promise<{ medication: Medication; treatment?: Treatment }>;
   create(input: MedicationInput): Promise<MedicationView>;
   update(id: ID, input: MedicationInput): Promise<MedicationView>;
+  /** Só o tratamento, para um medicamento que ficou sem (cadastro em que a 2ª chamada falhou). */
+  createTreatment(medicationId: ID, input: TreatmentInput): Promise<MedicationView>;
   /** RN06: com tratamento ativo exige `confirmed: true`, senão 409. */
   remove(id: ID, options: { confirmed: boolean }): Promise<void>;
 }
@@ -56,7 +60,8 @@ export interface MedicationService {
 /** GET /api/doses/pendentes, PUT /api/doses/{id}/confirmar, /api/configuracoes/tolerancia, /api/relatorios/diario */
 export interface DoseService {
   listForDay(filter: ElderFilter, day: string): Promise<DoseView[]>;
-  get(id: ID): Promise<DoseView>;
+  /** A API não tem GET de uma dose: `hint` (idoso e dia) diz onde procurar; sem ele, vale a última lista vista. */
+  get(id: ID, hint?: { elderId: ID; day: DateKey }): Promise<DoseView>;
   confirm(id: ID): Promise<DoseView>;
   listHistory(query: HistoryQuery): Promise<DoseView[]>;
   listAlerts(): Promise<AlertView[]>;
@@ -73,8 +78,10 @@ export interface MessageService {
   unreadCount(elderId: ID | 'ALL', reader: MessageAuthor): Promise<number>;
 }
 
-/** GET /api/relatorios/pdf */
+/** GET /api/relatorios/diario e GET /api/relatorios/pdf */
 export interface ReportService {
+  /** Relatório diário de uso dos medicamentos de um idoso (UC-008). */
+  getDaily(elderId: ID, day: DateKey): Promise<DailyReport>;
   getAdherence(elderId: ID, from: string, to: string): Promise<AdherenceReport>;
   generatePdf(elderId: ID, from: string, to: string): Promise<PdfResult>;
 }
