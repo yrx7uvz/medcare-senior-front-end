@@ -13,6 +13,11 @@ import assert from 'node:assert/strict';
 
 process.env.EXPO_PUBLIC_API_URL ??= 'http://localhost:8080';
 process.env.EXPO_PUBLIC_DEMO = 'false';
+// Aceita http:// (desenvolvimento) e https:// (produção ou túnel), com ou sem barra final
+if (!/^https?:\/\/[^/\s]+/i.test(process.env.EXPO_PUBLIC_API_URL.trim())) {
+  console.error(`EXPO_PUBLIC_API_URL inválida: use http:// ou https:// (veio "${process.env.EXPO_PUBLIC_API_URL}")`);
+  process.exit(1);
+}
 
 const FUSO = 'America/Sao_Paulo';
 const DIAS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'] as const;
@@ -57,6 +62,8 @@ async function main() {
   const { httpMessageService } = await import('../src/adapters/http/HttpMessageService');
   const { fromApiId, toApiId } = await import('../src/adapters/http/ids');
   const { AppError } = await import('../src/services/errors');
+  const { getApiBaseUrl } = await import('../src/config/env');
+  console.log(`Alvo: ${getApiBaseUrl()}\n`);
 
   let token: string | null = null;
   setTokenProvider(() => token);
