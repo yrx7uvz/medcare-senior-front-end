@@ -38,7 +38,7 @@ export function toDailyReport(dto: RelatorioDiarioResponse): DailyReport {
   };
 }
 
-/** Relatório diário real (UC-008). */
+
 export const httpReportService: ReportService = {
   async getDaily(elderId, day) {
     return toDailyReport(await request<RelatorioDiarioResponse>('GET', endpoints.dailyReport(String(toApiId(elderId)), day)));
