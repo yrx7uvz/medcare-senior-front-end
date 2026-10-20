@@ -114,6 +114,22 @@ aparência do medicamento (formato, cores, tamanho em mm, imprint, sulco) — ho
   O botão verde usa `#1E7B45` (contraste 5,6:1 com branco), porque `#27AE60` com texto branco não atinge 4,5:1.
 - **Push, PDF e som** são simulados: modal de alerta, arquivo fictício e vibração com anúncio do leitor de tela.
 
+## Auditoria de dependências
+
+`npm audit` acusa advisories que **não chegam ao app**: estão só nas ferramentas de build que o pacote `expo` traz como
+dependência (por isso aparecem também em `npm audit --omit=dev`). Nenhum desses pacotes está no bundle do app
+(conferido no sourcemap de `npx expo export --platform android`), e nenhum tem versão corrigida compatível: o único
+"fix" do npm é rebaixar para o `expo@44`. **Não use `npm audit fix --force`.**
+
+| Advisory | Pacote | Gravidade | Entra por | Onde roda |
+|---|---|---|---|---|
+| GHSA-vfj7-8cjw-p6xm | braces 3.0.3 (via micromatch) | alta | `expo` → `@expo/metro` → `metro-file-map`; também `jest` | empacotador e testes (PC/CI) |
+| GHSA-86w9-cpqp-85rv | node-forge 1.4.0 | alta | `expo` → `@expo/cli` | CLI do Expo (PC/CI) |
+| GHSA-w5hq-g745-h8pq | uuid 7.0.3 | moderada | `expo` → `@expo/config-plugins` → `xcode` | prebuild (PC/CI) |
+| GHSA-hp3w-g68c-fv3c | sprintf-js 1.0.3 | moderada | `jest` → `@istanbuljs/load-nyc-config` → `js-yaml` | testes (PC/CI) |
+
+`npx expo install --check` confirma as versões alinhadas ao SDK. Reavaliar a cada atualização do SDK do Expo.
+
 ## Ainda não coberto
 
 Testes automatizados de componentes, a avaliação heurística e a medição com o Accessibility Scanner em aparelho
