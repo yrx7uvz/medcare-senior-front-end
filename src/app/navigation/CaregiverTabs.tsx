@@ -13,7 +13,7 @@ import { services } from '../../services';
 import { unreadBadge } from '../../lib/messages';
 import { useQuery } from '../../lib/useQuery';
 import { useRefreshOnAppActive } from '../../lib/useScreenActivity';
-import { fonts, useTheme } from '../../theme';
+import { CAREGIVER_MIN_LABEL, fonts, useTheme } from '../../theme';
 import type { CaregiverTabParamList } from './types';
 
 const Tab = createBottomTabNavigator<CaregiverTabParamList>();
@@ -40,7 +40,7 @@ export function CaregiverTabs() {
             paddingBottom: 8 + insets.bottom,
             paddingTop: 6,
           },
-          tabBarLabelStyle: { fontFamily: fonts.bodySemi, fontSize: 12 },
+          tabBarLabelStyle: { fontFamily: fonts.bodySemi, fontSize: CAREGIVER_MIN_LABEL },
         }}
       >
         <Tab.Screen name="Painel" component={DashboardScreen} options={{ tabBarIcon: ({ color, size }) => <LayoutDashboard color={color} size={size} /> }} />

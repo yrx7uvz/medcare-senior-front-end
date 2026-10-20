@@ -1,7 +1,10 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, Chip } from '../../components/ui';
 import { WEEKDAYS_LONG, WEEKDAYS_SHORT } from '../../lib/date';
-import { spacing, useTheme } from '../../theme';
+import { hitSlopFor, spacing, touch, useTheme } from '../../theme';
+
+/** Os 7 dias cabem numa linha de celular estreito com 44 dp; a área de toque é completada até 48 dp na horizontal. */
+const DAY_MIN_WIDTH = 44;
 
 /** Ordem brasileira: segunda a domingo. */
 const ORDER = [1, 2, 3, 4, 5, 6, 0];
@@ -22,9 +25,10 @@ export function WeekdayChips({ value, onChange, error }: { value: number[]; onCh
               accessibilityState={{ checked: selected }}
               accessibilityLabel={WEEKDAYS_LONG[d]}
               onPress={() => toggle(d)}
+              hitSlop={{ left: hitSlopFor(DAY_MIN_WIDTH), right: hitSlopFor(DAY_MIN_WIDTH) }}
               style={[
                 styles.day,
-                { backgroundColor: selected ? colors.primary : colors.surface, borderColor: selected ? colors.primary : colors.border },
+                { backgroundColor: selected ? colors.primary : colors.surface, borderColor: selected ? colors.primary : colors.inputBorder },
               ]}
             >
               <AppText variant="label" color={selected ? colors.onPrimary : colors.text} maxFontSizeMultiplier={1.3}>
@@ -46,6 +50,6 @@ export function WeekdayChips({ value, onChange, error }: { value: number[]; onCh
 const styles = StyleSheet.create({
   wrap: { gap: spacing.sm },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  day: { minWidth: 44, height: 48, paddingHorizontal: 6, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', flexGrow: 1 },
+  day: { minWidth: DAY_MIN_WIDTH, height: touch.min, paddingHorizontal: 6, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', flexGrow: 1 },
   shortcuts: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
 });

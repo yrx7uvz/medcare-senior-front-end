@@ -1,5 +1,5 @@
 import { ActivityIndicator, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { radius, spacing, touch, useTheme } from '../../theme';
+import { hitSlopFor, radius, spacing, touch, useTheme } from '../../theme';
 import { AppText } from './AppText';
 import type { IconComponent } from './icons';
 
@@ -49,7 +49,7 @@ export function Button({
       accessibilityState={{ disabled: !!isDisabled, busy: !!loading }}
       disabled={isDisabled}
       onPress={onPress}
-      hitSlop={size === 'sm' ? 4 : 0}
+      hitSlop={hitSlopFor(height)}
       style={({ pressed }) => [
         styles.base,
         {

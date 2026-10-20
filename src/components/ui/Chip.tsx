@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet } from 'react-native';
-import { radius, spacing, useTheme } from '../../theme';
+import { radius, spacing, touch, useTheme } from '../../theme';
 import { AppText } from './AppText';
 import type { IconComponent } from './icons';
 
@@ -24,12 +24,11 @@ export function Chip({ label, selected, onPress, icon: Icon, leading, accessibil
       accessibilityState={{ selected: !!selected, disabled: !!disabled }}
       disabled={disabled}
       onPress={onPress}
-      hitSlop={4}
       style={({ pressed }) => [
         styles.chip,
         {
           backgroundColor: selected ? colors.primary : colors.surface,
-          borderColor: selected ? colors.primary : colors.border,
+          borderColor: selected ? colors.primary : colors.inputBorder,
           opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
         },
       ]}
@@ -45,7 +44,7 @@ export function Chip({ label, selected, onPress, icon: Icon, leading, accessibil
 
 const styles = StyleSheet.create({
   chip: {
-    minHeight: 40,
+    minHeight: touch.min,
     paddingHorizontal: spacing.md,
     borderRadius: radius.pill,
     borderWidth: 1.5,

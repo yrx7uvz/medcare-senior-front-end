@@ -215,14 +215,28 @@ function PushStatus() {
 
 function PrefRow({ label, hint, value, onChange }: { label: string; hint?: string; value: boolean; onChange: (v: boolean) => void }) {
   const { colors } = useTheme();
+  // A linha inteira é o alvo do toque (o Switch sozinho tem menos de 48 dp de altura)
   return (
-    <View style={styles.prefRow}>
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityLabel={label}
+      accessibilityHint={hint}
+      accessibilityState={{ checked: value }}
+      onPress={() => onChange(!value)}
+      style={({ pressed }) => [styles.prefRow, { opacity: pressed ? 0.85 : 1 }]}
+    >
       <View style={styles.flex}>
         <AppText variant="bodyStrong">{label}</AppText>
         {hint ? <AppText variant="caption" muted>{hint}</AppText> : null}
       </View>
-      <Switch accessibilityLabel={label} value={value} onValueChange={onChange} trackColor={{ true: colors.primary, false: colors.border }} />
-    </View>
+      <Switch
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        value={value}
+        onValueChange={onChange}
+        trackColor={{ true: colors.primary, false: colors.inputBorder }}
+      />
+    </Pressable>
   );
 }
 

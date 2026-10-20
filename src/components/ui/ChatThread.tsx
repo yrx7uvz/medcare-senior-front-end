@@ -142,7 +142,7 @@ export function ChatThread({
               styles.input,
               {
                 color: colors.text,
-                borderColor: shownError || tooLong ? colors.danger : colors.border,
+                borderColor: shownError || tooLong ? colors.danger : colors.inputBorder,
                 backgroundColor: colors.inputBackground,
                 fontSize: large ? 22 : 16,
                 minHeight: large ? 64 : 48,
