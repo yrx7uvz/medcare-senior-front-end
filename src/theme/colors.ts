@@ -5,10 +5,10 @@ export const palette = {
   primary: '#1A6FB5',
   primaryDark: '#0D4F8A',
   primarySoft: '#E8F2FB',
-  green: '#27AE60',
-  orange: '#F57C00',
+  green: '#219653',
+  orange: '#E06F00',
   red: '#E53935',
-  amber: '#F2B705',
+  amber: '#A98000',
   background: '#F0F4F8',
   border: '#D1DCE8',
   text: '#1C2B3A',
@@ -34,6 +34,8 @@ export interface ThemeColors {
   onHeader: string;
   onHeaderMuted: string;
   border: string;
+  /** Borda de campo, caixa de seleção e chip (componente de interface: 3:1 contra o fundo). */
+  inputBorder: string;
   text: string;
   textMuted: string;
   primary: string;
@@ -69,8 +71,9 @@ export const lightColors: ThemeColors = {
   surfaceAlt: '#F6F9FC',
   header: palette.primary,
   onHeader: palette.white,
-  onHeaderMuted: '#D6E8F8',
+  onHeaderMuted: palette.primarySoft,
   border: palette.border,
+  inputBorder: '#74889C',
   text: palette.text,
   textMuted: palette.textMuted,
   primary: palette.primary,
@@ -100,6 +103,7 @@ export const darkColors: ThemeColors = {
   onHeader: '#F2F7FC',
   onHeaderMuted: '#A9C6E3',
   border: '#2B3B4D',
+  inputBorder: '#5D7186',
   text: '#E7EEF5',
   textMuted: '#9DB0C3',
   primary: '#5AA5E6',
@@ -142,6 +146,7 @@ export const elderHighContrastColors: ThemeColors = {
   onHeader: '#FFFFFF',
   onHeaderMuted: '#FFFFFF',
   border: '#FFFFFF',
+  inputBorder: '#FFFFFF',
   text: '#FFFFFF',
   textMuted: '#F0F0F0',
   primary: '#FFE14D',

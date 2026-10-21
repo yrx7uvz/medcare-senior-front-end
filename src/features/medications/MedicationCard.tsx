@@ -1,4 +1,4 @@
-import { AlertTriangle, CalendarClock, Trash2 } from 'lucide-react-native';
+import { CalendarClock, Trash2 } from 'lucide-react-native';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, Badge, IconButton, PillVisual } from '../../components/ui';
 import { TYPE_LABEL, stockLabel } from '../../lib/medicationMeta';
@@ -22,7 +22,7 @@ export function MedicationCard({ item, showElder, onPress, onRemove }: Props) {
     <View style={[styles.card, cardShadow(mode === 'dark'), { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${m.name}. ${line}. ${item.activeTreatment ? 'Tratamento ativo' : 'Sem tratamento ativo'}. ${item.scheduleSummary}${item.lowStock ? '. Estoque baixo' : ''}${showElder ? `. Paciente: ${item.elderName}` : ''}`}
+        accessibilityLabel={`${m.name}. ${line}. ${item.activeTreatment ? 'Tratamento ativo' : 'Sem tratamento ativo'}. ${item.scheduleSummary}${showElder ? `. Paciente: ${item.elderName}` : ''}`}
         accessibilityHint="Abre para editar o remédio e o tratamento"
         onPress={onPress}
         style={({ pressed }) => [styles.main, { opacity: pressed ? 0.85 : 1 }]}
@@ -36,9 +36,7 @@ export function MedicationCard({ item, showElder, onPress, onRemove }: Props) {
             <AppText variant="caption" muted numberOfLines={1} style={styles.flex}>{item.scheduleSummary}</AppText>
           </View>
           <View style={styles.badges}>
-            {item.activeTreatment ? <Badge label="Tratamento ativo" tone="success" /> : <Badge label="Sem tratamento ativo" />}
-            {item.lowStock ? <Badge label="Estoque baixo" tone="warning" icon={AlertTriangle} /> : null}
-            {showElder ? <Badge label={item.elderName} tone="info" /> : null}
+            {item.activeTreatment ? <Badge label="Tratamento ativo" tone="success" /> : <Badge label="Sem tratamento ativo" />}            {showElder ? <Badge label={item.elderName} tone="info" /> : null}
           </View>
         </View>
       </Pressable>

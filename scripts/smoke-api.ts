@@ -3,7 +3,8 @@
  * Teste ponta a ponta REAL contra a API (backend rodando). Cria um cuidador com e-mail aleatório, um idoso, um
  * remédio e um tratamento com dose daqui a ~20 min, pareia o idoso, confirma a dose e por fim exclui a conta (o que
  * apaga tudo o que foi criado). Além das chamadas diretas, faz o fluxo do app pelos ADAPTERS HTTP (idosos, remédio e
- * tratamento, doses do cuidador e do idoso, confirmação, edição e remoção com a RN06). Falha em qualquer passo =
+ * tratamento, doses do cuidador e do idoso, confirmação, edição e remoção com a RN06, histórico, mensagens nos dois
+ * papéis). Falha em qualquer passo =
  * código de saída != 0 com o passo.
  *
  * Uso: npm run smoke:api  (EXPO_PUBLIC_API_URL; padrão http://localhost:8080)
@@ -12,6 +13,11 @@ import assert from 'node:assert/strict';
 
 process.env.EXPO_PUBLIC_API_URL ??= 'http://localhost:8080';
 process.env.EXPO_PUBLIC_DEMO = 'false';
+// Aceita http:// (desenvolvimento) e https:// (produção ou túnel), com ou sem barra final
+if (!/^https?:\/\/[^/\s]+/i.test(process.env.EXPO_PUBLIC_API_URL.trim())) {
+  console.error(`EXPO_PUBLIC_API_URL inválida: use http:// ou https:// (veio "${process.env.EXPO_PUBLIC_API_URL}")`);
+  process.exit(1);
+}
 
 const FUSO = 'America/Sao_Paulo';
 const DIAS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'] as const;
@@ -53,8 +59,11 @@ async function main() {
   const { httpMedicationService } = await import('../src/adapters/http/HttpMedicationService');
   const { httpDoseService } = await import('../src/adapters/http/HttpDoseService');
   const { httpReportService } = await import('../src/adapters/http/HttpReportService');
+  const { httpMessageService } = await import('../src/adapters/http/HttpMessageService');
   const { fromApiId, toApiId } = await import('../src/adapters/http/ids');
   const { AppError } = await import('../src/services/errors');
+  const { getApiBaseUrl } = await import('../src/config/env');
+  console.log(`Alvo: ${getApiBaseUrl()}\n`);
 
   let token: string | null = null;
   setTokenProvider(() => token);
@@ -154,7 +163,7 @@ async function main() {
       return encontrada;
     });
 
-    // ---- Fluxo do app pelos adapters HTTP (marco da semana 1) ----
+    // ---- Fluxo do app pelos adapters HTTP ----
     token = sessao.token;
     viewer = 'CAREGIVER';
     await step('app: idosos do cuidador (httpElderService.list/get)', async () => {
@@ -206,6 +215,15 @@ async function main() {
       assert.ok(todos.some((d) => d.id === daMetformina.id));
     });
 
+    await step('app: cor do remédio na dose (DoseResponseDTO.cor; sem cor = null)', async () => {
+      const cruas = await request<(DoseDTO & { cor: string | null })[]>('GET', `/api/idosos/${toApiId(idosoId)}/doses`);
+      assert.equal(cruas.find((d) => d.medicamentoId === toApiId(remedio2.medication.id))?.cor, '#3D7DCA');
+      assert.equal(cruas.find((d) => d.medicamentoId === medicamento.id)?.cor, null);
+      const doIdoso = await httpDoseService.listForDay(idosoId, hoje.dia);
+      assert.equal(doIdoso.find((d) => d.medication.id === remedio2.medication.id)?.medication.primaryColor, '#3D7DCA');
+      assert.equal(doIdoso.find((d) => d.medication.id === fromApiId(medicamento.id))?.medication.primaryColor, undefined);
+    });
+
     token = tokenIdoso;
     viewer = 'ELDER';
     const doseApp = await step('app: idoso lista as doses de hoje (/me/doses) e confirma pelo adapter -> TOMADA', async () => {
@@ -232,6 +250,8 @@ async function main() {
         name: 'Metformina',
         dosage: '850mg',
         type: 'CAPSULA',
+        // O formulário do app sempre manda a cor (o PUT substitui o cadastro inteiro)
+        primaryColor: '#3D7DCA',
         appearanceSource: 'MANUAL',
         treatment: { startDate: atual.treatment.startDate, weekdays: [0, 1, 2, 3, 4, 5, 6], times: [{ time: alvo2.hora }, { time: '22:00' }] },
       });
@@ -304,6 +324,93 @@ async function main() {
       await expectError(() => request('GET', '/api/historico?idosoId=999999999'), 404, 'RECURSO_NAO_ENCONTRADO');
     });
 
+    viewer = 'CAREGIVER';
+    await step('app: histórico pelo adapter (filtros, página, cor de remédio removido, 400 e período vazio)', async () => {
+      const base = { elder: idosoId, from: hoje.dia, to: hoje.dia };
+      const tudo = await httpDoseService.listHistory({ ...base, status: 'ALL' });
+      assert.ok(tudo.totalElements >= 2 && tudo.page === 0 && tudo.size === 20);
+      // Remédio removido continua no histórico (RN08), com a cor do cadastro
+      const daMetformina = tudo.items.find((d) => d.id === doseApp.id);
+      assert.equal(daMetformina?.storedStatus, 'TOMADA');
+      assert.equal(daMetformina?.medication.primaryColor, '#3D7DCA');
+      const soLosartana = await httpDoseService.listHistory({ ...base, medicationId: fromApiId(medicamento.id), status: 'TOMADA' });
+      assert.ok(soLosartana.items.length > 0 && soLosartana.items.every((d) => d.medication.name === 'Losartana' && d.storedStatus === 'TOMADA'));
+      const pag0 = await httpDoseService.listHistory({ ...base, status: 'ALL', size: 1 });
+      const pag1 = await httpDoseService.listHistory({ ...base, status: 'ALL', size: 1, page: 1 });
+      assert.equal(pag0.totalPages, pag0.totalElements);
+      assert.notEqual(pag0.items[0].id, pag1.items[0].id);
+      // A dose vinda do histórico abre o detalhe
+      assert.equal((await httpDoseService.get(pag1.items[0].id)).id, pag1.items[0].id);
+      await expectError(() => httpDoseService.listHistory({ elder: 'ALL', from: hoje.dia, to: '2000-01-01', status: 'ALL' }), 400, 'VALIDACAO');
+      const vazio = await httpDoseService.listHistory({ elder: 'ALL', from: '1990-01-01', to: '1990-01-31', status: 'ALL' });
+      assert.deepEqual([vazio.items.length, vazio.totalElements, vazio.totalPages], [0, 0, 0]);
+    });
+
+    await step('PDF do histórico (GET /api/relatorios/pdf): arquivo com anexo e no-store; período vazio -> 422', async () => {
+      const base = getApiBaseUrl();
+      const pedir = (de: string, ate: string) =>
+        fetch(`${base}/api/relatorios/pdf?idosoId=${toApiId(idosoId)}&de=${de}&ate=${ate}`, { headers: { Authorization: `Bearer ${sessao.token}` } });
+      const res = await pedir(hoje.dia, hoje.dia);
+      assert.equal(res.status, 200);
+      assert.equal(res.headers.get('content-type'), 'application/pdf');
+      assert.match(res.headers.get('content-disposition') ?? '', /^attachment; filename="historico-adesao-\d+-.+\.pdf"$/);
+      assert.match(res.headers.get('cache-control') ?? '', /no-store/);
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      assert.equal(new TextDecoder().decode(bytes.slice(0, 5)), '%PDF-');
+      const vazio = await pedir('1990-01-01', '1990-01-31');
+      assert.equal(vazio.status, 422);
+      assert.equal(((await vazio.json()) as { codigo: string }).codigo, 'PERIODO_SEM_REGISTROS');
+    });
+
+    // ---- Mensagens (UC-010) pelos adapters, nos dois papéis ----
+    token = sessao.token;
+    viewer = 'CAREGIVER';
+    await step('app: cuidador envia mensagem; vazia e com 501 caracteres -> 400 VALIDACAO; idoso inexistente -> 404', async () => {
+      const enviada = await httpMessageService.send(idosoId, 'CUIDADOR', '  Bom dia! Lembre do remédio.  ');
+      assert.deepEqual([enviada.from, enviada.text, enviada.read, enviada.elderId], ['CUIDADOR', 'Bom dia! Lembre do remédio.', false, idosoId]);
+      await expectError(() => httpMessageService.send(idosoId, 'CUIDADOR', '   '), 400, 'VALIDACAO');
+      await expectError(() => httpMessageService.send(idosoId, 'CUIDADOR', 'a'.repeat(501)), 400, 'VALIDACAO');
+      await expectError(() => httpMessageService.send('999999999', 'CUIDADOR', 'Oi'), 404, 'RECURSO_NAO_ENCONTRADO');
+    });
+
+    token = tokenIdoso;
+    viewer = 'ELDER';
+    await step('app: idoso vê 1 não lida, lê a conversa, marca como lida (idempotente) e responde; outro idoso -> 403', async () => {
+      assert.equal(await httpMessageService.unreadCount(idosoId, 'IDOSO'), 1);
+      const conversas = await httpMessageService.listConversations();
+      assert.deepEqual(conversas.map((c) => [c.elder.id, c.unread, c.lastMessage?.from]), [[idosoId, 1, 'CUIDADOR']]);
+      const pagina = await httpMessageService.listThread(idosoId);
+      assert.deepEqual(pagina.items.map((m) => m.text), ['Bom dia! Lembre do remédio.']);
+      assert.equal(await httpMessageService.markRead(idosoId, 'IDOSO'), 1);
+      assert.equal(await httpMessageService.markRead(idosoId, 'IDOSO'), 0);
+      assert.equal(await httpMessageService.unreadCount(idosoId, 'IDOSO'), 0);
+      const resposta = await httpMessageService.send(idosoId, 'IDOSO', 'Já tomei, obrigado');
+      assert.equal(resposta.from, 'IDOSO');
+      await expectError(() => httpMessageService.listThread(outroIdoso.id), 403, 'ACESSO_NEGADO');
+    });
+
+    token = sessao.token;
+    viewer = 'CAREGIVER';
+    await step('app: cuidador vê a resposta não lida, conversa paginada da mais recente, lê e o contador zera', async () => {
+      assert.equal(await httpMessageService.unreadCount('ALL', 'CUIDADOR'), 1);
+      const conversas = await httpMessageService.listConversations();
+      const daMaria = conversas.find((c) => c.elder.id === idosoId);
+      assert.deepEqual([daMaria?.unread, daMaria?.lastMessage?.text], [1, 'Já tomei, obrigado']);
+      const doOutro = conversas.find((c) => c.elder.id === outroIdoso.id);
+      assert.deepEqual([doOutro?.unread, doOutro?.lastMessage], [0, undefined]);
+      // Mais 20 mensagens: 22 no total, duas páginas de 20
+      for (let i = 1; i <= 20; i += 1) await httpMessageService.send(idosoId, 'CUIDADOR', `Mensagem ${i}`);
+      const primeira = await httpMessageService.listThread(idosoId, 0);
+      const segunda = await httpMessageService.listThread(idosoId, 1);
+      assert.deepEqual([primeira.items.length, primeira.totalElements, primeira.totalPages], [20, 22, 2]);
+      assert.equal(primeira.items[0].text, 'Mensagem 20');
+      assert.deepEqual(segunda.items.map((m) => m.text), ['Já tomei, obrigado', 'Bom dia! Lembre do remédio.']);
+      // A primeira mensagem do cuidador foi lida pelo idoso
+      assert.equal(segunda.items[1].read, true);
+      assert.equal(await httpMessageService.markRead(idosoId, 'CUIDADOR'), 1);
+      assert.equal(await httpMessageService.unreadCount('ALL', 'CUIDADOR'), 0);
+    });
+
     await step('cuidador vê a dose TOMADA (GET /api/idosos/{id}/doses)', async () => {
       const doses = await request<DoseDTO[]>('GET', `/api/idosos/${toApiId(idosoId)}/doses`);
       const vista = doses.find((d) => d.id === dose.id);
@@ -337,6 +444,13 @@ async function main() {
       return r;
     });
     console.log(`    (${cuidadorExcluido})`);
+
+    await step('mensagens após a exclusão -> 401 SESSAO_INVALIDA nos dois papéis', async () => {
+      token = tokenCuidador;
+      await expectError(() => httpMessageService.unreadCount('ALL', 'CUIDADOR'), 401, 'SESSAO_INVALIDA');
+      token = tokenIdoso;
+      await expectError(() => httpMessageService.listConversations(), 401, 'SESSAO_INVALIDA');
+    });
 
     token = null;
     const loginExcluido = await step('login com a conta excluída -> 401 CREDENCIAIS_INVALIDAS', () =>

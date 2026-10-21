@@ -2,7 +2,10 @@ import { Check } from 'lucide-react-native';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '../../components/ui';
 import { PILL_COLORS, colorName } from '../../lib/medicationMeta';
-import { spacing, useTheme } from '../../theme';
+import { hitSlopFor, spacing, useTheme } from '../../theme';
+
+/** Amostra de cor: 40 dp visíveis, área de toque completada até 48 dp. */
+const SWATCH = 40;
 
 /** Paleta de cores com nome falado pelo leitor de tela. */
 export function ColorPicker({ label, value, onChange }: { label: string; value: string; onChange: (c: string) => void }) {
@@ -23,7 +26,7 @@ export function ColorPicker({ label, value, onChange }: { label: string; value: 
               accessibilityState={{ selected }}
               accessibilityLabel={c.name}
               onPress={() => onChange(c.value)}
-              hitSlop={4}
+              hitSlop={hitSlopFor(SWATCH)}
               style={[
                 styles.swatch,
                 { backgroundColor: c.value, borderColor: selected ? colors.primary : colors.border, borderWidth: selected ? 3 : 1.5 },
@@ -41,5 +44,5 @@ export function ColorPicker({ label, value, onChange }: { label: string; value: 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.sm },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  swatch: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  swatch: { width: SWATCH, height: SWATCH, borderRadius: SWATCH / 2, alignItems: 'center', justifyContent: 'center' },
 });

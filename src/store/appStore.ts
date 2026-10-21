@@ -8,7 +8,6 @@ export type ToastTone = 'success' | 'info' | 'danger';
 interface NotificationPrefs {
   missedDose: boolean;
   messages: boolean;
-  lowStock: boolean;
 }
 
 /**
@@ -84,7 +83,7 @@ export const useAppStore = create<AppState>()((set) => ({
   themeMode: 'light',
   toggleTheme: () => set((s) => ({ themeMode: s.themeMode === 'light' ? 'dark' : 'light' })),
 
-  notificationPrefs: { missedDose: true, messages: true, lowStock: true },
+  notificationPrefs: { missedDose: true, messages: true },
   setNotificationPref: (key, value) => set((s) => ({ notificationPrefs: { ...s.notificationPrefs, [key]: value } })),
   setNotificationPrefs: (notificationPrefs) => set({ notificationPrefs }),
 

@@ -3,7 +3,8 @@ import type { AlertView, DoseView } from '../../types/views';
 import { httpError } from '../../services/errors';
 import { getNow } from '../../lib/clock';
 import { parseDateTime, toDateKey, toDateTimeKey } from '../../lib/date';
-import { TOLERANCE_MAX, TOLERANCE_MIN, isConfirmed, isMissed, statusOnConfirm } from '../../lib/doseRules';
+import { TOLERANCE_MAX, TOLERANCE_MIN, statusOnConfirm } from '../../lib/doseRules';
+import { HISTORY_PAGE_SIZE } from '../../lib/history';
 import { getDb, mutateDb } from '../../mocks/db';
 import { toDoseView } from './doseViews';
 import { simulate } from './simulate';
@@ -51,27 +52,29 @@ export const mockDoseService: DoseService = {
       return toDoseView(next, now);
     }, 350),
 
+  /** Mesmo contrato de GET /api/historico: status gravado, período inclusivo, página do mais recente ao mais antigo. */
   listHistory: (q) =>
     simulate(() => {
+      if (q.from > q.to) throw httpError(400, 'A data de início não pode ser posterior à data de fim', 'VALIDACAO');
       const now = getNow();
-      const nowKey = toDateTimeKey(now);
-      return getDb()
+      const page = q.page ?? 0;
+      const size = q.size ?? HISTORY_PAGE_SIZE;
+      const all = getDb()
         .doses.filter((d) => {
           const day = d.scheduledAt.slice(0, 10);
           if (day < q.from || day > q.to) return false;
           if (q.elder !== 'ALL' && d.elderId !== q.elder) return false;
-          return d.status !== 'PENDENTE' || d.scheduledAt <= nowKey;
+          if (q.medicationId && d.medicationId !== q.medicationId) return false;
+          return q.status === 'ALL' || d.status === q.status;
         })
-        .map((d) => toDoseView(d, now))
-        .filter((v) => {
-          switch (q.status) {
-            case 'CONFIRMED': return isConfirmed(v.status);
-            case 'MISSED': return isMissed(v.status);
-            case 'LATE': return v.status === 'CONFIRMADA_COM_ATRASO';
-            default: return true;
-          }
-        })
-        .sort((a, b) => b.scheduledAt.localeCompare(a.scheduledAt));
+        .sort((a, b) => b.scheduledAt.localeCompare(a.scheduledAt) || b.id.localeCompare(a.id));
+      return {
+        items: all.slice(page * size, (page + 1) * size).map((d) => toDoseView(d, now)),
+        page,
+        size,
+        totalElements: all.length,
+        totalPages: Math.ceil(all.length / size),
+      };
     }),
 
   listAlerts: () =>

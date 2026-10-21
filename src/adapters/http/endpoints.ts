@@ -23,5 +23,9 @@ export const endpoints = {
   dailyReport: (elderId: string, day: string) => `/api/relatorios/diario?idosoId=${elderId}&data=${day}`,
   history: '/api/historico',
   messages: '/api/mensagens',
+  messageThread: (elderId: string, page: number, size: number) => `/api/mensagens?idosoId=${elderId}&page=${page}&size=${size}`,
+  conversations: '/api/mensagens/conversas',
+  markMessagesRead: (elderId: string) => `/api/mensagens/lidas?idosoId=${elderId}`,
+  unreadMessages: '/api/mensagens/nao-lidas',
   pdf: '/api/relatorios/pdf',
 } as const;

@@ -9,8 +9,11 @@ import { DEMO_START, useClockStore } from '../../lib/clock';
 import { formatDateBR, formatTime } from '../../lib/date';
 import { elderDeviceStorage } from '../../lib/secureStorage';
 import { useNow } from '../../lib/useNow';
-import { radius, spacing, useTheme } from '../../theme';
+import { hitSlopFor, radius, spacing, useTheme } from '../../theme';
 import { AppText, Button, Chip } from '../ui';
+
+/** Botão do menu do protótipo: 40 dp visíveis, área de toque completada até 48 dp. */
+const FAB = 40;
 
 const CLOCK_PRESETS: { label: string; h: number; m: number; hint?: string }[] = [
   { label: '07:30', h: 7, m: 30 },
@@ -46,6 +49,7 @@ export function ProfileSwitcher() {
         accessibilityRole="button"
         accessibilityLabel="Menu de desenvolvedor do protótipo"
         onPress={() => setOpen(true)}
+        hitSlop={hitSlopFor(FAB)}
         style={[
           styles.fab,
           {
@@ -164,8 +168,8 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     left: spacing.md,
-    width: 40,
-    height: 40,
+    width: FAB,
+    height: FAB,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
