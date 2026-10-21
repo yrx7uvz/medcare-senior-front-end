@@ -70,6 +70,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ...config,
     name: config.name ?? 'MedCare Sênior',
     slug: config.slug ?? 'medcare-senior',
+    extra: { ...config.extra, eas: { projectId: 'd83af2b0-0aac-4096-9851-9ebb4f214580' } },
     android: {
       ...config.android,
       package: 'br.ucb.medcaresenior',
@@ -77,6 +78,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       blockedPermissions: ANDROID_BLOCKED_PERMISSIONS,
       ...(googleServicesFile ? { googleServicesFile } : {}),
     },
-    plugins: [...(withCleartextPolicy(config.plugins, allowCleartext) ?? []), 'expo-dev-client', ['expo-notifications', { color: '#1A6FB5', defaultChannel: 'alertas-dose' }]],
+    plugins: [
+      ...(withCleartextPolicy(config.plugins, allowCleartext) ?? []),
+      'expo-dev-client',
+      ['expo-notifications', { color: '#1A6FB5', defaultChannel: 'alertas-dose' }],
+    ],
   };
 };
