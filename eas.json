@@ -11,7 +11,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_DEMO": "false"
+        "EXPO_PUBLIC_DEMO": "false",
+        "ANDROID_ALLOW_CLEARTEXT": "true"
       }
     },
     "preview": {

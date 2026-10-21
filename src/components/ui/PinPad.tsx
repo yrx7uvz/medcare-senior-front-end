@@ -66,7 +66,7 @@ export function DigitBoxes({ value, length, masked, error }: { value: string; le
               styles.box,
               {
                 width: length > 4 ? 46 : 60,
-                borderColor: error ? colors.danger : active ? colors.primary : colors.border,
+                borderColor: error ? colors.danger : active ? colors.primary : colors.inputBorder,
                 borderWidth: active || error ? 3 : 2,
                 backgroundColor: colors.surface,
               },

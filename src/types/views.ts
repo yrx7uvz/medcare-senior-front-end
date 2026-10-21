@@ -6,6 +6,7 @@ import type {
   Elder,
   ID,
   Medication,
+  Message,
   MedicationType,
   PillShape,
   ScheduleTime,
@@ -49,7 +50,6 @@ export interface MedicationView {
   elderName: string;
   treatment?: Treatment;
   activeTreatment: boolean;
-  lowStock: boolean;
   scheduleSummary: string;
 }
 
@@ -61,6 +61,14 @@ export interface AlertView {
   dosage: string;
   scheduledAt: DateTimeKey;
   status: 'ATRASADA' | 'NAO_TOMADA';
+}
+
+/** Uma página da conversa (GET /api/mensagens), da mensagem mais recente para a mais antiga. */
+export interface MessagePage {
+  items: Message[];
+  page: number;
+  totalPages: number;
+  totalElements: number;
 }
 
 export interface ConversationView {
@@ -189,11 +197,27 @@ export interface SignUpInput {
   lgpdConsent: boolean;
 }
 
-export type HistoryStatusFilter = 'ALL' | 'CONFIRMED' | 'MISSED' | 'LATE';
+/** Filtro de status do histórico: o status gravado da dose, como a API filtra (GET /api/historico?status=). */
+export type HistoryStatusFilter = 'ALL' | DoseStatus;
 
 export interface HistoryQuery {
   elder: ElderFilter;
+  /** Só um remédio (precisa de um idoso escolhido). */
+  medicationId?: ID;
   from: DateKey;
   to: DateKey;
   status: HistoryStatusFilter;
+  /** Página a partir de 0 (padrão 0). */
+  page?: number;
+  /** Itens por página, 1 a 100 (padrão 20). */
+  size?: number;
+}
+
+/** Uma página do histórico (UC-011), do registro mais recente para o mais antigo. */
+export interface HistoryPage {
+  items: DoseView[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
 }

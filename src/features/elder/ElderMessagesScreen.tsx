@@ -1,29 +1,27 @@
-import { useEffect } from 'react';
 import { KeyboardAvoidingView, StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { ElderScreen } from '../../components/layout/ElderScreen';
 import { AppText, ChatThread, ErrorState, LoadingSkeleton } from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
-import { toDateKey } from '../../lib/date';
-import { useMutation, useQuery } from '../../lib/useQuery';
+import { appTodayKey } from '../../lib/serverClock';
+import { useMessageThread } from '../../lib/useMessageThread';
+import { useQuery } from '../../lib/useQuery';
 import { useNow } from '../../lib/useNow';
 import { spacing } from '../../theme';
 
 const QUICK_REPLIES = ['Já tomei, obrigado', 'Estou bem', 'Pode me ligar?'];
 
-/** T13 — Mensagens do idoso: bolhas grandes e respostas rápidas. */
+/**
+ * T13 — Mensagens do idoso (UC-010): só a conversa dele, bolhas e letra grandes, botão de enviar de 64 dp e respostas
+ * rápidas. Atualiza sozinha só enquanto esta tela está visível.
+ */
 export function ElderMessagesScreen(_: RootScreenProps<'ElderMessages'>) {
   const elderId = useAppStore((s) => s.elderSession?.elderId ?? '');
   const now = useNow();
   const profile = useQuery(['elder-profile', elderId], () => services.elders.getProfile(elderId));
-  const thread = useQuery(['thread', elderId], () => services.messages.listThread(elderId), { silentKey: Math.floor(now.getTime() / 20_000) });
-  const send = useMutation((text: string) => services.messages.send(elderId, 'IDOSO', text));
+  const thread = useMessageThread(elderId, 'IDOSO');
   const caregiver = profile.data?.caregiverFirstName ?? 'Cuidador';
-
-  useEffect(() => {
-    if (thread.data?.some((m) => m.from === 'CUIDADOR' && !m.read)) services.messages.markRead(elderId, 'IDOSO').catch(() => undefined);
-  }, [thread.data, elderId]);
 
   return (
     <ElderScreen back scroll={false}>
@@ -38,13 +36,18 @@ export function ElderMessagesScreen(_: RootScreenProps<'ElderMessages'>) {
         <KeyboardAvoidingView style={styles.flex}>
           <ChatThread
             large
-            messages={thread.data ?? []}
+            messages={thread.messages}
             viewer="IDOSO"
             otherName={caregiver}
-            todayKey={toDateKey(now)}
-            sending={send.loading}
+            todayKey={appTodayKey(now)}
+            sending={thread.sending}
+            sendError={thread.sendError}
             quickReplies={QUICK_REPLIES}
-            onSend={async (text) => !!(await send.mutate(text))}
+            onSend={thread.send}
+            hasOlder={thread.hasOlder}
+            loadingOlder={thread.loadingOlder}
+            olderError={thread.olderError?.message}
+            onLoadOlder={thread.loadOlder}
           />
         </KeyboardAvoidingView>
       )}

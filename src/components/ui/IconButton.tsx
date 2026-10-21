@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet } from 'react-native';
-import { useTheme } from '../../theme';
+import { hitSlopFor, useTheme } from '../../theme';
 import type { IconComponent } from './icons';
 
 interface Props {
@@ -21,6 +21,7 @@ export function IconButton({ icon: Icon, onPress, accessibilityLabel, color, bac
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
       onPress={onPress}
+      hitSlop={hitSlopFor(size)}
       style={({ pressed }) => [
         styles.btn,
         { width: size, height: size, borderRadius: size / 2, backgroundColor: background ?? 'transparent', opacity: disabled ? 0.4 : pressed ? 0.7 : 1 },

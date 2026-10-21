@@ -16,7 +16,9 @@ import { forgetDoseOrigins, httpDoseService, toDoseView } from '../src/adapters/
 import { forgetLinkCodes, httpElderService, toElder, toLinkCode } from '../src/adapters/http/HttpElderService';
 import { clearHttpCache, request, setViewerProvider } from '../src/adapters/http/httpClient';
 import { httpReportService } from '../src/adapters/http/HttpReportService';
-import appConfig from '../app.config';
+import appConfig, { ANDROID_BLOCKED_PERMISSIONS, ANDROID_PERMISSIONS, withCleartextPolicy } from '../app.config';
+import { randomBytes } from 'node:crypto';
+import { createPinGuard, createPinRecord, PIN_ITERATIONS } from '../src/lib/pinCore';
 import {
   httpMedicationService,
   toMedicamentoRequest,
@@ -26,7 +28,7 @@ import {
   toTreatment,
 } from '../src/adapters/http/HttpMedicationService';
 import { fromApiId, toApiId } from '../src/adapters/http/ids';
-import { normalizeApiBaseUrl } from '../src/config/env';
+import { apiUrlProblem, normalizeApiBaseUrl } from '../src/config/env';
 import { mapFieldErrors } from '../src/lib/formErrors';
 import { decodeJwtPayload, getJwtExp, isJwtExpired } from '../src/lib/jwt';
 import { apiDateTimeToEpochMs, apiTimeToHHmm, apiWeekdayToIndex, indexToApiWeekday, saoPauloDateKey } from '../src/lib/apiTime';
@@ -34,6 +36,9 @@ import { emptyMedicationValues, toMedicationInput } from '../src/features/medica
 import { ELDER_EXPIRED_MESSAGE, resolveStoredSessions, SESSION_EXPIRED_MESSAGE } from '../src/lib/bootRules';
 import { dailyTotals } from '../src/lib/dailyReport';
 import { liveDose } from '../src/lib/doseLive';
+import { emptyHistoryNotice, hasMoreHistory, historyPath, historyRange, mergeHistory } from '../src/lib/history';
+import { MESSAGE_POLL_MS, messageSendError } from '../src/lib/messages';
+import { httpMessageService } from '../src/adapters/http/HttpMessageService';
 import { toleranceError } from '../src/lib/doseRules';
 import { isTreatmentActive, pickCurrentTreatment } from '../src/lib/medicationMeta';
 import { createPushService, isPushSupported, type NotificationsModule } from '../src/lib/pushCore';
@@ -1019,6 +1024,185 @@ check('Alerta simulado só no demo; no modo real, pedido de permissão e push', 
   assert.match(ler('app/navigation/CaregiverTabs.tsx'), /\{IS_DEMO \? <AlertWatcher \/> : <PushPermissionPrompt \/>\}/);
   assert.match(ler('app/App.tsx'), /startPush\(\)/);
   assert.match(ler('lib/session.ts'), /pushRegistration\.unregister\(\)/);
+});
+
+// --- Histórico real, cor da dose e estoque ---------------------------------------------------------------------------
+check('Cor do remédio na dose: #RRGGBB vira a cor do desenho; texto livre, nulo ou ausente fica sem cor', () => {
+  assert.equal(toDoseView({ ...DOSE_DTO, cor: '#3D7DCA' }).medication.primaryColor, '#3D7DCA');
+  assert.equal(toDoseView({ ...DOSE_DTO, cor: 'Branco' }).medication.primaryColor, undefined);
+  assert.equal(toDoseView({ ...DOSE_DTO, cor: null }).medication.primaryColor, undefined);
+  assert.equal(toDoseView(DOSE_DTO).medication.primaryColor, undefined);
+});
+
+check('Período do histórico: 7 e 30 dias contando hoje (SP), personalizado em DD/MM/AAAA e início depois do fim recusado', () => {
+  assert.deepEqual(historyRange('7', '2026-10-18', '', ''), { from: '2026-10-12', to: '2026-10-18', error: null });
+  assert.deepEqual(historyRange('30', '2026-03-01', '', ''), { from: '2026-01-31', to: '2026-03-01', error: null });
+  assert.deepEqual(historyRange('custom', '2026-10-18', '01/10/2026', '05/10/2026'), { from: '2026-10-01', to: '2026-10-05', error: null });
+  assert.equal(historyRange('custom', '2026-10-18', '05/10/2026', '05/10/2026').error, null);
+  assert.match(historyRange('custom', '2026-10-18', '06/10/2026', '05/10/2026').error ?? '', /início não pode ser depois/);
+  assert.match(historyRange('custom', '2026-10-18', '31/02/2026', '05/10/2026').error ?? '', /DD\/MM\/AAAA/);
+});
+
+check('Caminho do histórico só com os filtros informados; carregar mais e junção sem repetir dose', () => {
+  const base = { from: '2026-10-01', to: '2026-10-18', page: 0, size: 20 };
+  assert.equal(historyPath('/api/historico', { ...base, status: 'ALL' }), '/api/historico?de=2026-10-01&ate=2026-10-18&page=0&size=20');
+  assert.equal(
+    historyPath('/api/historico', { ...base, elderApiId: 12, medicationApiId: 501, status: 'NAO_TOMADA', page: 2 }),
+    '/api/historico?idosoId=12&medicamentoId=501&de=2026-10-01&ate=2026-10-18&status=NAO_TOMADA&page=2&size=20',
+  );
+  assert.equal(hasMoreHistory({ page: 0, totalPages: 2 }), true);
+  assert.equal(hasMoreHistory({ page: 1, totalPages: 2 }), false);
+  assert.equal(hasMoreHistory({ page: 0, totalPages: 0 }), false);
+  const a = toDoseView({ ...DOSE_DTO, id: 3 });
+  const b = toDoseView({ ...DOSE_DTO, id: 2 });
+  const c = toDoseView({ ...DOSE_DTO, id: 1 });
+  assert.deepEqual(mergeHistory([a, b], [b, c]).map((d) => d.id), ['3', '2', '1']);
+  assert.match(emptyHistoryNotice({ from: '2026-10-01', to: '2026-10-18' }, false).description, /entre 01\/10\/2026 e 18\/10\/2026/);
+  assert.match(emptyHistoryNotice({ from: '2026-10-18', to: '2026-10-18' }, true).description, /em 18\/10\/2026 com os filtros/);
+});
+
+checkAsync('Histórico real: GET /api/historico com filtros e página; 400 VALIDACAO chega com a mensagem da API', async () => {
+  setViewerProvider(() => 'CAREGIVER');
+  const chamadas = fakeFetch([
+    { status: 200, body: { conteudo: [{ ...DOSE_DTO, cor: '#FF0000', status: 'NAO_TOMADA', statusExibicao: 'NAO_TOMADA' }], pagina: 1, tamanho: 20, totalElementos: 21, totalPaginas: 2 } },
+  ]);
+  const pagina = await httpDoseService.listHistory({ elder: '12', medicationId: '501', from: '2026-10-01', to: '2026-10-18', status: 'NAO_TOMADA', page: 1 });
+  assert.equal(chamadas[0].path, '/api/historico?idosoId=12&medicamentoId=501&de=2026-10-01&ate=2026-10-18&status=NAO_TOMADA&page=1&size=20');
+  assert.deepEqual({ page: pagina.page, size: pagina.size, total: pagina.totalElements, pages: pagina.totalPages }, { page: 1, size: 20, total: 21, pages: 2 });
+  assert.equal(pagina.items[0].status, 'NAO_TOMADA');
+  assert.equal(pagina.items[0].medication.primaryColor, '#FF0000');
+  // A dose do histórico abre o detalhe (fica registrado de onde veio)
+  fakeFetch([{ status: 200, body: [DOSE_DTO] }]);
+  assert.equal((await httpDoseService.get('5000')).id, '5000');
+  const invertido = fakeFetch([
+    { status: 400, body: { codigo: 'VALIDACAO', mensagem: 'A data de início não pode ser posterior à data de fim', campos: [{ campo: 'de', mensagem: 'x' }] } },
+  ]);
+  const erro = await httpDoseService.listHistory({ elder: 'ALL', from: '2026-10-18', to: '2026-10-01', status: 'ALL' }).then(() => null, (e: unknown) => e);
+  assert.ok(erro instanceof AppError && erro.status === 400 && erro.code === 'VALIDACAO');
+  assert.match((erro as AppError).message, /início não pode ser posterior/);
+  assert.equal(invertido[0].path, '/api/historico?de=2026-10-18&ate=2026-10-01&page=0&size=20');
+  setViewerProvider(() => null);
+});
+
+check('Estoque: só o campo opcional do cadastro; sem "Estoque baixo", alerta nem preferência', () => {
+  const ler = (p: string) => readFileSync(join(__dirname, '..', 'src', p), 'utf8');
+  for (const arquivo of ['features/settings/SettingsScreen.tsx', 'features/medications/MedicationCard.tsx', 'store/appStore.ts', 'lib/medicationMeta.ts', 'lib/secureStorage.ts', 'types/views.ts']) {
+    assert.doesNotMatch(ler(arquivo), /lowStock|isLowStock|Estoque baixo/, arquivo);
+  }
+  assert.match(ler('features/medications/MedicationForm.tsx'), /name="stock"/);
+  assert.equal(toMedicamentoRequest({ ...MED_INPUT, stock: 12 }).quantidadeEstoque, 12);
+  assert.equal(toMedication({ ...MED_DTO, quantidadeEstoque: 7 }).stock, 7);
+});
+
+// --- Segurança do aparelho: HTTPS no release, texto claro, permissões e PIN ------------------------------------------
+check('Endereço da API: http:// recusado no release; aceito em desenvolvimento; https:// aceito; demo não usa', () => {
+  const release = { dev: false, demo: false };
+  const dev = { dev: true, demo: false };
+  assert.match(apiUrlProblem('http://192.168.0.10:8080', release) ?? '', /https:\/\//);
+  assert.match(apiUrlProblem('HTTP://api.exemplo.com', release) ?? '', /conexão segura/);
+  assert.equal(apiUrlProblem('https://api.exemplo.com/', release), null);
+  assert.equal(apiUrlProblem('http://192.168.0.10:8080', dev), null);
+  assert.equal(apiUrlProblem('https://api.exemplo.com', dev), null);
+  assert.match(apiUrlProblem('', release) ?? '', /não está configurado/);
+  assert.match(apiUrlProblem('ftp://x', dev) ?? '', /não está configurado/);
+  assert.equal(apiUrlProblem('', { dev: false, demo: true }), null);
+});
+
+check('Texto claro só no perfil development; release com usesCleartextTraffic=false e permissões mínimas', () => {
+  const plugins = withCleartextPolicy(['expo-font', ['expo-build-properties', { android: { minSdkVersion: 26 } }]], false);
+  assert.deepEqual(plugins, ['expo-font', ['expo-build-properties', { android: { minSdkVersion: 26, usesCleartextTraffic: false } }]]);
+  assert.deepEqual(withCleartextPolicy([['expo-build-properties', {}]], true), [['expo-build-properties', { android: { usesCleartextTraffic: true } }]]);
+  const eas = JSON.parse(readFileSync(join(__dirname, '..', 'eas.json'), 'utf8'));
+  assert.equal(eas.build.development.env.ANDROID_ALLOW_CLEARTEXT, 'true');
+  assert.equal(eas.build.preview.env.ANDROID_ALLOW_CLEARTEXT, undefined);
+  assert.equal(eas.build.production.env.ANDROID_ALLOW_CLEARTEXT, undefined);
+  assert.deepEqual([...ANDROID_PERMISSIONS].sort(), [
+    'android.permission.ACCESS_NETWORK_STATE', 'android.permission.INTERNET', 'android.permission.POST_NOTIFICATIONS',
+    'android.permission.VIBRATE', 'android.permission.WAKE_LOCK', 'com.google.android.c2dm.permission.RECEIVE',
+  ]);
+  for (const p of ['android.permission.CAMERA', 'android.permission.RECORD_AUDIO', 'android.permission.READ_EXTERNAL_STORAGE', 'android.permission.SYSTEM_ALERT_WINDOW']) {
+    assert.ok(ANDROID_BLOCKED_PERMISSIONS.includes(p), p);
+  }
+  assert.equal(ANDROID_PERMISSIONS.some((p) => ANDROID_BLOCKED_PERMISSIONS.includes(p)), false);
+  const config = appConfig({ config: { name: 'MedCare Sênior', slug: 'medcare-senior' } } as Parameters<typeof appConfig>[0]);
+  assert.deepEqual(config.android?.permissions, ANDROID_PERMISSIONS);
+  assert.deepEqual(config.android?.blockedPermissions, ANDROID_BLOCKED_PERMISSIONS);
+});
+
+checkAsync('PIN: só hash com sal, 5 erros bloqueiam (mesmo com o PIN certo) e o PIN antigo em texto é convertido', async () => {
+  const dados = new Map<string, string>([['medcare.elder.pin', '2580']]);
+  const store = { get: async (k: string) => dados.get(k) ?? null, set: async (k: string, v: string) => void dados.set(k, v), remove: async (k: string) => void dados.delete(k) };
+  const relogio = { agora: 0 };
+  const guard = createPinGuard({ store, randomBytes: (n) => new Uint8Array(randomBytes(n)), monotonicNow: () => relogio.agora, iterations: 10 });
+  assert.deepEqual(await guard.verify('2580'), { result: 'OK' });
+  assert.equal(dados.has('medcare.elder.pin'), false);
+  assert.ok(![...dados.values()].some((v) => v.includes('2580')));
+  for (let i = 0; i < 4; i += 1) await guard.verify('0000');
+  assert.deepEqual(await guard.verify('0000'), { result: 'LOCKED', remainingMs: 30_000 });
+  assert.deepEqual(await guard.verify('2580'), { result: 'LOCKED', remainingMs: 30_000 });
+  relogio.agora += 30_000;
+  assert.deepEqual(await guard.verify('2580'), { result: 'OK' });
+  assert.equal(createPinRecord('1234', (n) => new Uint8Array(randomBytes(n))).iterations, PIN_ITERATIONS);
+});
+
+// --- Mensagens (UC-010) ----------------------------------------------------------------------------------------------
+const MSG = (id: number, remetente: 'CUIDADOR' | 'IDOSO', criadaEm: string, lidaEm: string | null = null) => ({ id, remetente, conteudo: `m${id}`, criadaEm, lidaEm });
+
+checkAsync('Mensagens pelo cliente HTTP: conversas, conversa paginada, envio, leitura e contador', async () => {
+  setViewerProvider(() => 'CAREGIVER');
+  const chamadas = fakeFetch([
+    { status: 200, body: [{ idosoId: 12, idosoNome: 'Maria', ultimaMensagem: { conteudo: 'Oi', remetente: 'IDOSO', criadaEm: '2026-10-20T08:00:00' }, naoLidas: 3 }] },
+    { status: 200, body: { conteudo: [MSG(2, 'IDOSO', '2026-10-20T08:01:00'), MSG(1, 'CUIDADOR', '2026-10-20T08:00:00', '2026-10-20T08:02:00')], pagina: 0, tamanho: 20, totalElementos: 22, totalPaginas: 2 } },
+    { status: 201, body: MSG(3, 'CUIDADOR', '2026-10-20T08:03:00') },
+    { status: 200, body: { marcadas: 1 } },
+    { status: 200, body: { naoLidas: 4 } },
+  ]);
+  const conversas = await httpMessageService.listConversations();
+  assert.deepEqual([conversas[0].elder.id, conversas[0].unread, conversas[0].lastMessage?.text], ['12', 3, 'Oi']);
+  const pagina = await httpMessageService.listThread('12');
+  assert.deepEqual(pagina.items.map((m) => [m.id, m.from, m.read]), [['2', 'IDOSO', false], ['1', 'CUIDADOR', true]]);
+  assert.equal(pagina.totalPages, 2);
+  const enviada = await httpMessageService.send('12', 'CUIDADOR', 'Bom dia');
+  assert.deepEqual([enviada.id, enviada.elderId, enviada.from], ['3', '12', 'CUIDADOR']);
+  assert.equal(await httpMessageService.markRead('12', 'CUIDADOR'), 1);
+  assert.equal(await httpMessageService.unreadCount('ALL', 'CUIDADOR'), 4);
+  assert.deepEqual(chamadas.map((c) => `${c.method} ${c.path}`), [
+    'GET /api/mensagens/conversas',
+    'GET /api/mensagens?idosoId=12&page=0&size=20',
+    'POST /api/mensagens',
+    'PUT /api/mensagens/lidas?idosoId=12',
+    'GET /api/mensagens/nao-lidas',
+  ]);
+  assert.deepEqual(chamadas[2].body, { idosoId: 12, conteudo: 'Bom dia' });
+  setViewerProvider(() => null);
+});
+
+checkAsync('Mensagens: erros da API chegam com o código (VALIDACAO no campo, ACESSO_NEGADO, RECURSO_NAO_ENCONTRADO, SESSAO_INVALIDA)', async () => {
+  const casos: [number, string, Record<string, unknown>][] = [
+    [400, 'VALIDACAO', { campos: [{ campo: 'conteudo', mensagem: 'A mensagem não pode ser vazia' }] }],
+    [403, 'ACESSO_NEGADO', {}],
+    [404, 'RECURSO_NAO_ENCONTRADO', {}],
+    [401, 'SESSAO_INVALIDA', {}],
+  ];
+  for (const [status, codigo, extra] of casos) {
+    fakeFetch([{ status, body: { codigo, mensagem: 'x', campos: [], ...extra } }]);
+    const erro = await httpMessageService.send('12', 'IDOSO', 'Oi').then(() => null, (e: unknown) => e);
+    assert.ok(erro instanceof AppError && erro.status === status && erro.code === codigo, codigo);
+    if (codigo === 'VALIDACAO') assert.equal(messageSendError(erro), 'A mensagem não pode ser vazia');
+  }
+});
+
+check('Mensagens: atualização automática só na tela de mensagens; contadores ao focar o app; demo com o mesmo contrato', () => {
+  const ler = (p: string) => readFileSync(join(__dirname, '..', 'src', p), 'utf8');
+  assert.match(ler('lib/useMessageThread.ts'), /usePolling\(latest\.refresh, MESSAGE_POLL_MS, active/);
+  assert.match(ler('features/messages/CaregiverMessagesScreen.tsx'), /usePolling\(q\.refresh, MESSAGE_POLL_MS, active/);
+  const abas = ler('app/navigation/CaregiverTabs.tsx');
+  assert.match(abas, /useRefreshOnAppActive\(unread\.refresh\)/);
+  assert.doesNotMatch(abas, /silentKey/);
+  assert.match(ler('features/elder/ElderHomeScreen.tsx'), /useRefreshOnFocus\(unread\.refresh\)/);
+  assert.match(ler('adapters/http/index.ts'), /messages: httpMessageService/);
+  assert.match(ler('adapters/mock/demo.ts'), /messages: mockMessageService/);
+  assert.equal(MESSAGE_POLL_MS, 10_000);
 });
 
 void (async () => {

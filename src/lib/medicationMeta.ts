@@ -89,12 +89,6 @@ export function stockLabel(m: Pick<Medication, 'type' | 'stock'>): string | null
   return `${m.stock} un.`;
 }
 
-/** Estoque baixo: até 10 unidades, ou 1 frasco. */
-export function isLowStock(m: Pick<Medication, 'type' | 'stock'>): boolean {
-  if (m.stock === undefined) return false;
-  return isBottle(m.type) ? m.stock <= 1 : m.stock <= 10;
-}
-
 /** Tratamento ativo (RN06): não removido e sem fim, ou com fim hoje ou depois. */
 export function isTreatmentActive(t: Treatment | undefined, todayKey: string): boolean {
   if (!t || t.removedAt) return false;
