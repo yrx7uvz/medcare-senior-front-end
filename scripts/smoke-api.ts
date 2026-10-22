@@ -49,6 +49,9 @@ interface DoseDTO {
   status: string;
   statusExibicao: string;
   confirmabilidade: string;
+  confirmadoPor?: string | null;
+  limiteConfirmacao?: string;
+  janela?: { abreEm: string; avisoEm: string; encerraEm: string };
 }
 
 async function main() {
@@ -161,6 +164,9 @@ async function main() {
       const encontrada = doses.find((d) => d.medicamentoId === medicamento.id && d.horarioProgramado.startsWith(`${hoje.dia}T${alvo.hora}`));
       assert.ok(encontrada, `dose de ${alvo.hora} não encontrada em ${JSON.stringify(doses)}`);
       assert.equal(encontrada.confirmabilidade, 'OK');
+      // Limite = horário + tolerância (30) + 30 min, igual ao fim da janela; ainda não confirmada
+      assert.equal(encontrada.limiteConfirmacao, encontrada.janela?.encerraEm);
+      assert.equal(encontrada.confirmadoPor, null);
       return encontrada;
     });
 
@@ -256,8 +262,10 @@ async function main() {
       const alvoApp = minhas.find((d) => d.medication.id === remedio2.medication.id)!;
       const perfil = await httpElderService.getProfile(idosoId);
       assert.equal(perfil.caregiverFirstName, 'Cuidador');
+      assert.equal(alvoApp.confirmUntil, alvoApp.window.closesAt);
       const confirmada = await httpDoseService.confirm(alvoApp.id);
       assert.equal(confirmada.storedStatus, 'CONFIRMADA_NO_HORARIO');
+      assert.equal(confirmada.confirmedBy, 'IDOSO');
       assert.equal(confirmada.confirmability, 'JA_REGISTRADA');
       await expectError(() => httpDoseService.confirm(alvoApp.id), 409, 'DOSE_JA_REGISTRADA');
       const detalhe = await httpDoseService.get(alvoApp.id);
@@ -315,14 +323,22 @@ async function main() {
       await expectError(() => httpReportService.getDaily(outroIdoso.id, 'ontem'), 400, 'VALIDACAO');
     });
 
-    token = tokenIdoso;
-    viewer = 'ELDER';
-    await step('confirmar a dose (PUT /api/doses/{id}/confirmar) -> 200 CONFIRMADA_NO_HORARIO', async () => {
-      const confirmada = await request<DoseDTO>('PUT', `/api/doses/${dose.id}/confirmar`);
-      assert.equal(confirmada.status, 'CONFIRMADA_NO_HORARIO');
+    token = sessao.token;
+    viewer = 'CAREGIVER';
+    await step('app: cuidador confirma a dose na tela da dose (PUT /api/doses/{id}/confirmar) -> confirmada por CUIDADOR', async () => {
+      const antes = await httpDoseService.get(String(dose.id), { elderId: idosoId, day: hoje.dia });
+      assert.equal(antes.storedStatus, 'PENDENTE');
+      const confirmada = await httpDoseService.confirm(String(dose.id));
+      assert.equal(confirmada.storedStatus, 'CONFIRMADA_NO_HORARIO');
+      assert.equal(confirmada.confirmedBy, 'CUIDADOR');
+      assert.ok(confirmada.confirmedAt);
+      // De novo, pelo cuidador: 409 com a mensagem da API
+      await expectError(() => httpDoseService.confirm(String(dose.id)), 409, 'DOSE_JA_REGISTRADA');
     });
 
-    const segunda = await step('confirmar de novo -> 409 DOSE_JA_REGISTRADA', () =>
+    token = tokenIdoso;
+    viewer = 'ELDER';
+    const segunda = await step('idoso tenta confirmar a dose já confirmada pelo cuidador -> 409 DOSE_JA_REGISTRADA', () =>
       expectError(() => request('PUT', `/api/doses/${dose.id}/confirmar`), 409, 'DOSE_JA_REGISTRADA'),
     );
     console.log(`    (${segunda})`);
@@ -385,6 +401,11 @@ async function main() {
       const vazio = await pedir('1990-01-01', '1990-01-31');
       assert.equal(vazio.status, 422);
       assert.equal(((await vazio.json()) as { codigo: string }).codigo, 'PERIODO_SEM_REGISTROS');
+      // Período de no máximo 12 meses: exatamente 12 é aceito (422 por não ter doses), 12 meses + 1 dia é 400
+      assert.equal((await pedir('1990-01-10', '1991-01-10')).status, 422);
+      const longo = await pedir('1990-01-10', '1991-01-11');
+      assert.equal(longo.status, 400);
+      assert.equal(((await longo.json()) as { codigo: string }).codigo, 'VALIDACAO');
     });
 
     // ---- Mensagens (UC-010) pelos adapters, nos dois papéis ----
@@ -441,6 +462,7 @@ async function main() {
       const vista = doses.find((d) => d.id === dose.id);
       assert.equal(vista?.status, 'CONFIRMADA_NO_HORARIO');
       assert.equal(vista?.statusExibicao, 'CONFIRMADA_NO_HORARIO');
+      assert.equal(vista?.confirmadoPor, 'CUIDADOR');
     });
 
     await step('token do aparelho: PUT e DELETE /api/cuidadores/me/fcm-token -> 204 (DELETE idempotente)', async () => {
