@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { MEDICATION_TYPE_VALUES, PILL_SHAPE_VALUES } from '../types/domain';
 import { dateBRToKey, isValidDateBR, parseDateBR } from './date';
 import { meetsPasswordPolicy } from './password';
+import { DUPLICATE_TIME_MESSAGE, EMPTY_TIMES_MESSAGE } from './timeList';
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -58,12 +59,12 @@ export const medicationFormSchema = z
     weekdays: z.array(z.number().int().min(0).max(6)).min(1, 'Escolha ao menos um dia'),
     times: z
       .array(z.object({ time: z.string().regex(TIME_RE, 'Use HH:MM') }))
-      .min(1, 'Adicione ao menos um horário')
+      .min(1, EMPTY_TIMES_MESSAGE)
       .superRefine((times, ctx) => {
         const seen = new Set<string>();
         times.forEach((t, i) => {
           if (seen.has(t.time)) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, path: [i, 'time'], message: 'Horário repetido (RN07)' });
+            ctx.addIssue({ code: z.ZodIssueCode.custom, path: [i, 'time'], message: DUPLICATE_TIME_MESSAGE });
           }
           seen.add(t.time);
         });
