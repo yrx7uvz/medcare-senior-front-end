@@ -122,10 +122,12 @@ export interface DailyReport {
   doses: DoseView[];
 }
 
-export interface PdfResult {
+/** PDF do histórico de adesão baixado do servidor (GET /api/relatorios/pdf), ainda só na memória. */
+export interface PdfFile {
   fileName: string;
-  sizeKb: number;
-  generatedAt: DateTimeKey;
+  bytes: Uint8Array;
+  /** Arquivo de exemplo do modo demonstração (sem dado real). */
+  demo: boolean;
 }
 
 export interface CaregiverSession {

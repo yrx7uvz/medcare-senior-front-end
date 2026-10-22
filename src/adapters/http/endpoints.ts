@@ -27,5 +27,5 @@ export const endpoints = {
   conversations: '/api/mensagens/conversas',
   markMessagesRead: (elderId: string) => `/api/mensagens/lidas?idosoId=${elderId}`,
   unreadMessages: '/api/mensagens/nao-lidas',
-  pdf: '/api/relatorios/pdf',
+  pdfReport: (elderId: string, from: string, to: string) => `/api/relatorios/pdf?idosoId=${elderId}&de=${from}&ate=${to}`,
 } as const;

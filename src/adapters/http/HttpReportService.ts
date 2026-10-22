@@ -2,7 +2,8 @@ import type { ReportService } from '../../services/types';
 import type { DailyReport } from '../../types/views';
 import { endpoints } from './endpoints';
 import { remember, toDoseView, type DoseResponse } from './HttpDoseService';
-import { request } from './httpClient';
+import { pdfFileName } from '../../lib/pdfReport';
+import { request, requestBinary } from './httpClient';
 import { fromApiId, toApiId } from './ids';
 import { notIntegrated } from './stubs';
 
@@ -44,5 +45,11 @@ export const httpReportService: ReportService = {
     return toDailyReport(await request<RelatorioDiarioResponse>('GET', endpoints.dailyReport(String(toApiId(elderId)), day)));
   },
   getAdherence: notIntegrated,
-  generatePdf: notIntegrated,
+
+  /** GET /api/relatorios/pdf com o token do cuidador. O nome do arquivo não leva dado pessoal. */
+  async downloadPdf(elderId, from, to) {
+    const apiId = toApiId(elderId);
+    const bytes = await requestBinary(endpoints.pdfReport(String(apiId), from, to), 'application/pdf');
+    return { fileName: pdfFileName(apiId, from, to), bytes, demo: false };
+  },
 };

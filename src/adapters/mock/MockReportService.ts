@@ -5,6 +5,7 @@ import { getNow } from '../../lib/clock';
 import { toDateTimeKey } from '../../lib/date';
 import { dailyTotals } from '../../lib/dailyReport';
 import { isConfirmed } from '../../lib/doseRules';
+import { demoPdfBytes, pdfFileName, pdfPeriod } from '../../lib/pdfReport';
 import { getDb } from '../../mocks/db';
 import { toDoseView } from './doseViews';
 import { simulate } from './simulate';
@@ -70,13 +71,19 @@ export const mockReportService: ReportService = {
 
   getAdherence: (elderId, from, to) => simulate(() => adherence(elderId, from, to)),
 
-  generatePdf: (elderId, from, to) =>
+  /** Mesmas regras de período do servidor; o arquivo é um PDF de exemplo marcado como demonstração. */
+  downloadPdf: (elderId, from, to) =>
     simulate(() => {
+      const period = pdfPeriod(keyToBR(from), keyToBR(to));
+      if (period.error) throw httpError(400, period.error, 'VALIDACAO');
       const report = adherence(elderId, from, to);
+      if (report.totalDoses === 0) throw httpError(422, 'Não há doses registradas neste período.', 'PERIODO_SEM_REGISTROS');
       return {
-        fileName: `adesao-${slug(report.elder.name)}-${from}_a_${to}.pdf`,
-        sizeKb: 48 + report.totalDoses,
-        generatedAt: toDateTimeKey(getNow()),
+        fileName: `demonstracao-${pdfFileName(slug(report.elder.name), from, to)}`,
+        bytes: demoPdfBytes(`Historico de adesao de ${from} a ${to} (exemplo)`),
+        demo: true,
       };
     }, 1400),
 };
+
+const keyToBR = (key: string) => key.split('-').reverse().join('/');
