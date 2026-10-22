@@ -12,7 +12,7 @@ import { useMutation, useQuery } from '../../lib/useQuery';
 import { minuteStamp, useNow } from '../../lib/useNow';
 import { radius, spacing, useTheme } from '../../theme';
 
-/** T11 — Confirmar dose. Liberada de 60 min antes até o encerramento (RN14). */
+/** Confirmação da dose pelo idoso: liberada de 60 min antes do horário até o limite de confirmação vindo do servidor. */
 export function ConfirmDoseScreen({ route, navigation }: RootScreenProps<'ElderConfirmDose'>) {
   const { colors } = useTheme();
   const elderId = useAppStore((s) => s.elderSession?.elderId ?? '');
@@ -63,12 +63,12 @@ export function ConfirmDoseScreen({ route, navigation }: RootScreenProps<'ElderC
   } else if (d.confirmability === 'MUITO_CEDO') {
     message = { icon: Clock, tone: 'info', text: `Ainda é cedo. Você poderá confirmar a partir das ${formatTime(d.window.opensAt)}.` };
   } else if (d.confirmability === 'ENCERRADA') {
-    message = { icon: Lock, tone: 'lock', text: `O prazo desta dose terminou às ${formatTime(d.window.closesAt)}. Fale com ${caregiver}.` };
+    message = { icon: Lock, tone: 'lock', text: `O prazo desta dose terminou às ${formatTime(d.confirmUntil)}. Fale com ${caregiver}.` };
   } else if (d.status === 'ATRASADA') {
     message = {
       icon: Clock,
       tone: 'warn',
-      text: `Este remédio está atrasado e ${caregiver} já foi avisada. Você ainda pode confirmar até ${formatTime(d.window.closesAt)}.`,
+      text: `Este remédio está atrasado e ${caregiver} já recebeu o aviso. Você ainda pode confirmar até ${formatTime(d.confirmUntil)}.`,
     };
   } else {
     message = {

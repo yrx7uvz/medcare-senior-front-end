@@ -20,6 +20,7 @@
     "check:permissions": "tsx scripts/check-android-permissions.ts",
     "check:contrast": "tsx scripts/check-contrast.ts",
     "smoke:api": "tsx scripts/smoke-api.ts",
+    "smoke": "tsx scripts/smoke-api.ts",
     "test": "jest",
     "test:coverage": "jest --coverage",
     "lint": "eslint .",
