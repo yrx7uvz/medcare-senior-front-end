@@ -63,7 +63,7 @@ export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
     setSession(null);
     getDemo()?.resetDemoDb();
     resetUi();
-    setFlash(`Conta excluída. Seus dados pessoais e os dos pacientes serão removidos ${removalWhen(r.removalDeadlineDays)}; o histórico de doses fica anonimizado (RN13).`);
+    setFlash(`Conta excluída. Seus dados pessoais e os dos pacientes serão removidos ${removalWhen(r.removalDeadlineDays)}; o histórico de doses fica anonimizado.`);
   }
 
   return (
@@ -138,7 +138,7 @@ export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
         icon={Trash2}
         tone="danger"
         title="Excluir conta e dados?"
-        message={`Seus dados pessoais e os dos pacientes vinculados serão removidos ${removalWhen(EXPECTED_REMOVAL_DAYS)}. O histórico de doses já registradas é mantido de forma anonimizada, sem ligação com nenhuma pessoa (RN13). Esta ação não pode ser desfeita.`}
+        message={`Seus dados pessoais e os dos pacientes vinculados serão removidos ${removalWhen(EXPECTED_REMOVAL_DAYS)}. O histórico de doses já registradas é mantido de forma anonimizada, sem ligação com nenhuma pessoa. Esta ação não pode ser desfeita.`}
         confirmLabel="Continuar"
         onConfirm={() => {
           setConfirmText('');

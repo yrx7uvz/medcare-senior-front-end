@@ -139,7 +139,7 @@ export function HistoryScreen({ navigation }: TabScreenProps<'Historico'>) {
       <View style={[styles.notice, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
         <Lock color={colors.textMuted} size={16} />
         <AppText variant="caption" muted style={styles.flex}>
-          Registros de doses não podem ser alterados retroativamente (RN08).
+          Registros de doses não podem ser alterados retroativamente.
         </AppText>
       </View>
       <Button title="Exportar histórico em PDF" icon={FileDown} variant="secondary" onPress={() => navigation.navigate('ExportPdf')} />

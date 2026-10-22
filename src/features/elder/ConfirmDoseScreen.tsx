@@ -21,7 +21,7 @@ export function ConfirmDoseScreen({ route, navigation }: RootScreenProps<'ElderC
   const dose = useQuery(['dose', doseId], () => services.doses.get(doseId), { silentKey: minuteStamp(now) });
   const profile = useQuery(['elder-profile', elderId], () => services.elders.getProfile(elderId));
   const confirm = useMutation(services.doses.confirm);
-  const caregiver = profile.data?.caregiverFirstName ?? 'seu cuidador';
+  const caregiver = profile.data?.caregiverFirstName ?? 'quem cuida de você';
   // Confirmabilidade entre as atualizações: só compara agora com a janela que veio do servidor (FE-21)
   const d = dose.data ? liveAt(dose.data, now) : undefined;
 
@@ -74,7 +74,7 @@ export function ConfirmDoseScreen({ route, navigation }: RootScreenProps<'ElderC
     message = {
       icon: Clock,
       tone: 'info',
-      text: `Se você não confirmar em até ${d.toleranceMinutes} minutos, sua cuidadora ${caregiver} será avisada automaticamente.`,
+      text: `Se você não confirmar em até ${d.toleranceMinutes} minutos, ${caregiver} recebe um aviso automaticamente.`,
     };
   }
   const MsgIcon = message.icon;

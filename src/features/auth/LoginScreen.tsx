@@ -86,7 +86,7 @@ export function LoginScreen({ navigation, route }: RootScreenProps<'Login'>) {
             <AppText muted>Primeira vez?</AppText>
             <Pressable accessibilityRole="link" onPress={() => navigation.navigate('SignUp')} hitSlop={10} style={styles.link}>
               <AppText variant="bodyStrong" color={colors.primary}>
-                Criar conta de cuidador
+                Criar conta para cuidar de alguém
               </AppText>
             </Pressable>
           </View>

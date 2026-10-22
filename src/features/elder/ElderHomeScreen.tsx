@@ -28,7 +28,7 @@ export function ElderHomeScreen({ navigation }: RootScreenProps<'ElderHome'>) {
   const unread = useQuery(['elder-unread', elderId], () => services.messages.unreadCount(elderId, 'IDOSO'));
   useRefreshOnFocus(unread.refresh);
 
-  const caregiver = profile.data?.caregiverFirstName ?? 'cuidador';
+  const caregiver = profile.data?.caregiverFirstName ?? 'quem cuida de você';
   // Status entre as atualizações: só compara agora com a janela que veio do servidor (FE-21)
   const list = (doses.data ?? []).map((d) => liveAt(d, now));
   const next = pickNextDose(list);

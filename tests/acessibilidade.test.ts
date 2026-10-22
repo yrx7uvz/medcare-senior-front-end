@@ -48,7 +48,11 @@ describe('tamanho de fonte', () => {
     }
     expect(textVariants.body.fontSize).toBeGreaterThanOrEqual(CAREGIVER_MIN_BODY);
     expect(textVariants.bodyStrong.fontSize).toBeGreaterThanOrEqual(CAREGIVER_MIN_BODY);
-    expect(fonte('app/navigation/CaregiverTabs.tsx')).toMatch(/tabBarLabelStyle: \{ fontFamily: fonts\.bodySemi, fontSize: CAREGIVER_MIN_LABEL \}/);
+    // Rótulo das abas em 14 sp; em tela muito estreita diminui no máximo 15% para caber inteiro (sem "Mensage…")
+    const abas = fonte('app/navigation/CaregiverTabs.tsx');
+    expect(abas).toMatch(/style=\{\{ fontFamily: fonts\.bodySemi, fontSize: CAREGIVER_MIN_LABEL \}\}/);
+    expect(abas).toMatch(/adjustsFontSizeToFit[\s\S]*minimumFontScale=\{0\.85\}/);
+    expect(abas).not.toMatch(/'Config\.'/);
   });
 
   it('o texto respeita a fonte do sistema (sem desligar o ajuste)', () => {

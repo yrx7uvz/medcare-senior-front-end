@@ -25,10 +25,10 @@ function toView(m: Medication): MedicationView {
 /** Regras do backend repetidas no mock (RN05, RN07, início ≤ fim). */
 function validate(input: MedicationInput) {
   if (!input.name.trim() || !input.dosage.trim() || !input.type) {
-    throw httpError(400, 'Nome, dosagem e tipo são obrigatórios (RN05).');
+    throw httpError(400, 'Nome, dosagem e tipo são obrigatórios.');
   }
   const times = input.treatment.times.map((t) => t.time);
-  if (new Set(times).size !== times.length) throw httpError(400, 'Há horários repetidos no mesmo dia (RN07).');
+  if (new Set(times).size !== times.length) throw httpError(400, 'Há horários repetidos no mesmo dia.');
   if (!times.length || !input.treatment.weekdays.length) throw httpError(400, 'Informe dias e horários do tratamento.');
   if (input.treatment.endDate && input.treatment.startDate > input.treatment.endDate) {
     throw httpError(400, 'A data de início não pode ser posterior à data de fim.');
@@ -152,7 +152,7 @@ export const mockMedicationService: MedicationService = {
       if (!medication) throw httpError(404, 'Medicamento não encontrado.');
       const treatment = db.treatments.find((t) => t.medicationId === id && !t.removedAt);
       if (isTreatmentActive(treatment, toDateKey(now)) && !confirmed) {
-        throw httpError(409, 'Este remédio tem tratamento ativo. Confirme a remoção (RN06).', 'TRATAMENTO_ATIVO');
+        throw httpError(409, 'Este remédio tem tratamento ativo. Confirme a remoção.', 'TRATAMENTO_ATIVO');
       }
       const stamp = toDateTimeKey(now);
       mutateDb(() => {
