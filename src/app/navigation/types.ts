@@ -23,8 +23,8 @@ export type RootStackParamList = {
   LinkCode: { elderId: string; justCreated?: boolean };
   MedicationForm: { medicationId?: string } | undefined;
   ExportPdf: undefined;
-  // elderId e day (opcionais) dizem onde achar a dose; vêm do push ou do relatório
-  DoseDetail: { doseId: string; elderId?: string; day?: string };
+  // elderId e day (opcionais) dizem onde achar a dose; vêm do push ou do relatório. fromPush: aberta por um aviso
+  DoseDetail: { doseId: string; elderId?: string; day?: string; fromPush?: boolean };
   // UC-008: relatório diário de um idoso (idoso e dia opcionais)
   DailyReport: { elderId?: string; day?: string } | undefined;
   // Comum

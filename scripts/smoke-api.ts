@@ -63,6 +63,7 @@ async function main() {
   const { fromApiId, toApiId } = await import('../src/adapters/http/ids');
   const { AppError } = await import('../src/services/errors');
   const { getApiBaseUrl } = await import('../src/config/env');
+  const { doseOpenFailure, resolveDoseOpen } = await import('../src/lib/doseOpen');
   console.log(`Alvo: ${getApiBaseUrl()}\n`);
 
   let token: string | null = null;
@@ -213,6 +214,30 @@ async function main() {
       assert.equal(daMetformina.window.closesAt.slice(0, 10), hoje.dia);
       const todos = await httpDoseService.listForDay('ALL', hoje.dia);
       assert.ok(todos.some((d) => d.id === daMetformina.id));
+    });
+
+    await step('app: toque no aviso abre a dose (payload do push -> detalhe com remédio e idoso; idoso alheio -> 404 com aviso)', async () => {
+      // Mesmo payload que o backend manda no push (PushNotificadorDeDoseNaoTomadaAdapter): tudo como texto
+      const payload = { tipo: 'DOSE_NAO_CONFIRMADA', doseId: String(dose.id), idosoId: String(toApiId(idosoId)), data: hoje.dia };
+      const conhecidos = (await httpElderService.list()).map((e) => e.id);
+      const decisao = resolveDoseOpen(payload, { viewAs: 'CAREGIVER', hasSession: true, knownElderIds: conhecidos });
+      assert.equal(decisao.action, 'abrir-dose');
+      if (decisao.action !== 'abrir-dose') return;
+      const aberta = await httpDoseService.get(decisao.target.doseId, { elderId: decisao.target.elderId, day: decisao.target.day });
+      assert.deepEqual([aberta.id, aberta.medication.name, aberta.elderName], [String(dose.id), 'Losartana', 'Idoso Smoke']);
+      // Sessão expirada: espera o login; payload estranho: ignorado
+      assert.equal(resolveDoseOpen(payload, { viewAs: 'CAREGIVER', hasSession: false }).action, 'aguardar-login');
+      assert.equal(resolveDoseOpen({ ...payload, tipo: 'OUTRO' }, { viewAs: 'CAREGIVER', hasSession: true }).action, 'ignorar');
+      // Paciente que não é da conta: a API responde 404 e a tela mostra o aviso com o caminho do Painel
+      const alheio = resolveDoseOpen({ ...payload, idosoId: '999999999' }, { viewAs: 'CAREGIVER', hasSession: true });
+      assert.equal(alheio.action, 'abrir-dose');
+      if (alheio.action !== 'abrir-dose') return;
+      try {
+        await httpDoseService.get(alheio.target.doseId, { elderId: alheio.target.elderId, day: alheio.target.day });
+        assert.fail('esperava 404 para idoso alheio');
+      } catch (e) {
+        assert.ok(doseOpenFailure(e as { status?: number; code?: string }), `esperava aviso de dose não encontrada: ${String(e)}`);
+      }
     });
 
     await step('app: cor do remédio na dose (DoseResponseDTO.cor; sem cor = null)', async () => {
