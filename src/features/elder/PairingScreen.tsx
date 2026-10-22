@@ -1,22 +1,28 @@
-import { Link2 } from 'lucide-react-native';
+import * as Clipboard from 'expo-clipboard';
+import { ClipboardPaste, Link2 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { ElderScreen } from '../../components/layout/ElderScreen';
 import { SwitchProfileLink } from '../../components/layout/SwitchProfileLink';
-import { AppText, BigActionButton, DigitBoxes, PinPad } from '../../components/ui';
+import { AppText, BigActionButton, Button, DigitBoxes, PinPad } from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import { formatCountdown } from '../../lib/date';
+import { PASTE_INVALID_MESSAGE, parsePastedCode } from '../../lib/pairingCode';
 import { useMutation } from '../../lib/useQuery';
 import { radius, spacing, useTheme } from '../../theme';
 
-/** T-Pareamento — código de 6 dígitos (RN11) com bloqueio após 5 erros (RN12). */
+/**
+ * Pareamento do aparelho do idoso: código de 6 números (digitado no teclado da tela ou colado), com bloqueio
+ * temporário depois de muitas tentativas erradas.
+ */
 export function PairingScreen({ navigation }: RootScreenProps<'ElderPairing'>) {
   const { colors } = useTheme();
   const [code, setCode] = useState('');
   const [blockedUntil, setBlockedUntil] = useState<number | null>(null);
   const [tick, setTick] = useState(() => Date.now());
+  const [pasteMessage, setPasteMessage] = useState<string | null>(null);
   const validate = useMutation(services.elders.validateLinkCode);
   // Ex.: aparelho desconectado pela API (sessão do idoso inválida)
   const flash = useAppStore((s) => s.flash);
@@ -32,6 +38,23 @@ export function PairingScreen({ navigation }: RootScreenProps<'ElderPairing'>) {
   }, [blockedUntil]);
 
   const blocked = blockedUntil !== null && tick < blockedUntil;
+
+  /** Lê a área de transferência só neste toque; preenche as caixas, mas quem conecta é o botão CONECTAR. */
+  async function pasteCode() {
+    let pasted: string | null = null;
+    try {
+      pasted = parsePastedCode(await Clipboard.getStringAsync());
+    } catch {
+      pasted = null;
+    }
+    if (!pasted) {
+      setPasteMessage(PASTE_INVALID_MESSAGE);
+      return;
+    }
+    if (validate.error) validate.clearError();
+    setPasteMessage(null);
+    setCode(pasted);
+  }
 
   async function submit() {
     setFlash(null);
@@ -80,6 +103,19 @@ export function PairingScreen({ navigation }: RootScreenProps<'ElderPairing'>) {
         </View>
       ) : null}
       <DigitBoxes value={code} length={6} error={!!errorText} />
+      <Button
+        title="Colar código"
+        icon={ClipboardPaste}
+        variant="secondary"
+        size="sm"
+        style={styles.paste}
+        disabled={blocked || validate.loading}
+        accessibilityHint="Coloca nas caixas um código de 6 números que você copiou"
+        onPress={() => void pasteCode()}
+      />
+      {pasteMessage ? (
+        <AppText variant="elderBody" color={colors.danger} align="center" accessibilityRole="alert">{pasteMessage}</AppText>
+      ) : null}
       {errorText ? (
         <View style={[styles.error, { backgroundColor: colors.dangerSoft }]} accessibilityRole="alert">
           <AppText variant="elderBody" color={colors.danger} align="center">{errorText}</AppText>
@@ -89,6 +125,7 @@ export function PairingScreen({ navigation }: RootScreenProps<'ElderPairing'>) {
         disabled={blocked || validate.loading}
         onDigit={(d) => {
           if (validate.error) validate.clearError();
+          setPasteMessage(null);
           setCode((c) => (c.length < 6 ? c + d : c));
         }}
         onBackspace={() => setCode((c) => c.slice(0, -1))}
@@ -101,4 +138,5 @@ export function PairingScreen({ navigation }: RootScreenProps<'ElderPairing'>) {
 const styles = StyleSheet.create({
   head: { gap: spacing.sm, paddingTop: spacing.sm },
   error: { borderRadius: radius.lg, padding: spacing.md },
+  paste: { alignSelf: 'center' },
 });
