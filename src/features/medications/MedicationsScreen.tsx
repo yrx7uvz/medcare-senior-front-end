@@ -12,6 +12,7 @@ import { useMutation, useQuery } from '../../lib/useQuery';
 import type { MedicationView } from '../../types/views';
 import { spacing, useTheme } from '../../theme';
 import { MedicationCard } from './MedicationCard';
+import { palette } from '../../theme/colors';
 
 /** T05 — Remédios do paciente filtrado (ou de todos). Remoção lógica com RN06. */
 export function MedicationsScreen({ navigation }: TabScreenProps<'Remedios'>) {
@@ -147,7 +148,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 6,
-    shadowColor: '#0D4F8A',
+    shadowColor: palette.primaryDark,
     shadowOpacity: 0.3,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },

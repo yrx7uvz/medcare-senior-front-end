@@ -1,10 +1,10 @@
 import { Bell, ChevronRight, FileText, KeyRound, LogOut, ShieldCheck, SlidersHorizontal, Trash2, UserPlus } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TabScreenProps } from '../../app/navigation/types';
 import { CaregiverScreen } from '../../components/layout/CaregiverScreen';
-import { AppText, Avatar, Button, Card, ConfirmDialog, ErrorState, LoadingSkeleton, TextField, ThemeToggle, type IconComponent } from '../../components/ui';
+import { AppSwitch, AppText, Avatar, Button, Card, ConfirmDialog, ErrorState, LoadingSkeleton, TextField, ThemeToggle, type IconComponent } from '../../components/ui';
 import { toleranceError } from '../../lib/doseRules';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
@@ -214,30 +214,7 @@ function PushStatus() {
 }
 
 function PrefRow({ label, hint, value, onChange }: { label: string; hint?: string; value: boolean; onChange: (v: boolean) => void }) {
-  const { colors } = useTheme();
-  // A linha inteira é o alvo do toque (o Switch sozinho tem menos de 48 dp de altura)
-  return (
-    <Pressable
-      accessibilityRole="switch"
-      accessibilityLabel={label}
-      accessibilityHint={hint}
-      accessibilityState={{ checked: value }}
-      onPress={() => onChange(!value)}
-      style={({ pressed }) => [styles.prefRow, { opacity: pressed ? 0.85 : 1 }]}
-    >
-      <View style={styles.flex}>
-        <AppText variant="bodyStrong">{label}</AppText>
-        {hint ? <AppText variant="caption" muted>{hint}</AppText> : null}
-      </View>
-      <Switch
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        value={value}
-        onValueChange={onChange}
-        trackColor={{ true: colors.primary, false: colors.inputBorder }}
-      />
-    </Pressable>
-  );
+  return <AppSwitch label={label} description={hint} value={value} onValueChange={onChange} />;
 }
 
 function LinkRow({ icon: Icon, label, onPress }: { icon: IconComponent; label: string; onPress: () => void }) {

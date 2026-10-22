@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../../store/appStore';
 import { radius, spacing, useTheme } from '../../theme';
 import { AppText } from '../ui';
+import { palette } from '../../theme/colors';
 
 export function Toast() {
   const { colors } = useTheme();
@@ -48,7 +49,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     elevation: 6,
-    shadowColor: '#000',
+    shadowColor: palette.black,
     shadowOpacity: 0.15,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },

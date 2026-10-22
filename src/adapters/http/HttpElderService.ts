@@ -7,6 +7,7 @@ import type { ElderInput, ElderPairing, ElderProfile } from '../../types/views';
 import { endpoints } from './endpoints';
 import { request } from './httpClient';
 import { fromApiId, toApiId } from './ids';
+import { avatarColors } from '../../theme/colors';
 
 /** GET/POST /api/idosos (IdosoResponseDTO). */
 export interface IdosoResponse {
@@ -40,7 +41,7 @@ interface IdosoAutenticadoResponse {
 }
 
 /** A API não guarda cor: a do avatar sai do ID, para ser a mesma em todas as telas e aberturas. */
-const AVATAR_COLORS = ['#1A6FB5', '#7B4FB0', '#00897B', '#C2185B', '#5D6D7E', '#AD6800'];
+const AVATAR_COLORS = avatarColors;
 export const avatarColorFor = (apiId: number) => AVATAR_COLORS[Math.abs(apiId) % AVATAR_COLORS.length];
 
 export function toElder(dto: IdosoResponse): Elder {

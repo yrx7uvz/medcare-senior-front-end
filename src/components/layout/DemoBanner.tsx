@@ -4,11 +4,12 @@ import { StyleSheet, View } from 'react-native';
 import { SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IS_DEMO } from '../../config/env';
 import { AppText } from '../ui';
+import { demoColors } from '../../theme/colors';
 
 // Cores fixas (independem do tema claro/escuro e do tema do idoso): branco sobre âmbar escuro,
 // contraste 10,09:1 (WCAG AA exige 4,5:1).
-const BANNER_BG = '#5C3B00';
-const BANNER_FG = '#FFFFFF';
+const BANNER_BG = demoColors.bannerBg;
+const BANNER_FG = demoColors.bannerFg;
 
 /**
  * Faixa "MODO DEMONSTRAÇÃO" no topo de todas as telas, só quando IS_DEMO.

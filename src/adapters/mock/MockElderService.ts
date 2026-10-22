@@ -6,8 +6,9 @@ import { firstName } from '../../lib/date';
 import { uid } from '../../lib/ids';
 import { getDb, mutateDb } from '../../mocks/db';
 import { simulate } from './simulate';
+import { avatarColors } from '../../theme/colors';
 
-const AVATAR_COLORS = ['#1A6FB5', '#7B4FB0', '#00897B', '#C2185B', '#5D6D7E', '#AD6800'];
+const AVATAR_COLORS = avatarColors;
 const LINK_CODE_TTL_MS = 24 * 3_600_000; // RN11
 const MAX_FAILURES = 5; // RN12
 const FAILURE_WINDOW_MS = 15 * 60_000;

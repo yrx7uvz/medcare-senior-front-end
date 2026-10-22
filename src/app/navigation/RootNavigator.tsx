@@ -25,7 +25,7 @@ import { decideDoseOpen } from '../../lib/doseOpen';
 import { bootSession } from '../../lib/session';
 import { navigationRef } from './navigationRef';
 import { useAppStore } from '../../store/appStore';
-import { elderHighContrastColors, elderColors, useTheme, withElderTheme } from '../../theme';
+import { elderColorsFor, useTheme, useThemeMode, withElderTheme } from '../../theme';
 import { CaregiverTabs } from './CaregiverTabs';
 import type { RootStackParamList } from './types';
 
@@ -43,6 +43,8 @@ const ProfileChoice = withElderTheme(ProfileChoiceScreen);
 
 function ElderLoading() {
   const bootError = useAppStore((s) => s.bootError);
+  const highContrast = useAppStore((s) => s.elderHighContrast);
+  const elderColors = elderColorsFor(useThemeMode(), highContrast);
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, backgroundColor: elderColors.background }}>
       {bootError ? (
@@ -105,14 +107,15 @@ export function RootNavigator() {
   const navTheme = useMemo<NavTheme>(() => {
     const base = mode === 'dark' ? DarkTheme : DefaultTheme;
     // Escolha de perfil e carregamento usam o tema do idoso
-    const c = viewAs !== 'CAREGIVER' ? (highContrast ? elderHighContrastColors : elderColors) : colors;
+    const c = viewAs !== 'CAREGIVER' ? elderColorsFor(mode, highContrast) : colors;
     return {
       ...base,
       colors: { ...base.colors, primary: c.primary, background: c.background, card: c.surface, text: c.text, border: c.border, notification: c.danger },
     };
   }, [mode, colors, viewAs, highContrast]);
 
-  const statusLight = viewAs === 'CAREGIVER' || highContrast;
+  // Cabeçalho do cuidador é escuro nos dois temas; o idoso segue o tema (claro, escuro ou alto contraste)
+  const statusLight = viewAs === 'CAREGIVER' || highContrast || mode === 'dark';
 
   return (
     <NavigationContainer ref={navigationRef} theme={navTheme} onReady={() => setNavReady(true)}>

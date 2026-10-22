@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 import { initials } from '../../lib/date';
 import { useTheme } from '../../theme';
 import { AppText } from './AppText';
+import { onAvatar } from '../../theme/colors';
 
 interface Props {
   name: string;
@@ -15,7 +16,7 @@ export function Avatar({ name, color, size = 32, alert }: Props) {
   return (
     <View style={{ width: size, height: size }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <View style={[styles.circle, { width: size, height: size, borderRadius: size / 2, backgroundColor: color }]}>
-        <AppText variant="label" color="#FFFFFF" style={{ fontSize: size * 0.38, lineHeight: size * 0.5 }} maxFontSizeMultiplier={1}>
+        <AppText variant="label" color={onAvatar} style={{ fontSize: size * 0.38, lineHeight: size * 0.5 }} maxFontSizeMultiplier={1}>
           {initials(name)}
         </AppText>
       </View>

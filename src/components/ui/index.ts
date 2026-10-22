@@ -23,4 +23,5 @@ export * from './ChatThread';
 export * from './PinPad';
 export * from './AdherenceBars';
 export * from './TimeWheelPicker';
+export * from './AppSwitch';
 export type { IconComponent } from './icons';

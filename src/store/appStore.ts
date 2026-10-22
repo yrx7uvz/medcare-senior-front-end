@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { DoseOpenTarget } from '../lib/pushPayload';
+import type { ThemeMode, ThemePrefs } from '../lib/themePrefs';
 import type { CaregiverSession, ElderFilter } from '../types/views';
 
 export type ViewAs = 'CAREGIVER' | 'ELDER';
@@ -29,8 +30,13 @@ interface AppState {
   selectedElderId: ElderFilter;
   setSelectedElder: (id: ElderFilter) => void;
 
-  themeMode: 'light' | 'dark';
-  toggleTheme: () => void;
+  /** Tema escolhido nas Configurações; null = seguir o tema do sistema. Guardado no aparelho. */
+  themeChoice: ThemeMode | null;
+  /** Troca o tema a partir do que está na tela (vira escolha explícita). */
+  toggleTheme: (current: ThemeMode) => void;
+  /** As preferências de aparência já foram lidas do aparelho (até lá, só a tela de carregamento da marca). */
+  themeLoaded: boolean;
+  setThemePrefs: (prefs: ThemePrefs) => void;
 
   notificationPrefs: NotificationPrefs;
   setNotificationPref: (key: keyof NotificationPrefs, value: boolean) => void;
@@ -80,8 +86,10 @@ export const useAppStore = create<AppState>()((set) => ({
   selectedElderId: 'ALL',
   setSelectedElder: (selectedElderId) => set({ selectedElderId }),
 
-  themeMode: 'light',
-  toggleTheme: () => set((s) => ({ themeMode: s.themeMode === 'light' ? 'dark' : 'light' })),
+  themeChoice: null,
+  toggleTheme: (current) => set({ themeChoice: current === 'light' ? 'dark' : 'light' }),
+  themeLoaded: false,
+  setThemePrefs: (prefs) => set({ themeChoice: prefs.mode, elderHighContrast: prefs.elderHighContrast, themeLoaded: true }),
 
   notificationPrefs: { missedDose: true, messages: true },
   setNotificationPref: (key, value) => set((s) => ({ notificationPrefs: { ...s.notificationPrefs, [key]: value } })),

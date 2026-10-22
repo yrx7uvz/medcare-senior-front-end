@@ -10,7 +10,9 @@ import { Toast } from '../components/layout/Toast';
 import { API_CONFIG_PROBLEM, IS_DEMO } from '../config/env';
 import { startPush } from '../lib/pushSession';
 import { bootSession, registerSessionHandlers } from '../lib/session';
-import { ThemeProvider, palette } from '../theme';
+import { hydrateTheme, persistTheme } from '../lib/themeSession';
+import { useAppStore } from '../store/appStore';
+import { ThemeProvider, bootColors } from '../theme';
 import { RootNavigator } from './navigation/RootNavigator';
 
 export default function App() {
@@ -21,6 +23,12 @@ export default function App() {
     NunitoSans_600SemiBold,
     NunitoSans_700Bold,
   });
+  const themeLoaded = useAppStore((s) => s.themeLoaded);
+  // Aparência guardada (tema e alto contraste) antes de qualquer tela, e gravada a cada troca
+  useEffect(() => {
+    void hydrateTheme();
+    return persistTheme();
+  }, []);
   // Boot: liga token e 401 ao cliente HTTP e restaura perfil e sessões do SecureStore.
   useEffect(() => {
     // Build com endereço da API inutilizável: nada de sessão nem push (a tela de configuração aparece abaixo)
@@ -35,10 +43,11 @@ export default function App() {
     };
   }, []);
 
-  if (!fontsLoaded) {
+  // Até as fontes e a aparência carregarem, só a cor da marca (igual nos dois temas: o claro nunca pisca)
+  if (!fontsLoaded || !themeLoaded) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.primary }}>
-        <ActivityIndicator color="#FFFFFF" size="large" />
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: bootColors.background }}>
+        <ActivityIndicator color={bootColors.spinner} size="large" />
       </View>
     );
   }

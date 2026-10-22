@@ -77,8 +77,14 @@ describe('alvos de toque ≥ 48 dp nos componentes compartilhados', () => {
     expect(fonte('components/ui/PinPad.tsx')).toMatch(/key: \{ width: 84, height: 72/);
     expect(fonte('features/medications/ColorPicker.tsx')).toMatch(/hitSlop=\{hitSlopFor\(SWATCH\)\}/);
     expect(fonte('features/medications/WeekdayChips.tsx')).toMatch(/hitSlop=\{\{ left: hitSlopFor\(DAY_MIN_WIDTH\), right: hitSlopFor\(DAY_MIN_WIDTH\) \}\}/);
-    // A linha inteira da preferência é o interruptor
-    expect(fonte('features/settings/SettingsScreen.tsx')).toMatch(/accessibilityRole="switch"[\s\S]*onPress=\{\(\) => onChange\(!value\)\}/);
+    // A linha inteira da preferência é o interruptor (componente comum AppSwitch, com 56 dp de altura)
+    expect(fonte('components/ui/AppSwitch.tsx')).toMatch(/accessibilityRole="switch"[\s\S]*onPress=\{\(\) => onValueChange\(!value\)\}/);
+    expect(fonte('components/ui/AppSwitch.tsx')).toMatch(/minHeight: 56/);
+    expect(fonte('features/settings/SettingsScreen.tsx')).toMatch(/<AppSwitch /);
+    // Nenhum Switch do sistema (verde e azul do Android): todos usam o AppSwitch com as cores do tema
+    for (const arquivo of ['features/settings/SettingsScreen.tsx', 'components/ui/ThemeToggle.tsx', 'components/layout/ProfileSwitcher.tsx']) {
+      expect(fonte(arquivo)).not.toMatch(/<Switch\b/);
+    }
   });
 
   it('campos, chips e caixas usam a borda com contraste (inputBorder)', () => {
