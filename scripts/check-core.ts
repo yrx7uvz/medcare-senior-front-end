@@ -458,7 +458,7 @@ checkAsync('Vínculo: 429 traz Retry-After; código gerado fica disponível até
   assert.deepEqual(await httpElderService.validateLinkCode(' 123456 '), { elderId: '12', elderName: 'José', token: 't' });
 });
 
-// --- Relógio do servidor e janela da dose (FE-21) -------------------------------------------------------------------
+// --- Relógio do servidor e janela da dose -------------------------------------------------------------------
 check('Diferença de relógio pelo header Date: meio do segundo do servidor menos o meio da viagem', () => {
   const header = 'Sun, 18 Oct 2026 15:00:00 GMT';
   const servidor = Date.UTC(2026, 9, 18, 15, 0, 0);
@@ -534,7 +534,7 @@ check('Dose ao vivo: só compara agora com a janela do servidor, nos limites exa
   assert.equal(liveDose(base, SP(12, 0), () => null), base);
 });
 
-// --- Sessões guardadas no boot (FE-56) -----------------------------------------------------------------------------
+// --- Sessões guardadas no boot -----------------------------------------------------------------------------
 check('Boot: token do idoso vencido apaga a conexão e avisa no perfil do idoso; no demo não confere', () => {
   const valido = { elderId: '12', token: jwt({ sub: '12', exp: nowSec + 3600 }) };
   const vencido = { elderId: '12', token: jwt({ sub: '12', exp: nowSec - 1 }) };
@@ -558,7 +558,7 @@ check('Boot: token do idoso vencido apaga a conexão e avisa no perfil do idoso;
   assert.equal(r.flash, SESSION_EXPIRED_MESSAGE);
 });
 
-// --- Cliente HTTP: dedupe, cache curto e invalidação (FE-18) -------------------------------------------------------
+// --- Cliente HTTP: dedupe, cache curto e invalidação -------------------------------------------------------
 checkAsync('Leituras iguais em voo viram uma chamada; cache curto; escrita limpa o cache e avisa as telas', async () => {
   const chamadas = fakeFetch([{ status: 200, body: [] }, { status: 204 }, { status: 200, body: [] }]);
   const [a, b] = await Promise.all([request('GET', '/api/idosos'), request('GET', '/api/idosos')]);
@@ -580,7 +580,7 @@ checkAsync('Leitura que falha não fica guardada: a próxima tenta de novo', asy
   assert.equal(chamadas.length, 2);
 });
 
-// --- Doses reais (FE-14 parte 1) -----------------------------------------------------------------------------------
+// --- Doses reais -----------------------------------------------------------------------------------
 checkAsync('Doses: o idoso usa /me/doses; o cuidador, a rota do idoso; "Todos" busca os idosos', async () => {
   setViewerProvider(() => 'ELDER');
   let chamadas = fakeFetch([{ status: 200, body: [DOSE_DTO] }]);
@@ -653,7 +653,7 @@ checkAsync('Alertas: doses do dia ainda PENDENTES que o servidor mostra como ATR
   assert.deepEqual(alertas.map((a) => `${a.doseId}:${a.status}`), ['1:ATRASADA', '4:NAO_TOMADA']);
 });
 
-// --- Cadastro em que só o POST deu certo (FE-55) -------------------------------------------------------------------
+// --- Cadastro em que só o POST deu certo -------------------------------------------------------------------
 checkAsync('Cadastro criado e login falhou: não repete o POST e avisa para fazer login', async () => {
   const chamadas = fakeFetch([{ status: 201, body: { id: 1 } }, { status: 503 }]);
   const erro = await httpAuthService
@@ -665,7 +665,7 @@ checkAsync('Cadastro criado e login falhou: não repete o POST e avisa para faze
   assert.deepEqual(chamadas.map((c) => `${c.method} ${c.path}`), ['POST /api/cuidadores', 'POST /api/auth/login']);
 });
 
-// --- Relatório diário (FE-24) e formulário de remédio alinhado à API (FE-19) ---------------------------------------
+// --- Relatório diário e formulário de remédio alinhado à API ---------------------------------------
 check('Totais do relatório diário: aderência = (tomadas + com atraso) / (total - pendentes), 1 casa, null sem encerradas', () => {
   assert.deepEqual(dailyTotals([]), { total: 0, onTime: 0, late: 0, missed: 0, pending: 0, adherencePercent: null });
   assert.equal(dailyTotals(['PENDENTE', 'PENDENTE']).adherencePercent, null);
@@ -719,7 +719,7 @@ check('"Esqueci a senha" removido do login e tela "Relatório diário" registrad
   assert.match(ler('features/reports/DailyReportScreen.tsx'), /title="Relatório diário"/);
 });
 
-// --- Tolerância (FE-14 p2 / FE-20) e relatório diário real ---------------------------------------------------------
+// --- Tolerância  e relatório diário real ---------------------------------------------------------
 check('Tolerância: faixa local igual à da API (5 a 120, inteiro)', () => {
   for (const ok of [5, 30, 120]) assert.equal(toleranceError(ok), null, String(ok));
   for (const ruim of [4, 121, 0, 30.5, Number.NaN]) assert.equal(toleranceError(ruim), 'A tolerância deve ficar entre 5 e 120 minutos', String(ruim));
@@ -772,7 +772,7 @@ checkAsync('Relatório diário real: GET /api/relatorios/diario com idoso e data
   assert.equal(chamadas[1].path, '/api/idosos/12/doses?data=2026-10-17');
 });
 
-// --- Push no app (FE-25) e build Android (FE-30) -------------------------------------------------------------------
+// --- Push no app e build Android -------------------------------------------------------------------
 check('Push só existe no Android fora do Expo Go e do demo; nos outros casos é inerte e nem carrega o módulo', () => {
   const casos = [
     { os: 'ios', isExpoGo: false, isDemo: false },
@@ -911,7 +911,7 @@ check('Build Android: google-services.json só por variável de ambiente e nunca
   assert.ok(eas.build.preview && eas.build.production);
 });
 
-// --- Push no app: payload, registro do token e alerta simulado (FE-26 a FE-29) -------------------------------------
+// --- Push no app: payload, registro do token e alerta simulado -------------------------------------
 check('Payload do push vira a dose a abrir; qualquer coisa fora do contrato é ignorada', () => {
   const ok = { tipo: 'DOSE_NAO_CONFIRMADA', doseId: '5000', idosoId: '12', data: '2026-10-18' };
   assert.deepEqual(parseDosePayload(ok), { doseId: '5000', elderId: '12', day: '2026-10-18' });

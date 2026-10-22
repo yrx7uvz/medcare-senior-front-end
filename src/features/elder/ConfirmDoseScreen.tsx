@@ -22,7 +22,7 @@ export function ConfirmDoseScreen({ route, navigation }: RootScreenProps<'ElderC
   const profile = useQuery(['elder-profile', elderId], () => services.elders.getProfile(elderId));
   const confirm = useMutation(services.doses.confirm);
   const caregiver = profile.data?.caregiverFirstName ?? 'quem cuida de você';
-  // Confirmabilidade entre as atualizações: só compara agora com a janela que veio do servidor (FE-21)
+  // Confirmabilidade entre as atualizações: só compara agora com a janela que veio do servidor
   const d = dose.data ? liveAt(dose.data, now) : undefined;
 
   async function onConfirm() {

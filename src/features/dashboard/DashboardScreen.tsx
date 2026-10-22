@@ -38,7 +38,7 @@ export function DashboardScreen({ navigation }: TabScreenProps<'Painel'>) {
   const visibleAlerts = (alerts.data ?? []).filter(
     (a) => !dismissed.includes(`${a.doseId}:${a.status}`) && (filter === 'ALL' || a.elderId === filter),
   );
-  // Status entre as atualizações: só compara agora com a janela que veio do servidor (FE-21)
+  // Status entre as atualizações: só compara agora com a janela que veio do servidor
   const list = (doses.data ?? []).map((d) => liveAt(d, now));
   const summary = summarize(list.map((d) => d.status));
   const selectedElder = filter === 'ALL' ? null : elders.data?.find((e) => e.id === filter);
