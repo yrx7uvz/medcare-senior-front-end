@@ -1,5 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
-import { addMonthsKey, demoPdfBytes, pdfDownloadFailure, pdfFileName, pdfPeriod } from '../src/lib/pdfReport';
+import { demoPdfBytes } from '../src/adapters/mock/demoPdf';
+import { addMonthsKey, pdfDownloadFailure, pdfFileName, pdfPeriod } from '../src/lib/pdfReport';
 
 describe('período do PDF (conferido antes de chamar o servidor)', () => {
   it('aceita exatamente 12 meses e recusa 12 meses + 1 dia', () => {
