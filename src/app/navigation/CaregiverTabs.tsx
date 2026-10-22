@@ -3,6 +3,7 @@ import { History, LayoutDashboard, MessageCircle, Pill, Settings } from 'lucide-
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AlertWatcher } from '../../components/layout/AlertWatcher';
 import { PushPermissionPrompt } from '../../components/layout/PushPermissionPrompt';
+import { AppText } from '../../components/ui';
 import { IS_DEMO } from '../../config/env';
 import { DashboardScreen } from '../../features/dashboard/DashboardScreen';
 import { HistoryScreen } from '../../features/history/HistoryScreen';
@@ -40,7 +41,19 @@ export function CaregiverTabs() {
             paddingBottom: 8 + insets.bottom,
             paddingTop: 6,
           },
-          tabBarLabelStyle: { fontFamily: fonts.bodySemi, fontSize: CAREGIVER_MIN_LABEL },
+          // Rótulo inteiro em tela estreita ou com fonte ampliada: diminui um pouco para caber, em vez de cortar ("Mensage…")
+          tabBarLabel: ({ color, children }) => (
+            <AppText
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
+              maxFontSizeMultiplier={1.3}
+              color={color}
+              style={{ fontFamily: fonts.bodySemi, fontSize: CAREGIVER_MIN_LABEL }}
+            >
+              {children}
+            </AppText>
+          ),
         }}
       >
         <Tab.Screen name="Painel" component={DashboardScreen} options={{ tabBarIcon: ({ color, size }) => <LayoutDashboard color={color} size={size} /> }} />
@@ -55,9 +68,9 @@ export function CaregiverTabs() {
             tabBarAccessibilityLabel: unread.data ? `Mensagens, ${unread.data} não lidas` : 'Mensagens',
           }}
         />
-        <Tab.Screen name="Config" component={SettingsScreen} options={{ title: 'Config.', tabBarAccessibilityLabel: 'Configurações', tabBarIcon: ({ color, size }) => <Settings color={color} size={size} /> }} />
+        <Tab.Screen name="Config" component={SettingsScreen} options={{ title: 'Ajustes', tabBarAccessibilityLabel: 'Configurações', tabBarIcon: ({ color, size }) => <Settings color={color} size={size} /> }} />
       </Tab.Navigator>
-      {/* FE-29: o alerta simulado só existe no demo; no modo real o aviso chega por push */}
+      {/* O alerta simulado só existe no demo; no modo real o aviso chega por push */}
       {IS_DEMO ? <AlertWatcher /> : <PushPermissionPrompt />}
     </>
   );

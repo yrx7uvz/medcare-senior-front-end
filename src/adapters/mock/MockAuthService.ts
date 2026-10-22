@@ -57,10 +57,10 @@ export const mockAuthService: AuthService = {
   signUp: (input) =>
     simulate(() => {
       if (!input.lgpdConsent) throw httpError(400, 'É necessário aceitar o termo de consentimento (LGPD).', 'CONSENTIMENTO_OBRIGATORIO');
-      if (!meetsPasswordPolicy(input.password)) throw httpError(400, 'A senha não atende aos requisitos (RN02).', 'SENHA_FRACA');
+      if (!meetsPasswordPolicy(input.password)) throw httpError(400, 'A senha não atende aos requisitos.', 'SENHA_FRACA');
       const email = input.email.trim().toLowerCase();
       if (getDb().accounts.some((a) => a.email === email)) {
-        throw httpError(409, 'Este e-mail já está cadastrado (RN01).', 'EMAIL_DUPLICADO');
+        throw httpError(409, 'Este e-mail já está cadastrado.', 'EMAIL_DUPLICADO');
       }
       const now = toDateTimeKey(getNow());
       const account: CaregiverAccount = {

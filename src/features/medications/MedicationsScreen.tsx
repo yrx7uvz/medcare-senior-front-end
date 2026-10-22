@@ -73,7 +73,7 @@ export function MedicationsScreen({ navigation }: TabScreenProps<'Remedios'>) {
           ListHeaderComponent={
             count ? (
               <AppText variant="caption" muted>
-                Toque em um remédio para editar. Nome, dosagem e tipo são obrigatórios (RN05).
+                Toque em um remédio para editar. Nome, dosagem e tipo são obrigatórios.
               </AppText>
             ) : null
           }
@@ -118,7 +118,7 @@ export function MedicationsScreen({ navigation }: TabScreenProps<'Remedios'>) {
         title={`Remover ${target?.medication.name ?? ''}?`}
         message={
           needsForce
-            ? 'Este remédio tem tratamento ativo. Ao remover, as próximas doses deixam de ser lembradas. As doses já registradas continuam no histórico (RN06, RN08).'
+            ? 'Este remédio tem tratamento ativo. Ao remover, as próximas doses deixam de ser lembradas. As doses já registradas continuam no histórico.'
             : 'O remédio sai da lista. As doses já registradas continuam no histórico.'
         }
         confirmLabel={needsForce ? 'Remover mesmo assim' : 'Remover'}

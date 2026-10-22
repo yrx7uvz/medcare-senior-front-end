@@ -18,7 +18,7 @@ export const signUpSchema = z
     name: z.string().trim().min(3, 'Informe seu nome completo'),
     email: z.string().trim().regex(EMAIL_RE, 'E-mail inválido'),
     phone: z.string().refine((v) => v === '' || v.replace(/\D/g, '').length >= 10, 'Telefone incompleto'),
-    password: z.string().refine(meetsPasswordPolicy, 'A senha não atende aos requisitos (RN02)'),
+    password: z.string().refine(meetsPasswordPolicy, 'A senha não atende aos requisitos'),
     confirmPassword: z.string(),
     lgpdConsent: z.boolean().refine((v) => v, 'É preciso aceitar para criar a conta'),
   })
@@ -45,9 +45,9 @@ export type ElderValues = z.infer<typeof elderSchema>;
 export const medicationFormSchema = z
   .object({
     elderId: z.string().min(1, 'Escolha o paciente'),
-    name: z.string().trim().min(1, 'Informe o nome do remédio (RN05)').max(255, 'Até 255 caracteres'),
-    dosage: z.string().trim().min(1, 'Informe a dosagem (RN05)').max(100, 'Até 100 caracteres'),
-    type: z.enum(MEDICATION_TYPE_VALUES, { errorMap: () => ({ message: 'Escolha o tipo (RN05)' }) }),
+    name: z.string().trim().min(1, 'Informe o nome do remédio').max(255, 'Até 255 caracteres'),
+    dosage: z.string().trim().min(1, 'Informe a dosagem').max(100, 'Até 100 caracteres'),
+    type: z.enum(MEDICATION_TYPE_VALUES, { errorMap: () => ({ message: 'Escolha o tipo' }) }),
     shape: z.enum(PILL_SHAPE_VALUES),
     primaryColor: z.string().max(50),
     stock: z.string().refine((v) => v.trim() === '' || /^\d{1,5}$/.test(v.trim()), 'Use um número inteiro'),

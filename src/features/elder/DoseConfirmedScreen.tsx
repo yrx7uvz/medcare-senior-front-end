@@ -27,7 +27,7 @@ export function DoseConfirmedScreen({ route, navigation }: RootScreenProps<'Elde
   const [scale] = useState(() => new Animated.Value(0.6));
   const d = dose.data;
   const late = d?.status === 'CONFIRMADA_COM_ATRASO';
-  const caregiver = profile.data?.caregiverFirstName ?? 'seu cuidador';
+  const caregiver = profile.data?.caregiverFirstName ?? 'quem cuida de você';
 
   useEffect(() => {
     if (!d) return;
@@ -74,7 +74,7 @@ export function DoseConfirmedScreen({ route, navigation }: RootScreenProps<'Elde
           {d.medication.name} {d.medication.dosage} confirmado às {d.confirmedAt ? formatTime(d.confirmedAt) : '--:--'}.
         </AppText>
         <AppText variant="elderBody" align="center" muted>
-          Sua cuidadora {caregiver} foi informada.
+          {caregiver} já recebeu a confirmação.
         </AppText>
       </View>
 

@@ -78,8 +78,8 @@ export function ElderFormScreen({ navigation }: RootScreenProps<'ElderForm'>) {
         </Card>
 
         <AppText variant="caption" muted>
-          O paciente fica vinculado à sua conta e só você terá acesso aos dados dele (RN04). Não é possível cadastrar duas vezes o
-          mesmo nome com a mesma data de nascimento (RN03).
+          Cada pessoa cadastrada fica ligada à sua conta, e só você tem acesso aos dados. Não é possível cadastrar duas vezes
+          o mesmo nome com a mesma data de nascimento.
         </AppText>
 
         {create.error && !inlineError ? (

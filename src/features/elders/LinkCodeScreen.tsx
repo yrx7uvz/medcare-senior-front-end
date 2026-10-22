@@ -47,7 +47,7 @@ export function LinkCodeScreen({ route, navigation }: RootScreenProps<'LinkCode'
           <View style={styles.success} accessibilityLiveRegion="polite">
             <CheckCircle2 color={colors.status.CONFIRMADA_NO_HORARIO.fg} size={28} />
             <AppText variant="heading" style={styles.flex}>
-              {name} foi vinculado(a) à sua conta. Só você tem acesso aos dados (RN04).
+              {name} agora está na sua conta. Só você tem acesso aos dados.
             </AppText>
           </View>
         ) : null}
@@ -87,9 +87,9 @@ export function LinkCodeScreen({ route, navigation }: RootScreenProps<'LinkCode'
           </View>
           <AppText>1. Abra o MedCare Sênior no celular do paciente.</AppText>
           <AppText>2. Digite os 6 números do código.</AppText>
-          <AppText>3. O paciente cria um PIN de 4 números, guardado só no aparelho dele.</AppText>
+          <AppText>3. A pessoa cria um PIN de 4 números, guardado só nesse celular.</AppText>
           <AppText variant="caption" muted>
-            Por segurança, depois de 5 tentativas erradas em 15 minutos o celular fica bloqueado por um tempo (RN12).
+            Por segurança, depois de 5 tentativas erradas em 15 minutos o celular fica bloqueado por um tempo.
           </AppText>
         </Card>
 

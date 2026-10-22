@@ -10,7 +10,7 @@ import { useQuery } from '../../lib/useQuery';
 import { useNow } from '../../lib/useNow';
 import { spacing } from '../../theme';
 
-const QUICK_REPLIES = ['Já tomei, obrigado', 'Estou bem', 'Pode me ligar?'];
+const QUICK_REPLIES = ['Já tomei, agradeço', 'Estou bem', 'Pode me ligar?'];
 
 /**
  * T13 — Mensagens do idoso (UC-010): só a conversa dele, bolhas e letra grandes, botão de enviar de 64 dp e respostas

@@ -22,14 +22,14 @@ export function ProfileChoiceScreen(_: RootScreenProps<'ProfileChoice'>) {
         </AppText>
       </View>
       <BigActionButton
-        title="Sou cuidador"
-        subtitle="Cuido dos remédios de alguém"
+        title="Cuido de alguém"
+        subtitle="Acompanho os remédios de outra pessoa"
         icon={HeartHandshake}
         variant="primary"
         onPress={() => void chooseProfile('CAREGIVER')}
       />
       <BigActionButton
-        title="Sou idoso"
+        title="Tomo os remédios"
         subtitle="Quero ver e confirmar meus remédios"
         icon={UserRound}
         variant="success"

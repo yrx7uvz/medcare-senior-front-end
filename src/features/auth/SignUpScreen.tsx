@@ -38,7 +38,7 @@ export function SignUpScreen({ navigation }: RootScreenProps<'SignUp'>) {
   const onSubmit = handleSubmit(async (v) => {
     const result = await signUp.run({ name: v.name, email: v.email, phone: v.phone, password: v.password, lgpdConsent: v.lgpdConsent });
     if (result.ok) {
-      showToast('Conta criada. Bem-vinda!');
+      showToast('Conta criada. Boas-vindas!');
       setSession(result.data);
     } else if (result.error.code === 'CONTA_CRIADA_SEM_LOGIN') {
       // A conta existe: enviar de novo daria e-mail duplicado. Vai ao login com o e-mail preenchido.
@@ -58,7 +58,7 @@ export function SignUpScreen({ navigation }: RootScreenProps<'SignUp'>) {
 
   return (
     <KeyboardAvoidingView style={[styles.flex, { backgroundColor: colors.background }]}>
-      <StackHeader title="Criar conta" subtitle="Cadastro de cuidador ou familiar" />
+      <StackHeader title="Criar conta" subtitle="Para quem cuida dos remédios de alguém" />
       <ScrollView contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + spacing.xxl }]} keyboardShouldPersistTaps="handled">
         <AppText muted>Depois do cadastro, você poderá vincular os pacientes sob seus cuidados.</AppText>
 
@@ -72,7 +72,7 @@ export function SignUpScreen({ navigation }: RootScreenProps<'SignUp'>) {
             required
             keyboardType="email-address"
             autoCapitalize="none"
-            hint="Usado para entrar. Cada e-mail só pode ter uma conta (RN01)."
+            hint="Usado para entrar. Cada e-mail só pode ter uma conta."
           />
           <FormTextField control={control} name="phone" label="Telefone de contato" mask="phone" keyboardType="phone-pad" placeholder="(61) 99999-9999" />
         </Card>
@@ -115,8 +115,8 @@ export function SignUpScreen({ navigation }: RootScreenProps<'SignUp'>) {
           />
           <View style={[styles.notice, { backgroundColor: colors.infoSoft }]}>
             <AppText variant="caption" color={colors.primaryDark}>
-              Os avisos de dose não confirmada contêm o nome do paciente, o remédio e o horário, e passam pelo serviço de
-              notificações do Google (Firebase Cloud Messaging) até chegar ao seu celular.
+              Os avisos de dose não confirmada trazem só o nome da pessoa e o horário (nunca o remédio) e passam pelo serviço
+              de notificações do Google (Firebase Cloud Messaging) até chegar ao seu celular.
             </AppText>
           </View>
         </Card>

@@ -44,7 +44,7 @@ export const mockElderService: ElderService = {
         (e) => e.name.toLowerCase() === name.toLowerCase() && e.birthDate === input.birthDate,
       );
       if (duplicate) {
-        throw httpError(409, 'Você já cadastrou um paciente com este nome e data de nascimento (RN03).', 'IDOSO_DUPLICADO');
+        throw httpError(409, 'Você já cadastrou um paciente com este nome e data de nascimento.', 'IDOSO_DUPLICADO');
       }
       const elder: Elder = {
         id: uid('e'),
