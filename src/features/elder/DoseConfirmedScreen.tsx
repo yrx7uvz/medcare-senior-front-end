@@ -56,7 +56,7 @@ export function DoseConfirmedScreen({ route, navigation }: RootScreenProps<'Elde
   }
 
   const next = pickNextDose(day.data ?? [], d.id);
-  const accent = late ? colors.status.CONFIRMADA_COM_ATRASO : colors.status.TOMADA;
+  const accent = late ? colors.status.CONFIRMADA_COM_ATRASO : colors.status.CONFIRMADA_NO_HORARIO;
   const Icon = late ? AlarmClockCheck : CheckCircle2;
 
   return (

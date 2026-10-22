@@ -94,7 +94,7 @@ export function LoginScreen({ navigation, route }: RootScreenProps<'Login'>) {
           <SwitchProfileLink />
 
           <View style={[styles.lgpd, { borderColor: colors.border }]}>
-            <ShieldCheck color={colors.status.TOMADA.fg} size={18} />
+            <ShieldCheck color={colors.status.CONFIRMADA_NO_HORARIO.fg} size={18} />
             <AppText variant="caption" muted>
               Dados protegidos conforme a LGPD
             </AppText>

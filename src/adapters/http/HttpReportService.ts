@@ -12,7 +12,7 @@ export interface RelatorioDiarioResponse {
   data: string;
   totais: {
     total: number;
-    tomadas: number;
+    confirmadasNoHorario: number;
     confirmadasComAtraso: number;
     naoTomadas: number;
     pendentes: number;
@@ -27,7 +27,7 @@ export function toDailyReport(dto: RelatorioDiarioResponse): DailyReport {
     day: dto.data,
     totals: {
       total: dto.totais.total,
-      taken: dto.totais.tomadas,
+      onTime: dto.totais.confirmadasNoHorario,
       late: dto.totais.confirmadasComAtraso,
       missed: dto.totais.naoTomadas,
       pending: dto.totais.pendentes,

@@ -3,7 +3,7 @@ import { defaultDoseQuantity, routeLabel } from '../../lib/medicationMeta';
 import { appTodayKey } from '../../lib/serverClock';
 import { httpError } from '../../services/errors';
 import type { DoseService } from '../../services/types';
-import { MEDICATION_TYPE_VALUES, type DateKey, type DoseStatus, type MedicationType } from '../../types/domain';
+import { MEDICATION_TYPE_VALUES, type ConfirmedBy, type DateKey, type DoseStatus, type MedicationType } from '../../types/domain';
 import type { AlertView, Confirmability, DoseView, HistoryPage } from '../../types/views';
 import { endpoints } from './endpoints';
 import { toElder, type IdosoResponse } from './HttpElderService';
@@ -26,9 +26,13 @@ export interface DoseResponse {
   horarioProgramado: string;
   horaConfirmacao: string | null;
   status: DoseStatus;
-  statusExibicao: 'PENDENTE' | 'ATRASADA' | 'NAO_TOMADA' | 'TOMADA' | 'CONFIRMADA_COM_ATRASO';
+  /** Quem confirmou (null se a dose não foi confirmada). */
+  confirmadoPor?: ConfirmedBy | null;
+  statusExibicao: 'PENDENTE' | 'ATRASADA' | 'NAO_TOMADA' | 'CONFIRMADA_NO_HORARIO' | 'CONFIRMADA_COM_ATRASO';
   toleranciaMinutos: number;
   janela: { abreEm: string; avisoEm: string; encerraEm: string };
+  /** Último instante para confirmar: horário + tolerância + 30 min (igual a janela.encerraEm). */
+  limiteConfirmacao?: string;
   confirmabilidade: Confirmability;
 }
 
@@ -61,11 +65,14 @@ export function toDoseView(dto: DoseResponse): DoseView {
     treatmentId: dto.tratamentoId === null ? null : fromApiId(dto.tratamentoId),
     scheduledAt: toKey(dto.horarioProgramado),
     confirmedAt: dto.horaConfirmacao ? toKey(dto.horaConfirmacao) : undefined,
+    confirmedBy: dto.confirmadoPor ?? undefined,
     storedStatus: dto.status,
     status: dto.statusExibicao,
     doseQuantity: defaultDoseQuantity(type),
     route: routeLabel(type),
     window: { opensAt: toKey(dto.janela.abreEm), alertAt: toKey(dto.janela.avisoEm), closesAt: toKey(dto.janela.encerraEm) },
+    // Servidor antigo sem o campo: o limite é o fim da janela, que é o mesmo instante
+    confirmUntil: toKey(dto.limiteConfirmacao ?? dto.janela.encerraEm),
     confirmability: dto.confirmabilidade,
     toleranceMinutes: dto.toleranciaMinutos,
   };
@@ -119,7 +126,8 @@ async function listForDay(filter: string, day: DateKey): Promise<DoseView[]> {
 }
 
 /**
- * Doses reais na API. Confirmar é só do idoso (PUT /api/doses/{id}/confirmar): os erros 409 DOSE_JA_REGISTRADA,
+ * Doses reais na API. Confirmar (PUT /api/doses/{id}/confirmar) vale para o idoso (a própria dose) e para o cuidador
+ * (dose de um idoso dele): o servidor sabe quem é pelo token e grava confirmadoPor. Os erros 409 DOSE_JA_REGISTRADA,
  * DOSE_MUITO_CEDO e DOSE_ENCERRADA chegam como AppError com o código e a mensagem clara.
  */
 export const httpDoseService: DoseService = {

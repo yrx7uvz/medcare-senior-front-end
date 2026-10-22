@@ -14,7 +14,7 @@ interface Props {
 
 export function alertMessage(a: AlertView) {
   return a.status === 'NAO_TOMADA'
-    ? `${a.medicationName} ${a.dosage} (${formatTime(a.scheduledAt)}) não foi tomada. O prazo terminou.`
+    ? `${a.medicationName} ${a.dosage} (${formatTime(a.scheduledAt)}) não foi confirmada. O prazo terminou.`
     : `${a.medicationName} ${a.dosage} (${formatTime(a.scheduledAt)}) não foi confirmada dentro da tolerância.`;
 }
 

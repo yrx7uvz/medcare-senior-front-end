@@ -6,6 +6,7 @@ import { parseDateTime, toDateKey, toDateTimeKey } from '../../lib/date';
 import { TOLERANCE_MAX, TOLERANCE_MIN, statusOnConfirm } from '../../lib/doseRules';
 import { HISTORY_PAGE_SIZE } from '../../lib/history';
 import { getDb, mutateDb } from '../../mocks/db';
+import { useAppStore } from '../../store/appStore';
 import { toDoseView } from './doseViews';
 import { simulate } from './simulate';
 
@@ -28,7 +29,7 @@ export const mockDoseService: DoseService = {
       return toDoseView(dose, getNow());
     }),
 
-  /** PUT /api/doses/{id}/confirmar — RN08 e RN14. */
+  /** PUT /api/doses/{id}/confirmar: mesma janela do servidor; quem confirma é o perfil em uso no demo. */
   confirm: (id) =>
     simulate(() => {
       const now = getNow();
@@ -45,6 +46,7 @@ export const mockDoseService: DoseService = {
         ...current,
         status: statusOnConfirm(parseDateTime(current.scheduledAt), now, db.toleranceMinutes),
         confirmedAt: toDateTimeKey(now),
+        confirmedBy: useAppStore.getState().viewAs === 'CAREGIVER' ? ('CUIDADOR' as const) : ('IDOSO' as const),
       };
       mutateDb((d) => {
         d.doses[index] = next;

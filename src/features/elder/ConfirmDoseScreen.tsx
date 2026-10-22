@@ -58,7 +58,7 @@ export function ConfirmDoseScreen({ route, navigation }: RootScreenProps<'ElderC
     message = {
       icon: Lock,
       tone: 'lock',
-      text: d.confirmedAt ? `Você já confirmou este remédio às ${formatTime(d.confirmedAt)}.` : 'O prazo desta dose já terminou e ela foi registrada como não tomada.',
+      text: d.confirmedAt ? `Você já confirmou este remédio às ${formatTime(d.confirmedAt)}.` : 'O prazo desta dose já terminou e ela foi registrada como não confirmada.',
     };
   } else if (d.confirmability === 'MUITO_CEDO') {
     message = { icon: Clock, tone: 'info', text: `Ainda é cedo. Você poderá confirmar a partir das ${formatTime(d.window.opensAt)}.` };

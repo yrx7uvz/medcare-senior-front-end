@@ -32,10 +32,10 @@ const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 const H = 3_600_000;
 
 /** Status de hoje (05/06/2026) até 14:02. As demais doses de hoje ficam pendentes. */
-const TODAY_REGISTERED: Record<string, Pick<Dose, 'status' | 'confirmedAt'>> = {
-  [doseId('t-metformina', `${DEMO_TODAY_KEY}T08:00`)]: { status: 'TOMADA', confirmedAt: `${DEMO_TODAY_KEY}T08:04` },
-  [doseId('t-losartana', `${DEMO_TODAY_KEY}T08:00`)]: { status: 'TOMADA', confirmedAt: `${DEMO_TODAY_KEY}T08:05` },
-  [doseId('t-levotiroxina', `${DEMO_TODAY_KEY}T06:00`)]: { status: 'CONFIRMADA_COM_ATRASO', confirmedAt: `${DEMO_TODAY_KEY}T06:48` },
+const TODAY_REGISTERED: Record<string, Pick<Dose, 'status' | 'confirmedAt' | 'confirmedBy'>> = {
+  [doseId('t-metformina', `${DEMO_TODAY_KEY}T08:00`)]: { status: 'CONFIRMADA_NO_HORARIO', confirmedAt: `${DEMO_TODAY_KEY}T08:04`, confirmedBy: 'IDOSO' },
+  [doseId('t-losartana', `${DEMO_TODAY_KEY}T08:00`)]: { status: 'CONFIRMADA_NO_HORARIO', confirmedAt: `${DEMO_TODAY_KEY}T08:05`, confirmedBy: 'CUIDADOR' },
+  [doseId('t-levotiroxina', `${DEMO_TODAY_KEY}T06:00`)]: { status: 'CONFIRMADA_COM_ATRASO', confirmedAt: `${DEMO_TODAY_KEY}T06:48`, confirmedBy: 'IDOSO' },
 };
 
 export function createSeedDb(): MockDb {

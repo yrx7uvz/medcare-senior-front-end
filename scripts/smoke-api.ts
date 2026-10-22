@@ -226,17 +226,17 @@ async function main() {
 
     token = tokenIdoso;
     viewer = 'ELDER';
-    const doseApp = await step('app: idoso lista as doses de hoje (/me/doses) e confirma pelo adapter -> TOMADA', async () => {
+    const doseApp = await step('app: idoso lista as doses de hoje (/me/doses) e confirma pelo adapter -> CONFIRMADA_NO_HORARIO', async () => {
       const minhas = await httpDoseService.listForDay(idosoId, hoje.dia);
       const alvoApp = minhas.find((d) => d.medication.id === remedio2.medication.id)!;
       const perfil = await httpElderService.getProfile(idosoId);
       assert.equal(perfil.caregiverFirstName, 'Cuidador');
       const confirmada = await httpDoseService.confirm(alvoApp.id);
-      assert.equal(confirmada.storedStatus, 'TOMADA');
+      assert.equal(confirmada.storedStatus, 'CONFIRMADA_NO_HORARIO');
       assert.equal(confirmada.confirmability, 'JA_REGISTRADA');
       await expectError(() => httpDoseService.confirm(alvoApp.id), 409, 'DOSE_JA_REGISTRADA');
       const detalhe = await httpDoseService.get(alvoApp.id);
-      assert.equal(detalhe.status, 'TOMADA');
+      assert.equal(detalhe.status, 'CONFIRMADA_NO_HORARIO');
       return confirmada;
     });
 
@@ -285,16 +285,16 @@ async function main() {
       assert.equal(r.elder.name, 'Idoso Smoke');
       assert.equal(r.day, hoje.dia);
       assert.equal(r.totals.total, r.doses.length);
-      assert.equal(r.totals.taken + r.totals.late + r.totals.missed + r.totals.pending, r.totals.total);
+      assert.equal(r.totals.onTime + r.totals.late + r.totals.missed + r.totals.pending, r.totals.total);
       assert.ok(r.doses.some((d) => d.id === String(dose.id)));
       await expectError(() => httpReportService.getDaily(outroIdoso.id, 'ontem'), 400, 'VALIDACAO');
     });
 
     token = tokenIdoso;
     viewer = 'ELDER';
-    await step('confirmar a dose (PUT /api/doses/{id}/confirmar) -> 200 TOMADA', async () => {
+    await step('confirmar a dose (PUT /api/doses/{id}/confirmar) -> 200 CONFIRMADA_NO_HORARIO', async () => {
       const confirmada = await request<DoseDTO>('PUT', `/api/doses/${dose.id}/confirmar`);
-      assert.equal(confirmada.status, 'TOMADA');
+      assert.equal(confirmada.status, 'CONFIRMADA_NO_HORARIO');
     });
 
     const segunda = await step('confirmar de novo -> 409 DOSE_JA_REGISTRADA', () =>
@@ -307,8 +307,8 @@ async function main() {
       type Pagina = { conteudo: DoseDTO[]; pagina: number; tamanho: number; totalElementos: number; totalPaginas: number };
       const tudo = await request<Pagina>('GET', `/api/historico?idosoId=${toApiId(idosoId)}&de=${hoje.dia}`);
       assert.ok(tudo.totalElementos >= 2, `esperava doses de hoje: ${tudo.totalElementos}`);
-      const tomadas = await request<Pagina>('GET', `/api/historico?idosoId=${toApiId(idosoId)}&de=${hoje.dia}&status=TOMADA`);
-      assert.ok(tomadas.conteudo.some((d) => d.id === dose.id) && tomadas.conteudo.every((d) => d.status === 'TOMADA'));
+      const tomadas = await request<Pagina>('GET', `/api/historico?idosoId=${toApiId(idosoId)}&de=${hoje.dia}&status=CONFIRMADA_NO_HORARIO`);
+      assert.ok(tomadas.conteudo.some((d) => d.id === dose.id) && tomadas.conteudo.every((d) => d.status === 'CONFIRMADA_NO_HORARIO'));
       const pagina = await request<Pagina>('GET', `/api/historico?de=${hoje.dia}&size=1&page=0`);
       assert.equal(pagina.conteudo.length, 1);
       assert.equal(pagina.tamanho, 1);
@@ -331,10 +331,10 @@ async function main() {
       assert.ok(tudo.totalElements >= 2 && tudo.page === 0 && tudo.size === 20);
       // Remédio removido continua no histórico (RN08), com a cor do cadastro
       const daMetformina = tudo.items.find((d) => d.id === doseApp.id);
-      assert.equal(daMetformina?.storedStatus, 'TOMADA');
+      assert.equal(daMetformina?.storedStatus, 'CONFIRMADA_NO_HORARIO');
       assert.equal(daMetformina?.medication.primaryColor, '#3D7DCA');
-      const soLosartana = await httpDoseService.listHistory({ ...base, medicationId: fromApiId(medicamento.id), status: 'TOMADA' });
-      assert.ok(soLosartana.items.length > 0 && soLosartana.items.every((d) => d.medication.name === 'Losartana' && d.storedStatus === 'TOMADA'));
+      const soLosartana = await httpDoseService.listHistory({ ...base, medicationId: fromApiId(medicamento.id), status: 'CONFIRMADA_NO_HORARIO' });
+      assert.ok(soLosartana.items.length > 0 && soLosartana.items.every((d) => d.medication.name === 'Losartana' && d.storedStatus === 'CONFIRMADA_NO_HORARIO'));
       const pag0 = await httpDoseService.listHistory({ ...base, status: 'ALL', size: 1 });
       const pag1 = await httpDoseService.listHistory({ ...base, status: 'ALL', size: 1, page: 1 });
       assert.equal(pag0.totalPages, pag0.totalElements);
@@ -411,11 +411,11 @@ async function main() {
       assert.equal(await httpMessageService.unreadCount('ALL', 'CUIDADOR'), 0);
     });
 
-    await step('cuidador vê a dose TOMADA (GET /api/idosos/{id}/doses)', async () => {
+    await step('cuidador vê a dose CONFIRMADA_NO_HORARIO (GET /api/idosos/{id}/doses)', async () => {
       const doses = await request<DoseDTO[]>('GET', `/api/idosos/${toApiId(idosoId)}/doses`);
       const vista = doses.find((d) => d.id === dose.id);
-      assert.equal(vista?.status, 'TOMADA');
-      assert.equal(vista?.statusExibicao, 'TOMADA');
+      assert.equal(vista?.status, 'CONFIRMADA_NO_HORARIO');
+      assert.equal(vista?.statusExibicao, 'CONFIRMADA_NO_HORARIO');
     });
 
     await step('token do aparelho: PUT e DELETE /api/cuidadores/me/fcm-token -> 204 (DELETE idempotente)', async () => {
