@@ -5,9 +5,10 @@ import { getNow } from '../../lib/clock';
 import { toDateTimeKey } from '../../lib/date';
 import { dailyTotals } from '../../lib/dailyReport';
 import { isConfirmed } from '../../lib/doseRules';
-import { demoPdfBytes, pdfFileName, pdfPeriod } from '../../lib/pdfReport';
+import { pdfFileName, pdfPeriod } from '../../lib/pdfReport';
 import { getDb } from '../../mocks/db';
 import { toDoseView } from './doseViews';
+import { demoPdfBytes } from './demoPdf';
 import { simulate } from './simulate';
 
 const slug = (s: string) =>
