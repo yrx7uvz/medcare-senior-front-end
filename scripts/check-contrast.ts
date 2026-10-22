@@ -1,16 +1,24 @@
 /**
- * Contraste WCAG dos pares de cor do tema (claro, escuro, idoso e alto contraste do idoso): falha abaixo de 4,5:1
- * para texto e de 3:1 para texto grande, bordas de campo e indicadores de status.
+ * Contraste WCAG dos pares de cor dos cinco temas (claro, escuro, idoso claro, idoso escuro e alto contraste do idoso):
+ * falha abaixo de 4,5:1 para texto (7:1 nos textos principais do alto contraste) e de 3:1 para texto grande, bordas de
+ * campo, seletores liga/desliga e indicadores de status. Sai com erro se algum par ficar abaixo do mínimo.
  * Uso: npm run check:contrast   (também coberto pelo Jest em tests/contraste.test.ts)
  */
 import { checkTheme } from '../src/lib/contrast';
-import { darkColors, elderColors, elderHighContrastColors, lightColors } from '../src/theme/colors';
+import { darkColors, elderColors, elderDarkColors, elderHighContrastColors, lightColors } from '../src/theme/colors';
 
-const temas = { claro: lightColors, escuro: darkColors, idoso: elderColors, 'idoso alto contraste': elderHighContrastColors };
+const temas = {
+  claro: lightColors,
+  escuro: darkColors,
+  'idoso claro': elderColors,
+  'idoso escuro': elderDarkColors,
+  'idoso alto contraste': elderHighContrastColors,
+};
 let falhas = 0;
 for (const [nome, cores] of Object.entries(temas)) {
   console.log(`\n== Tema ${nome}`);
-  for (const r of checkTheme(cores)) {
+  // Alto contraste: textos principais com 7:1 (os demais com o mínimo comum)
+  for (const r of checkTheme(cores, cores === elderHighContrastColors)) {
     if (!r.ok) falhas += 1;
     console.log(`${r.ok ? 'ok  ' : 'FALHA'} ${r.ratio.toFixed(2).padStart(5)}:1 (mín. ${r.min}) ${r.name}  ${r.fg} sobre ${r.bg}`);
   }

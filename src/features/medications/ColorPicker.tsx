@@ -3,11 +3,15 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '../../components/ui';
 import { PILL_COLORS, colorName } from '../../lib/medicationMeta';
 import { hitSlopFor, spacing, useTheme } from '../../theme';
+import { illustration, pillColors } from '../../theme/colors';
 
 /** Amostra de cor: 40 dp visíveis, área de toque completada até 48 dp. */
 const SWATCH = 40;
 
 /** Paleta de cores com nome falado pelo leitor de tela. */
+/** Cores escuras: a marca de seleção por cima é clara. */
+const DARK_PILL_COLORS: string[] = [pillColors.preto, pillColors.roxo, pillColors.marrom, pillColors.azul, pillColors.vermelho, pillColors.ambar];
+
 export function ColorPicker({ label, value, onChange }: { label: string; value: string; onChange: (c: string) => void }) {
   const { colors } = useTheme();
   return (
@@ -18,7 +22,7 @@ export function ColorPicker({ label, value, onChange }: { label: string; value: 
       <View style={styles.grid} accessibilityRole="radiogroup" accessibilityLabel={label}>
         {PILL_COLORS.map((c) => {
           const selected = c.value.toLowerCase() === value.toLowerCase();
-          const dark = ['#2E2E2E', '#6D4BA8', '#8B5E3C', '#3D7DCA', '#D64545', '#B5651D'].includes(c.value);
+          const dark = DARK_PILL_COLORS.includes(c.value);
           return (
             <Pressable
               key={c.value}
@@ -32,7 +36,7 @@ export function ColorPicker({ label, value, onChange }: { label: string; value: 
                 { backgroundColor: c.value, borderColor: selected ? colors.primary : colors.border, borderWidth: selected ? 3 : 1.5 },
               ]}
             >
-              {selected ? <Check color={dark ? '#FFFFFF' : '#1C2B3A'} size={18} strokeWidth={3} /> : null}
+              {selected ? <Check color={dark ? illustration.checkOnDark : illustration.checkOnLight} size={18} strokeWidth={3} /> : null}
             </Pressable>
           );
         })}

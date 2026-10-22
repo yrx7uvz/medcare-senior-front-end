@@ -1,6 +1,6 @@
 import { Wrench, X } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../../store/appStore';
 import { useDevStore } from '../../store/devStore';
@@ -10,7 +10,8 @@ import { formatDateBR, formatTime } from '../../lib/date';
 import { elderDeviceStorage } from '../../lib/secureStorage';
 import { useNow } from '../../lib/useNow';
 import { hitSlopFor, radius, spacing, useTheme } from '../../theme';
-import { AppText, Button, Chip } from '../ui';
+import { demoColors } from '../../theme/colors';
+import { AppSwitch, AppText, Button, Chip } from '../ui';
 
 /** Botão do menu do protótipo: 40 dp visíveis, área de toque completada até 48 dp. */
 const FAB = 40;
@@ -54,12 +55,12 @@ export function ProfileSwitcher() {
         style={[
           styles.fab,
           {
-            backgroundColor: '#263445',
+            backgroundColor: demoColors.fabBg,
             bottom: viewAs === 'CAREGIVER' ? insets.bottom + 78 : insets.bottom + 120,
           },
         ]}
       >
-        <Wrench color="#FFFFFF" size={18} />
+        <Wrench color={demoColors.fabFg} size={18} />
       </Pressable>
 
       <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
@@ -156,13 +157,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
-  const { colors } = useTheme();
-  return (
-    <View style={styles.toggle}>
-      <AppText style={styles.flex}>{label}</AppText>
-      <Switch accessibilityLabel={label} value={value} onValueChange={onChange} trackColor={{ true: colors.primary, false: colors.border }} />
-    </View>
-  );
+  return <AppSwitch label={label} value={value} onValueChange={onChange} />;
 }
 
 const styles = StyleSheet.create({

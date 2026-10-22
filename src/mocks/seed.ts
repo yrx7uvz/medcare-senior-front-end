@@ -4,6 +4,7 @@ import { parseDateTime } from '../lib/date';
 import { DEFAULT_TOLERANCE_MIN } from '../lib/doseRules';
 import { GENERATION_WINDOW_DAYS, doseId, generateDoses } from '../lib/doseGenerator';
 import { buildHistory } from './history';
+import { avatarColors, pillColors } from '../theme/colors';
 
 export interface CaregiverAccount {
   id: string;
@@ -40,46 +41,46 @@ const TODAY_REGISTERED: Record<string, Pick<Dose, 'status' | 'confirmedAt' | 'co
 
 export function createSeedDb(): MockDb {
   const elders: Elder[] = [
-    { id: 'e-jose', caregiverId: 'c-maria', name: 'José Ferreira', birthDate: '1948-03-12', phone: '(61) 98765-1020', avatarColor: '#1A6FB5' },
-    { id: 'e-helena', caregiverId: 'c-maria', name: 'Helena Souza', birthDate: '1951-08-22', avatarColor: '#7B4FB0' },
+    { id: 'e-jose', caregiverId: 'c-maria', name: 'José Ferreira', birthDate: '1948-03-12', phone: '(61) 98765-1020', avatarColor: avatarColors[0] },
+    { id: 'e-helena', caregiverId: 'c-maria', name: 'Helena Souza', birthDate: '1951-08-22', avatarColor: avatarColors[1] },
   ];
 
   const medications: Medication[] = [
     {
       id: 'm-metformina', elderId: 'e-jose', name: 'Metformina', dosage: '850mg', type: 'COMPRIMIDO', shape: 'OVAL',
-      primaryColor: '#FFFFFF', lengthMm: 19, widthMm: 9, hasScore: true, imprint: '850', stock: 28,
+      primaryColor: pillColors.branco, lengthMm: 19, widthMm: 9, hasScore: true, imprint: '850', stock: 28,
       leaflet: 'Tomar junto com as refeições. Evitar bebida alcoólica.', appearanceSource: 'EXTERNA', createdAt: '2026-05-11T09:00',
     },
     {
       id: 'm-losartana', elderId: 'e-jose', name: 'Losartana', dosage: '50mg', type: 'COMPRIMIDO', shape: 'REDONDO',
-      primaryColor: '#FFFFFF', lengthMm: 9, widthMm: 9, hasScore: true, imprint: 'L50', stock: 30,
+      primaryColor: pillColors.branco, lengthMm: 9, widthMm: 9, hasScore: true, imprint: 'L50', stock: 30,
       // Foto inexistente de propósito: demonstra o fallback para o desenho SVG.
       photoUrl: 'https://fotos.medcare.invalid/losartana-50mg.jpg',
       appearanceSource: 'MANUAL', createdAt: '2026-05-11T09:05',
     },
     {
       id: 'm-atorvastatina', elderId: 'e-jose', name: 'Atorvastatina', dosage: '20mg', type: 'COMPRIMIDO', shape: 'OVAL',
-      primaryColor: '#FFFFFF', lengthMm: 11, widthMm: 6, imprint: '20', stock: 4,
+      primaryColor: pillColors.branco, lengthMm: 11, widthMm: 6, imprint: '20', stock: 4,
       appearanceSource: 'EXTERNA', createdAt: '2026-05-16T10:00',
     },
     {
       id: 'm-omeprazol', elderId: 'e-jose', name: 'Omeprazol', dosage: '20mg', type: 'CAPSULA',
-      primaryColor: '#6D4BA8', secondaryColor: '#F4A6B8', lengthMm: 17, widthMm: 6, stock: 14,
+      primaryColor: pillColors.roxo, secondaryColor: pillColors.rosa, lengthMm: 17, widthMm: 6, stock: 14,
       leaflet: 'Engolir a cápsula inteira, com um copo de água.', appearanceSource: 'MANUAL', createdAt: '2026-05-26T08:00',
     },
     {
       id: 'm-levotiroxina', elderId: 'e-helena', name: 'Levotiroxina', dosage: '50mcg', type: 'COMPRIMIDO', shape: 'REDONDO',
-      primaryColor: '#FFFFFF', lengthMm: 7, widthMm: 7, hasScore: true, imprint: '50', stock: 40,
+      primaryColor: pillColors.branco, lengthMm: 7, widthMm: 7, hasScore: true, imprint: '50', stock: 40,
       leaflet: 'Tomar em jejum, 30 minutos antes do café.', appearanceSource: 'EXTERNA', createdAt: '2026-05-11T09:30',
     },
     {
       // Sem tamanho informado: demonstra a legenda "Tamanho não informado".
       id: 'm-lactulose', elderId: 'e-helena', name: 'Lactulose', dosage: '667mg/mL', type: 'XAROPE',
-      primaryColor: '#B5651D', secondaryColor: '#FFFFFF', stock: 2, appearanceSource: 'MANUAL', createdAt: '2026-05-21T18:00',
+      primaryColor: pillColors.ambar, secondaryColor: pillColors.branco, stock: 2, appearanceSource: 'MANUAL', createdAt: '2026-05-21T18:00',
     },
     {
       id: 'm-vitaminad', elderId: 'e-helena', name: 'Vitamina D', dosage: '200 UI/gota', type: 'GOTAS',
-      primaryColor: '#B5651D', secondaryColor: '#F29E4C', stock: 2, appearanceSource: 'MANUAL', createdAt: '2026-05-08T09:00',
+      primaryColor: pillColors.ambar, secondaryColor: pillColors.laranja, stock: 2, appearanceSource: 'MANUAL', createdAt: '2026-05-08T09:00',
     },
   ];
 

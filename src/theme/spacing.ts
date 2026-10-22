@@ -1,4 +1,5 @@
 import type { ViewStyle } from 'react-native';
+import { palette } from './colors';
 
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28 } as const;
 
@@ -14,7 +15,7 @@ export function cardShadow(dark: boolean): ViewStyle {
   return dark
     ? { elevation: 0 }
     : {
-        shadowColor: '#1A6FB5',
+        shadowColor: palette.primary,
         shadowOpacity: 0.1,
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 2 },

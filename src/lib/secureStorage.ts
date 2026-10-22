@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { createPinGuard, type PinCheck } from './pinCore';
+import { parseThemePrefs, serializeThemePrefs, type ThemePrefs } from './themePrefs';
 
 /**
  * Dados guardados no aparelho: o perfil escolhido (cuidador ou idoso), a sessão
@@ -14,6 +15,7 @@ const KEYS = {
   notificationPrefs: 'medcare.notification.prefs',
   pushPendingRemoval: 'medcare.push.pendingRemoval',
   pushPromptAnswered: 'medcare.push.promptAnswered',
+  themePrefs: 'medcare.theme.prefs',
 } as const;
 const memory = new Map<string, string>();
 
@@ -173,5 +175,15 @@ export const pushStorage = {
   },
   async setPromptAnswered() {
     await setItem(KEYS.pushPromptAnswered, '1');
+  },
+};
+
+/** Aparência escolhida (tema claro/escuro e alto contraste do idoso). Não é dado de saúde. */
+export const themeStorage = {
+  async load(): Promise<ThemePrefs> {
+    return parseThemePrefs(await getItem(KEYS.themePrefs));
+  },
+  async save(prefs: ThemePrefs) {
+    await setItem(KEYS.themePrefs, serializeThemePrefs(prefs));
   },
 };

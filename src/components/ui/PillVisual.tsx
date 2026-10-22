@@ -4,6 +4,7 @@ import Svg, { Circle, Ellipse, G, Line, Path, Rect, Text as SvgText } from 'reac
 import type { MedicationAppearance, PillShape } from '../../types/domain';
 import { DEFAULT_PRIMARY, DEFAULT_SECONDARY, describeAppearance } from '../../lib/medicationMeta';
 import { radius, useTheme } from '../../theme';
+import { illustration } from '../../theme/colors';
 
 const SIZE_PX = { sm: 44, md: 64, lg: 104, xl: 136 } as const;
 export type PillVisualSize = keyof typeof SIZE_PX;
@@ -32,7 +33,7 @@ function luminance(hex: string) {
   const [r, g, b] = hexToRgb(hex).map((c) => c / 255);
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
-const outline = (fill: string) => (luminance(fill) > 0.85 ? '#8C9BAB' : shade(fill, -0.35));
+const outline = (fill: string) => (luminance(fill) > 0.85 ? illustration.outline : shade(fill, -0.35));
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
 /** Comprimento desenhado (viewBox 100) proporcional ao tamanho real: 4 mm → 34, 22 mm → 88. */
@@ -80,7 +81,7 @@ function Tablet({ shape, lengthMm, widthMm, fill, hasScore, imprint, showImprint
   return (
     <G>
       {body}
-      <Ellipse cx={cx - len * 0.14} cy={cy - wid * 0.2} rx={len * 0.2} ry={wid * 0.1} fill="#FFFFFF" opacity={0.45} />
+      <Ellipse cx={cx - len * 0.14} cy={cy - wid * 0.2} rx={len * 0.2} ry={wid * 0.1} fill={illustration.highlight} opacity={0.45} />
       {hasScore ? (
         <Line x1={cx} y1={cy - wid / 2 + 4} x2={cx} y2={cy + wid / 2 - 4} stroke={shade(stroke, -0.1)} strokeWidth={1.8} strokeLinecap="round" />
       ) : null}
@@ -117,7 +118,7 @@ function Capsule({ lengthMm, widthMm, c1, c2, imprint, showImprint }: {
       <Path d={left} fill={c1} stroke={outline(c1)} strokeWidth={2} />
       <Path d={right} fill={c2} stroke={outline(c2)} strokeWidth={2} />
       <Line x1={cx} y1={cy - r} x2={cx} y2={cy + r} stroke={shade(outline(c1), -0.1)} strokeWidth={1.6} />
-      <Rect x={x0 + r * 0.7} y={cy - r * 0.68} width={len - r * 1.4} height={r * 0.32} rx={r * 0.16} fill="#FFFFFF" opacity={0.4} />
+      <Rect x={x0 + r * 0.7} y={cy - r * 0.68} width={len - r * 1.4} height={r * 0.32} rx={r * 0.16} fill={illustration.highlight} opacity={0.4} />
       {showImprint && imprint ? (
         <SvgText x={cx - len / 4} y={cy + 3.5} fontSize={clamp(hgt * 0.35, 7, 12)} fontWeight="bold" fill={outline(c1)} textAnchor="middle">
           {imprint.slice(0, 5)}
@@ -133,10 +134,10 @@ function DropperBottle({ body, cap }: { body: string; cap: string }) {
       <Rect x={44} y={10} width={12} height={20} rx={6} fill={cap} stroke={outline(cap)} strokeWidth={1.8} />
       <Rect x={41} y={28} width={18} height={10} rx={2} fill={shade(body, -0.25)} />
       <Rect x={30} y={36} width={40} height={54} rx={8} fill={body} stroke={outline(body)} strokeWidth={2} />
-      <Rect x={30} y={52} width={40} height={20} fill="#FFFFFF" opacity={0.92} />
-      <Line x1={36} y1={59} x2={64} y2={59} stroke="#8C9BAB" strokeWidth={2} />
-      <Line x1={36} y1={65} x2={56} y2={65} stroke="#8C9BAB" strokeWidth={2} />
-      <Path d="M83 46 C83 46 75 57 75 62 a8 8 0 0 0 16 0 C91 57 83 46 83 46Z" fill="#5FA8E8" stroke="#2F6FA8" strokeWidth={1.5} />
+      <Rect x={30} y={52} width={40} height={20} fill={illustration.highlight} opacity={0.92} />
+      <Line x1={36} y1={59} x2={64} y2={59} stroke={illustration.labelLine} strokeWidth={2} />
+      <Line x1={36} y1={65} x2={56} y2={65} stroke={illustration.labelLine} strokeWidth={2} />
+      <Path d="M83 46 C83 46 75 57 75 62 a8 8 0 0 0 16 0 C91 57 83 46 83 46Z" fill={illustration.dropFill} stroke={illustration.dropStroke} strokeWidth={1.5} />
     </G>
   );
 }
@@ -147,13 +148,13 @@ function SyrupBottle({ body, cap }: { body: string; cap: string }) {
       <Rect x={30} y={10} width={26} height={12} rx={3} fill={cap} stroke={outline(cap)} strokeWidth={1.8} />
       <Rect x={34} y={21} width={18} height={10} fill={shade(body, -0.2)} />
       <Path d="M28 38 Q28 30 36 30 L50 30 Q58 30 58 38 L58 88 Q58 92 54 92 L32 92 Q28 92 28 88 Z" fill={body} stroke={outline(body)} strokeWidth={2} />
-      <Rect x={28} y={50} width={30} height={22} fill="#FFFFFF" opacity={0.9} />
-      <Line x1={33} y1={58} x2={53} y2={58} stroke="#8C9BAB" strokeWidth={2} />
-      <Line x1={33} y1={64} x2={48} y2={64} stroke="#8C9BAB" strokeWidth={2} />
-      <Path d="M60 62 L88 62 L84 92 L64 92 Z" fill="#FFFFFF" opacity={0.85} stroke="#8C9BAB" strokeWidth={1.8} />
+      <Rect x={28} y={50} width={30} height={22} fill={illustration.highlight} opacity={0.9} />
+      <Line x1={33} y1={58} x2={53} y2={58} stroke={illustration.labelLine} strokeWidth={2} />
+      <Line x1={33} y1={64} x2={48} y2={64} stroke={illustration.labelLine} strokeWidth={2} />
+      <Path d="M60 62 L88 62 L84 92 L64 92 Z" fill={illustration.highlight} opacity={0.85} stroke={illustration.labelLine} strokeWidth={1.8} />
       <Path d="M62.6 76 L85.4 76 L84 92 L64 92 Z" fill={body} opacity={0.65} />
-      <Line x1={66} y1={70} x2={72} y2={70} stroke="#8C9BAB" strokeWidth={1.4} />
-      <Line x1={66} y1={82} x2={72} y2={82} stroke="#8C9BAB" strokeWidth={1.4} />
+      <Line x1={66} y1={70} x2={72} y2={70} stroke={illustration.labelLine} strokeWidth={1.4} />
+      <Line x1={66} y1={82} x2={72} y2={82} stroke={illustration.labelLine} strokeWidth={1.4} />
     </G>
   );
 }
@@ -161,15 +162,15 @@ function SyrupBottle({ body, cap }: { body: string; cap: string }) {
 function Syringe({ liquid }: { liquid: string }) {
   return (
     <G rotation={-35} origin="50, 50">
-      <Rect x={4} y={40} width={5} height={20} rx={2} fill="#8C9BAB" />
-      <Rect x={9} y={47} width={16} height={6} fill="#B8C2CC" />
-      <Rect x={24} y={41} width={46} height={18} rx={3} fill="#F4F8FC" stroke="#6B7C8D" strokeWidth={1.8} />
+      <Rect x={4} y={40} width={5} height={20} rx={2} fill={illustration.outline} />
+      <Rect x={9} y={47} width={16} height={6} fill={illustration.metal} />
+      <Rect x={24} y={41} width={46} height={18} rx={3} fill={illustration.barrel} stroke={illustration.barrelStroke} strokeWidth={1.8} />
       <Rect x={42} y={43} width={27} height={14} fill={liquid} opacity={0.75} />
       {[30, 36, 42, 48, 54, 60].map((x) => (
-        <Line key={x} x1={x} y1={41} x2={x} y2={46} stroke="#6B7C8D" strokeWidth={1.2} />
+        <Line key={x} x1={x} y1={41} x2={x} y2={46} stroke={illustration.barrelStroke} strokeWidth={1.2} />
       ))}
-      <Rect x={70} y={46} width={8} height={8} fill="#B8C2CC" />
-      <Line x1={78} y1={50} x2={96} y2={50} stroke="#6B7C8D" strokeWidth={1.6} strokeLinecap="round" />
+      <Rect x={70} y={46} width={8} height={8} fill={illustration.metal} />
+      <Line x1={78} y1={50} x2={96} y2={50} stroke={illustration.barrelStroke} strokeWidth={1.6} strokeLinecap="round" />
     </G>
   );
 }
