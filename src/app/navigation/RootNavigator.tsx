@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, NavigationContainer, type Theme as NavTheme } from '@react-navigation/native';
+import { CommonActions, DarkTheme, DefaultTheme, NavigationContainer, type Theme as NavTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
@@ -21,6 +21,7 @@ import { ExportPdfScreen } from '../../features/history/ExportPdfScreen';
 import { LegalScreen } from '../../features/legal/LegalScreen';
 import { MedicationFormScreen } from '../../features/medications/MedicationFormScreen';
 import { ProfileChoiceScreen } from '../../features/profile/ProfileChoiceScreen';
+import { decideDoseOpen } from '../../lib/doseOpen';
 import { bootSession } from '../../lib/session';
 import { navigationRef } from './navigationRef';
 import { useAppStore } from '../../store/appStore';
@@ -75,15 +76,28 @@ export function RootNavigator() {
   const pendingDoseOpen = useAppStore((s) => s.pendingDoseOpen);
   const [navReady, setNavReady] = useState(false);
 
-  // Toque numa notificação de dose (FE-28): abre a dose assim que houver sessão de cuidador. Com a sessão expirada, o
-  // cuidador cai no login e, depois de entrar, vai direto para a dose
+  // Toque num aviso de dose (app fechado, em segundo plano ou aberto em qualquer tela): abre a dose assim que houver
+  // sessão de cuidador, com o Painel por baixo (voltar leva ao Painel). Sem sessão, o destino espera o login.
   useEffect(() => {
-    if (!navReady || viewAs !== 'CAREGIVER' || !session || !pendingDoseOpen) return;
-    const target = pendingDoseOpen;
-    useAppStore.getState().setPendingDoseOpen(null);
-    // Depois do render em que as telas do cuidador passam a existir
+    if (!navReady || !pendingDoseOpen) return;
+    const decision = decideDoseOpen(pendingDoseOpen, { viewAs, hasSession: !!session });
+    if (decision.action === 'aguardar-login') return;
+    if (decision.action === 'ignorar') {
+      useAppStore.getState().setPendingDoseOpen(null);
+      return;
+    }
+    // Depois do render em que as telas do cuidador passam a existir. O destino só sai da fila quando a navegação
+    // acontece: limpar antes faria o efeito rodar de novo e cancelar este timer (o toque não levaria a lugar nenhum)
     const id = setTimeout(() => {
-      if (navigationRef.isReady()) navigationRef.navigate('DoseDetail', target);
+      if (!navigationRef.isReady()) return;
+      useAppStore.getState().setPendingDoseOpen(null);
+      const painel = { name: 'CaregiverTabs' as const, params: { screen: 'Painel' as const } };
+      if (decision.action === 'abrir-dose') {
+        navigationRef.dispatch(CommonActions.reset({ index: 1, routes: [painel, { name: 'DoseDetail', params: { ...decision.target, fromPush: true } }] }));
+      } else {
+        navigationRef.dispatch(CommonActions.reset({ index: 0, routes: [painel] }));
+        useAppStore.getState().showToast(decision.notice, 'info');
+      }
     }, 0);
     return () => clearTimeout(id);
   }, [navReady, viewAs, session, pendingDoseOpen]);

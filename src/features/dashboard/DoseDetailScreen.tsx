@@ -1,13 +1,16 @@
-import { Lock, MessageCircle } from 'lucide-react-native';
+import { CommonActions } from '@react-navigation/native';
+import { Lock, MessageCircle, SearchX } from 'lucide-react-native';
+import { useEffect } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { StackHeader } from '../../components/layout/StackHeader';
-import { AppText, Button, Card, DoseStatusBadge, ErrorState, LoadingSkeleton, PillSizeLegend, PillVisual } from '../../components/ui';
+import { AppText, Button, Card, DoseStatusBadge, EmptyState, ErrorState, LoadingSkeleton, PillSizeLegend, PillVisual } from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import { firstName, formatDateBR, formatTime } from '../../lib/date';
 import { liveAt } from '../../lib/doseLive';
+import { doseOpenFailure } from '../../lib/doseOpen';
 import { TYPE_LABEL, describeAppearance } from '../../lib/medicationMeta';
 import { useQuery } from '../../lib/useQuery';
 import { minuteStamp, useNow } from '../../lib/useNow';
@@ -19,16 +22,32 @@ export function DoseDetailScreen({ route, navigation }: RootScreenProps<'DoseDet
   const insets = useSafeAreaInsets();
   const setSelected = useAppStore((s) => s.setSelectedElder);
   const now = useNow();
-  const { doseId, elderId, day } = route.params;
+  const { doseId, elderId, day, fromPush } = route.params;
   const hint = elderId && day ? { elderId, day } : undefined;
   const q = useQuery(['dose', doseId], () => services.doses.get(doseId, hint), { silentKey: minuteStamp(now) });
   const d = q.data ? liveAt(q.data, now) : undefined;
+  const missing = doseOpenFailure(q.error);
+  const loadedElderId = q.data?.elderId;
+
+  // Aberta por um aviso: o Painel por baixo passa a mostrar o paciente da dose (só depois de a API confirmar que é dele)
+  useEffect(() => {
+    if (fromPush && loadedElderId) setSelected(loadedElderId);
+  }, [fromPush, loadedElderId, setSelected]);
+
+  const goToPanel = () =>
+    navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'CaregiverTabs', params: { screen: 'Painel' } }] }));
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       <StackHeader title="Detalhes da dose" subtitle={d ? d.elderName : undefined} />
       {q.loading ? (
         <View style={styles.body}><LoadingSkeleton rows={2} /></View>
+      ) : missing ? (
+        <View style={styles.body}>
+          <Card>
+            <EmptyState icon={SearchX} title="Dose não encontrada" description={missing.notice} actionLabel="Ir para o Painel" onAction={goToPanel} />
+          </Card>
+        </View>
       ) : q.error || !d ? (
         <ErrorState error={q.error} onRetry={q.reload} />
       ) : (

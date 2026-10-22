@@ -801,6 +801,7 @@ function notificacoesFalsas(opcoes: { token?: unknown; falhaToken?: boolean; per
   const ouvintes: { token: ((t: { data: unknown }) => void)[]; abrir: ((r: unknown) => void)[] } = { token: [], abrir: [] };
   const canais: { id: string; canal: { importance: number; name: string } }[] = [];
   let handler: unknown = null;
+  const ultima = { limpa: false };
   const mod = {
     AndroidImportance: { HIGH: 6, MAX: 7 },
     getDevicePushTokenAsync: async () => {
@@ -821,12 +822,16 @@ function notificacoesFalsas(opcoes: { token?: unknown; falhaToken?: boolean; per
       ouvintes.abrir.push(cb);
       return { remove: () => ouvintes.abrir.splice(ouvintes.abrir.indexOf(cb), 1) };
     },
-    getLastNotificationResponseAsync: async () => ({ notification: { request: { content: { data: { tipo: 'DOSE_NAO_CONFIRMADA', doseId: '5' } } } } }),
+    getLastNotificationResponseAsync: async () =>
+      ultima.limpa ? null : { notification: { request: { content: { data: { tipo: 'DOSE_NAO_CONFIRMADA', doseId: '5' } } } } },
+    clearLastNotificationResponse: () => {
+      ultima.limpa = true;
+    },
     setNotificationHandler: (h: unknown) => {
       handler = h;
     },
   };
-  return { mod: mod as unknown as NotificationsModule, ouvintes, canais, handler: () => handler };
+  return { mod: mod as unknown as NotificationsModule, ouvintes, canais, handler: () => handler, ultima };
 }
 
 checkAsync('Push suportado: token FCM bruto, troca de token, canal "Alertas de dose", permissão e toque na notificação', async () => {
@@ -854,8 +859,14 @@ checkAsync('Push suportado: token FCM bruto, troca de token, canal "Alertas de d
   const abertos: Record<string, unknown>[] = [];
   servico.onOpen((d) => abertos.push(d));
   falso.ouvintes.abrir.forEach((cb) => cb({ notification: { request: { content: { data: { doseId: '9' } } } } }));
-  assert.deepEqual(abertos, [{ doseId: '9' }]);
+  // Payload só em trigger.remoteMessage.data (Android, app em segundo plano em algumas versões)
+  falso.ouvintes.abrir.forEach((cb) =>
+    cb({ notification: { request: { content: { data: {} }, trigger: { remoteMessage: { data: { doseId: '10' } } } } } }));
+  assert.deepEqual(abertos, [{ doseId: '9' }, { doseId: '10' }]);
   assert.deepEqual(await servico.getLaunchData(), { tipo: 'DOSE_NAO_CONFIRMADA', doseId: '5' });
+  // A notificação que abriu o app é consumida: a próxima abertura não reabre a mesma dose
+  assert.equal(falso.ultima.limpa, true);
+  assert.equal(await servico.getLaunchData(), null);
 
   servico.showInForeground();
   assert.ok(falso.handler());
