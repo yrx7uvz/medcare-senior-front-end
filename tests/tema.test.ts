@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 import { checkTheme, contrastRatio } from '../src/lib/contrast';
 import { DEFAULT_THEME_PREFS, parseThemePrefs, resolveThemeMode, serializeThemePrefs } from '../src/lib/themePrefs';
-import { darkColors, elderColors, elderDarkColors, elderHighContrastColors, lightColors } from '../src/theme/colors';
+import { darkColors, elderColors, elderDarkColors, elderHighContrastColors, lightColors, type ThemeColors } from '../src/theme/colors';
 
 describe('preferências de aparência guardadas', () => {
   it('ida e volta do que fica no aparelho', () => {
@@ -33,7 +33,7 @@ describe('paleta e seletores', () => {
     ['idoso claro', elderColors, false],
     ['idoso escuro', elderDarkColors, false],
     ['idoso alto contraste', elderHighContrastColors, true],
-  ] as const)('tema %s: todos os pares no mínimo', (_nome, cores, alto) => {
+  ] as [string, ThemeColors, boolean][])('tema %s: todos os pares no mínimo', (_nome, cores, alto) => {
     expect(checkTheme(cores, alto).filter((r) => !r.ok)).toEqual([]);
   });
 
