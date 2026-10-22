@@ -45,7 +45,7 @@ export function LinkCodeScreen({ route, navigation }: RootScreenProps<'LinkCode'
       <ScrollView contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + spacing.xxl }]}>
         {justCreated ? (
           <View style={styles.success} accessibilityLiveRegion="polite">
-            <CheckCircle2 color={colors.status.TOMADA.fg} size={28} />
+            <CheckCircle2 color={colors.status.CONFIRMADA_NO_HORARIO.fg} size={28} />
             <AppText variant="heading" style={styles.flex}>
               {name} foi vinculado(a) à sua conta. Só você tem acesso aos dados (RN04).
             </AppText>

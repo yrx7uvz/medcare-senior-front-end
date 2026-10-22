@@ -80,7 +80,7 @@ export function ExportPdfScreen({ navigation }: RootScreenProps<'ExportPdf'>) {
               <AppText variant="heading" accessibilityRole="header">O PDF terá</AppText>
               {CONTENTS.map((c) => (
                 <View key={c} style={styles.contentRow}>
-                  <CheckCircle2 color={colors.status.TOMADA.fg} size={18} />
+                  <CheckCircle2 color={colors.status.CONFIRMADA_NO_HORARIO.fg} size={18} />
                   <AppText style={styles.flex}>{c}</AppText>
                 </View>
               ))}
@@ -116,9 +116,9 @@ export function ExportPdfScreen({ navigation }: RootScreenProps<'ExportPdf'>) {
             </Card>
 
             {result ? (
-              <Card style={[styles.card, { borderColor: colors.status.TOMADA.accent, borderWidth: 1.5 }]}>
+              <Card style={[styles.card, { borderColor: colors.status.CONFIRMADA_NO_HORARIO.accent, borderWidth: 1.5 }]}>
                 <View style={styles.titleRow} accessibilityLiveRegion="polite">
-                  <FileText color={colors.status.TOMADA.fg} size={26} />
+                  <FileText color={colors.status.CONFIRMADA_NO_HORARIO.fg} size={26} />
                   <View style={styles.flex}>
                     <AppText variant="bodyStrong">PDF gerado (simulação)</AppText>
                     <AppText variant="caption" muted>

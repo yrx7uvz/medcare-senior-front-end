@@ -1,7 +1,7 @@
 import { Minus, Plus } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 import { AppText, Chip, IconButton } from '../../components/ui';
-import { CLOSE_AFTER_MIN, TOLERANCE_MAX, TOLERANCE_MIN, TOLERANCE_STEP } from '../../lib/doseRules';
+import { TOLERANCE_MAX, TOLERANCE_MIN, TOLERANCE_STEP, closesAfterMinutes } from '../../lib/doseRules';
 import { pad } from '../../lib/date';
 import { radius, spacing, useTheme } from '../../theme';
 
@@ -12,7 +12,7 @@ const at = (h: number, addMin: number) => {
   return `${pad(Math.floor(total / 60) % 24)}:${pad(total % 60)}`;
 };
 
-/** RN09: tolerância de 5 a 120 min em passos de 5. */
+/** Tolerância de 5 a 120 min em passos de 5, com o exemplo do que acontece com uma dose das 08:00. */
 export function ToleranceSelector({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const { colors } = useTheme();
   const clamp = (v: number) => Math.max(TOLERANCE_MIN, Math.min(TOLERANCE_MAX, v));
@@ -38,11 +38,11 @@ export function ToleranceSelector({ value, onChange }: { value: number; onChange
       </View>
       <View style={[styles.timeline, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
         <AppText variant="label">Exemplo: dose das 08:00</AppText>
-        <Step color={colors.status.PENDENTE.accent} time="07:00" text="O paciente já pode confirmar (1 h antes)." />
+        <Step color={colors.status.PENDENTE.accent} time="07:00" text="Já pode ser confirmada (1 h antes)." />
         <Step color={colors.status.PENDENTE.accent} time="08:00" text="Horário da dose." />
         <Step color={colors.status.ATRASADA.accent} time={at(8, value)} text="Sem confirmação: você recebe o aviso. A dose continua pendente." />
-        <Step color={colors.status.CONFIRMADA_COM_ATRASO.accent} time={`até ${at(8, CLOSE_AFTER_MIN)}`} text="Ainda pode ser confirmada, como “com atraso”." />
-        <Step color={colors.status.NAO_TOMADA.accent} time={`após ${at(8, CLOSE_AFTER_MIN)}`} text="Passa a “Não tomada”." />
+        <Step color={colors.status.CONFIRMADA_COM_ATRASO.accent} time={`até ${at(8, closesAfterMinutes(value))}`} text="Ainda pode ser confirmada, como “com atraso” (30 min depois do aviso)." />
+        <Step color={colors.status.NAO_TOMADA.accent} time={`após ${at(8, closesAfterMinutes(value))}`} text="Passa a “Não confirmada”." />
       </View>
     </View>
   );

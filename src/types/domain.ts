@@ -85,16 +85,19 @@ export interface Treatment {
   removedAt?: DateTimeKey;
 }
 
-/** Status persistido no backend (coluna dose.status). */
-export type DoseStatus = 'PENDENTE' | 'TOMADA' | 'NAO_TOMADA' | 'CONFIRMADA_COM_ATRASO';
+/** Status persistido no backend (coluna dose.status). NAO_TOMADA aparece na tela como "Não confirmada". */
+export type DoseStatus = 'PENDENTE' | 'CONFIRMADA_NO_HORARIO' | 'NAO_TOMADA' | 'CONFIRMADA_COM_ATRASO';
 
 /**
  * Status exibido. ATRASADA = ainda PENDENTE no banco, mas além da tolerância:
- * o cuidador já foi avisado e a dose ainda pode ser confirmada com atraso (RN09).
+ * o cuidador já foi avisado e a dose ainda pode ser confirmada com atraso.
  */
 export type DisplayStatus = DoseStatus | 'ATRASADA';
 
-/** Dose é imutável (RN08): toda mudança gera um novo objeto. */
+/** Quem confirmou a dose (dose.confirmado_por): o idoso, no aparelho dele, ou o cuidador, na tela da dose. */
+export type ConfirmedBy = 'IDOSO' | 'CUIDADOR';
+
+/** Dose registrada é imutável: toda mudança gera um novo objeto. */
 export interface Dose {
   readonly id: ID;
   readonly elderId: ID;
@@ -103,6 +106,8 @@ export interface Dose {
   readonly scheduledAt: DateTimeKey;
   readonly status: DoseStatus;
   readonly confirmedAt?: DateTimeKey;
+  /** Só nas doses confirmadas. */
+  readonly confirmedBy?: ConfirmedBy;
   readonly timeNote?: string;
 }
 

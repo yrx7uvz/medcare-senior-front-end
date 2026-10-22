@@ -19,6 +19,7 @@ const CLOCK_PRESETS: { label: string; h: number; m: number; hint?: string }[] = 
   { label: '07:30', h: 7, m: 30 },
   { label: '13:50', h: 13, m: 50 },
   { label: '14:02', h: 14, m: 2, hint: 'início' },
+  { label: '14:40', h: 14, m: 40, hint: 'aviso do Omeprazol' },
   { label: '15:10', h: 15, m: 10, hint: 'dose não confirmada' },
   { label: '19:30', h: 19, m: 30 },
 ];
@@ -100,7 +101,7 @@ export function ProfileSwitcher() {
                   ))}
                 </View>
                 <AppText variant="caption" muted>
-                  15:10 faz a Atorvastatina passar a &quot;Não tomada&quot; e, se o Omeprazol não foi confirmado, gera um novo alerta.
+                  Com a tolerância de 30 min, o Omeprazol das 14:00 gera o aviso às 14:30 e ainda pode ser confirmado até 15:00; às 15:10, sem confirmação, passa a &quot;Não confirmada&quot;.
                 </AppText>
               </Section>
 

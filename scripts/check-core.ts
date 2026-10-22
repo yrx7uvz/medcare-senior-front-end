@@ -487,22 +487,30 @@ const DOSE_DTO = {
   id: 5000, idosoId: 12, idosoNome: 'José', medicamentoId: 501, medicamentoNome: 'Losartana', dosagem: '50mg',
   tipo: 'COMPRIMIDO', tratamentoId: 900, horarioProgramado: '2026-10-18T08:00:00', horaConfirmacao: null,
   status: 'PENDENTE' as const, statusExibicao: 'PENDENTE' as const, toleranciaMinutos: 30,
-  janela: { abreEm: '2026-10-18T07:00:00', avisoEm: '2026-10-18T08:30:00', encerraEm: '2026-10-18T11:00:00' },
+  janela: { abreEm: '2026-10-18T07:00:00', avisoEm: '2026-10-18T08:30:00', encerraEm: '2026-10-18T09:00:00' },
+  limiteConfirmacao: '2026-10-18T09:00:00',
+  confirmadoPor: null,
   confirmabilidade: 'OK' as const,
 };
 const SP = (hh: number, mm: number, ss = 0) => Date.UTC(2026, 9, 18, hh + 3, mm, ss);
 
 check('DoseResponseDTO vira DoseView com status, janela e confirmabilidade do servidor', () => {
-  const v = toDoseView({ ...DOSE_DTO, horaConfirmacao: '2026-10-18T08:05:12.123456', status: 'TOMADA', statusExibicao: 'TOMADA', confirmabilidade: 'JA_REGISTRADA' });
+  const v = toDoseView({ ...DOSE_DTO, horaConfirmacao: '2026-10-18T08:05:12.123456', status: 'CONFIRMADA_NO_HORARIO', statusExibicao: 'CONFIRMADA_NO_HORARIO', confirmabilidade: 'JA_REGISTRADA', confirmadoPor: 'CUIDADOR' });
   assert.equal(v.id, '5000');
   assert.equal(v.elderId, '12');
   assert.equal(v.medication.id, '501');
   assert.equal(v.treatmentId, '900');
   assert.equal(v.scheduledAt, '2026-10-18T08:00');
   assert.equal(v.confirmedAt, '2026-10-18T08:05');
-  assert.equal(v.storedStatus, 'TOMADA');
+  assert.equal(v.storedStatus, 'CONFIRMADA_NO_HORARIO');
   assert.equal(v.confirmability, 'JA_REGISTRADA');
-  assert.deepEqual(v.window, { opensAt: '2026-10-18T07:00', alertAt: '2026-10-18T08:30', closesAt: '2026-10-18T11:00' });
+  assert.deepEqual(v.window, { opensAt: '2026-10-18T07:00', alertAt: '2026-10-18T08:30', closesAt: '2026-10-18T09:00' });
+  assert.equal(v.confirmUntil, '2026-10-18T09:00');
+  assert.equal(v.confirmedBy, 'CUIDADOR');
+  assert.equal(toDoseView(DOSE_DTO).confirmedBy, undefined);
+  // Servidor sem limiteConfirmacao: o limite é o fim da janela
+  const { limiteConfirmacao: _semLimite, ...semLimite } = DOSE_DTO;
+  assert.equal(toDoseView(semLimite).confirmUntil, '2026-10-18T09:00');
   assert.equal(v.toleranceMinutes, 30);
   assert.equal(toDoseView({ ...DOSE_DTO, tratamentoId: null }).treatmentId, null);
 });
@@ -514,14 +522,14 @@ check('Dose ao vivo: só compara agora com a janela do servidor, nos limites exa
   assert.equal(em(SP(7, 0)).confirmability, 'OK');
   assert.equal(em(SP(8, 30)).status, 'PENDENTE');
   assert.equal(em(SP(8, 30, 1)).status, 'ATRASADA');
-  assert.equal(em(SP(11, 0)).confirmability, 'OK');
-  assert.equal(em(SP(11, 0, 1)).status, 'NAO_TOMADA');
-  assert.equal(em(SP(11, 0, 1)).confirmability, 'ENCERRADA');
+  assert.equal(em(SP(9, 0)).confirmability, 'OK');
+  assert.equal(em(SP(9, 0, 1)).status, 'NAO_TOMADA');
+  assert.equal(em(SP(9, 0, 1)).confirmability, 'ENCERRADA');
   // O servidor já disse ATRASADA: um aparelho atrasado não faz a dose "voltar" a PENDENTE
   const atrasada = toDoseView({ ...DOSE_DTO, statusExibicao: 'ATRASADA', confirmabilidade: 'OK' });
   assert.equal(liveDose(atrasada, SP(8, 0), apiDateTimeToEpochMs).status, 'ATRASADA');
   // Registrada no servidor: não muda; janela ilegível: fica como veio
-  const tomada = toDoseView({ ...DOSE_DTO, status: 'TOMADA', statusExibicao: 'TOMADA', confirmabilidade: 'JA_REGISTRADA' });
+  const tomada = toDoseView({ ...DOSE_DTO, status: 'CONFIRMADA_NO_HORARIO', statusExibicao: 'CONFIRMADA_NO_HORARIO', confirmabilidade: 'JA_REGISTRADA' });
   assert.equal(liveDose(tomada, SP(12, 0), apiDateTimeToEpochMs), tomada);
   assert.equal(liveDose(base, SP(12, 0), () => null), base);
 });
@@ -611,13 +619,13 @@ checkAsync('Detalhe da dose: busca de novo o dia de onde ela veio; sem origem co
 checkAsync('Confirmar: PUT /api/doses/{id}/confirmar; 409 DOSE_ENCERRADA chega com código e mensagem clara', async () => {
   setViewerProvider(() => 'ELDER');
   const chamadas = fakeFetch([
-    { status: 200, body: { ...DOSE_DTO, status: 'TOMADA', statusExibicao: 'TOMADA', horaConfirmacao: '2026-10-18T08:01:00', confirmabilidade: 'JA_REGISTRADA' } },
+    { status: 200, body: { ...DOSE_DTO, status: 'CONFIRMADA_NO_HORARIO', statusExibicao: 'CONFIRMADA_NO_HORARIO', horaConfirmacao: '2026-10-18T08:01:00', confirmabilidade: 'JA_REGISTRADA' } },
     { status: 409, body: { codigo: 'DOSE_ENCERRADA', mensagem: 'x', campos: [] } },
     { status: 409, body: { codigo: 'DOSE_JA_REGISTRADA', mensagem: 'x', campos: [] } },
     { status: 409, body: { codigo: 'DOSE_MUITO_CEDO', mensagem: 'x', campos: [] } },
   ]);
   const confirmada = await httpDoseService.confirm('5000');
-  assert.equal(confirmada.storedStatus, 'TOMADA');
+  assert.equal(confirmada.storedStatus, 'CONFIRMADA_NO_HORARIO');
   assert.equal(chamadas[0].method, 'PUT');
   assert.equal(chamadas[0].path, '/api/doses/5000/confirmar');
   for (const [codigo, texto] of [['DOSE_ENCERRADA', /prazo/], ['DOSE_JA_REGISTRADA', /já foi registrada/], ['DOSE_MUITO_CEDO', /cedo/]] as const) {
@@ -659,12 +667,12 @@ checkAsync('Cadastro criado e login falhou: não repete o POST e avisa para faze
 
 // --- Relatório diário (FE-24) e formulário de remédio alinhado à API (FE-19) ---------------------------------------
 check('Totais do relatório diário: aderência = (tomadas + com atraso) / (total - pendentes), 1 casa, null sem encerradas', () => {
-  assert.deepEqual(dailyTotals([]), { total: 0, taken: 0, late: 0, missed: 0, pending: 0, adherencePercent: null });
+  assert.deepEqual(dailyTotals([]), { total: 0, onTime: 0, late: 0, missed: 0, pending: 0, adherencePercent: null });
   assert.equal(dailyTotals(['PENDENTE', 'PENDENTE']).adherencePercent, null);
-  const misto = dailyTotals(['TOMADA', 'TOMADA', 'CONFIRMADA_COM_ATRASO', 'NAO_TOMADA', 'PENDENTE', 'PENDENTE']);
-  assert.deepEqual(misto, { total: 6, taken: 2, late: 1, missed: 1, pending: 2, adherencePercent: 75 });
-  assert.equal(dailyTotals(['TOMADA', 'NAO_TOMADA', 'NAO_TOMADA']).adherencePercent, 33.3);
-  assert.equal(dailyTotals(['CONFIRMADA_COM_ATRASO', 'TOMADA', 'NAO_TOMADA']).adherencePercent, 66.7);
+  const misto = dailyTotals(['CONFIRMADA_NO_HORARIO', 'CONFIRMADA_NO_HORARIO', 'CONFIRMADA_COM_ATRASO', 'NAO_TOMADA', 'PENDENTE', 'PENDENTE']);
+  assert.deepEqual(misto, { total: 6, onTime: 2, late: 1, missed: 1, pending: 2, adherencePercent: 75 });
+  assert.equal(dailyTotals(['CONFIRMADA_NO_HORARIO', 'NAO_TOMADA', 'NAO_TOMADA']).adherencePercent, 33.3);
+  assert.equal(dailyTotals(['CONFIRMADA_COM_ATRASO', 'CONFIRMADA_NO_HORARIO', 'NAO_TOMADA']).adherencePercent, 66.7);
 });
 
 check('Formulário de remédio envia só os campos da API (sem quantidade nem observação por horário)', () => {
@@ -748,7 +756,7 @@ checkAsync('Relatório diário real: GET /api/relatorios/diario com idoso e data
       body: {
         idoso: { id: 12, nome: 'José' },
         data: '2026-10-17',
-        totais: { total: 2, tomadas: 1, confirmadasComAtraso: 0, naoTomadas: 1, pendentes: 0, aderenciaPercentual: 50.0 },
+        totais: { total: 2, confirmadasNoHorario: 1, confirmadasComAtraso: 0, naoTomadas: 1, pendentes: 0, aderenciaPercentual: 50.0 },
         doses: [{ ...DOSE_DTO, horarioProgramado: '2026-10-17T08:00:00' }],
       },
     },
@@ -757,7 +765,7 @@ checkAsync('Relatório diário real: GET /api/relatorios/diario com idoso e data
   const r = await httpReportService.getDaily('12', '2026-10-17');
   assert.equal(chamadas[0].path, '/api/relatorios/diario?idosoId=12&data=2026-10-17');
   assert.deepEqual(r.elder, { id: '12', name: 'José' });
-  assert.deepEqual(r.totals, { total: 2, taken: 1, late: 0, missed: 1, pending: 0, adherencePercent: 50 });
+  assert.deepEqual(r.totals, { total: 2, onTime: 1, late: 0, missed: 1, pending: 0, adherencePercent: 50 });
   assert.equal(r.doses[0].id, '5000');
   // O detalhe da dose do relatório é achado no dia dela (17), não no de hoje
   await httpDoseService.get('5000');

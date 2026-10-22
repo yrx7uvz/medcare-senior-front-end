@@ -94,7 +94,7 @@ export function ElderHomeScreen({ navigation }: RootScreenProps<'ElderHome'>) {
             </Card>
           ) : allDone ? (
             <Card style={[styles.next, styles.center]}>
-              <CheckCircle2 color={colors.status.TOMADA.fg} size={56} />
+              <CheckCircle2 color={colors.status.CONFIRMADA_NO_HORARIO.fg} size={56} />
               <AppText variant="elderTitle" align="center">Pronto por hoje!</AppText>
               <AppText variant="elderBody" muted align="center">Não há mais remédios para tomar hoje.</AppText>
             </Card>

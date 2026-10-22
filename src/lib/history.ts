@@ -5,9 +5,9 @@ import { addDays, dateBRToKey, parseDateTime, toDateKey } from './date';
 /** Filtros de status do histórico: o status gravado da dose, como a API filtra. */
 export const HISTORY_STATUS_FILTERS: readonly { value: HistoryStatusFilter; label: string }[] = [
   { value: 'ALL', label: 'Todos' },
-  { value: 'TOMADA', label: 'No horário' },
-  { value: 'CONFIRMADA_COM_ATRASO', label: 'Com atraso' },
-  { value: 'NAO_TOMADA', label: 'Não tomadas' },
+  { value: 'CONFIRMADA_NO_HORARIO', label: 'Confirmadas no horário' },
+  { value: 'CONFIRMADA_COM_ATRASO', label: 'Confirmadas com atraso' },
+  { value: 'NAO_TOMADA', label: 'Não confirmadas' },
   { value: 'PENDENTE', label: 'Pendentes' },
 ];
 

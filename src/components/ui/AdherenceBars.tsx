@@ -15,7 +15,7 @@ export interface AdherenceBarItem {
 export function AdherenceBars({ items }: { items: AdherenceBarItem[] }) {
   const { colors } = useTheme();
   const tone = (rate: number) =>
-    rate >= 80 ? colors.status.TOMADA : rate >= 70 ? colors.status.PENDENTE : colors.status.NAO_TOMADA;
+    rate >= 80 ? colors.status.CONFIRMADA_NO_HORARIO : rate >= 70 ? colors.status.PENDENTE : colors.status.NAO_TOMADA;
   const band = (rate: number) => (rate >= 80 ? 'boa' : rate >= 70 ? 'atenção' : 'baixa');
 
   return (

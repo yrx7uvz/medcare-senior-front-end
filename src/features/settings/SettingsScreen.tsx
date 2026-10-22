@@ -197,7 +197,7 @@ function PushStatus() {
     );
   }
   if (permission === 'granted') {
-    return <AppText variant="caption" color={colors.status.TOMADA.fg}>Avisos ativados neste celular.</AppText>;
+    return <AppText variant="caption" color={colors.status.CONFIRMADA_NO_HORARIO.fg}>Avisos ativados neste celular.</AppText>;
   }
   if (permission === 'denied') {
     return (

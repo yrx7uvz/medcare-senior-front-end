@@ -20,7 +20,7 @@ export function Toast() {
 
   if (!toast) return null;
   const Icon = toast.tone === 'success' ? CheckCircle2 : toast.tone === 'danger' ? XCircle : Info;
-  const fg = toast.tone === 'success' ? colors.status.TOMADA.fg : toast.tone === 'danger' ? colors.danger : colors.primaryDark;
+  const fg = toast.tone === 'success' ? colors.status.CONFIRMADA_NO_HORARIO.fg : toast.tone === 'danger' ? colors.danger : colors.primaryDark;
   return (
     <View pointerEvents="none" style={[styles.wrap, { top: insets.top + spacing.sm }]}>
       <View

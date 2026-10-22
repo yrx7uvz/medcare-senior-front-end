@@ -154,13 +154,13 @@ describe('dose, relatório e histórico', () => {
     const r = toDailyReport({
       idoso: { id: 12, nome: 'José' },
       data: '2026-10-18',
-      totais: { total: 4, tomadas: 1, confirmadasComAtraso: 1, naoTomadas: 1, pendentes: 1, aderenciaPercentual: 66.7 },
+      totais: { total: 4, confirmadasNoHorario: 1, confirmadasComAtraso: 1, naoTomadas: 1, pendentes: 1, aderenciaPercentual: 66.7 },
       doses: [DOSE],
     });
     expect(r.elder).toEqual({ id: '12', name: 'José' });
-    expect(r.totals).toEqual({ total: 4, taken: 1, late: 1, missed: 1, pending: 1, adherencePercent: 66.7 });
+    expect(r.totals).toEqual({ total: 4, onTime: 1, late: 1, missed: 1, pending: 1, adherencePercent: 66.7 });
     expect(r.doses.map((d) => d.id)).toEqual(['5000']);
-    expect(dailyTotals(['TOMADA', 'CONFIRMADA_COM_ATRASO', 'NAO_TOMADA', 'PENDENTE'])).toEqual(r.totals);
+    expect(dailyTotals(['CONFIRMADA_NO_HORARIO', 'CONFIRMADA_COM_ATRASO', 'NAO_TOMADA', 'PENDENTE'])).toEqual(r.totals);
     expect(dailyTotals(['PENDENTE']).adherencePercent).toBeNull();
   });
 
@@ -172,8 +172,8 @@ describe('dose, relatório e histórico', () => {
     const next = toHistoryPage({ conteudo: [{ ...DOSE, id: 4999 }, { ...DOSE, id: 4998 }], pagina: 1, tamanho: 2, totalElementos: 3, totalPaginas: 2 });
     expect(mergeHistory(page.items, next.items).map((d) => d.id)).toEqual(['5000', '4999', '4998']);
     expect(hasMoreHistory(next)).toBe(false);
-    expect(historyPath('/api/historico', { from: '2026-10-01', to: '2026-10-18', status: 'TOMADA', page: 1, size: 20 })).toBe(
-      '/api/historico?de=2026-10-01&ate=2026-10-18&status=TOMADA&page=1&size=20',
+    expect(historyPath('/api/historico', { from: '2026-10-01', to: '2026-10-18', status: 'CONFIRMADA_NO_HORARIO', page: 1, size: 20 })).toBe(
+      '/api/historico?de=2026-10-01&ate=2026-10-18&status=CONFIRMADA_NO_HORARIO&page=1&size=20',
     );
   });
 });

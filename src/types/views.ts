@@ -1,4 +1,5 @@
 import type {
+  ConfirmedBy,
   DateKey,
   DateTimeKey,
   DisplayStatus,
@@ -19,11 +20,11 @@ export type ElderFilter = ID | 'ALL';
 export type Confirmability = 'OK' | 'JA_REGISTRADA' | 'MUITO_CEDO' | 'ENCERRADA';
 
 export interface DoseWindow {
-  /** 60 min antes do horário (RN14). */
+  /** 60 min antes do horário: a partir daqui pode confirmar. */
   opensAt: DateTimeKey;
-  /** Horário + tolerância: momento do aviso ao cuidador (RN09). */
+  /** Horário + tolerância: momento do aviso ao cuidador. */
   alertAt: DateTimeKey;
-  /** Horário + 180 min: depois disso vira NAO_TOMADA (RN09). */
+  /** Horário + tolerância + 30 min (limite de confirmação): depois disso vira "Não confirmada". */
   closesAt: DateTimeKey;
 }
 
@@ -35,12 +36,16 @@ export interface DoseView {
   treatmentId: ID | null;
   scheduledAt: DateTimeKey;
   confirmedAt?: DateTimeKey;
+  /** Quem confirmou (só nas confirmadas; ausente em dados antigos do demo). */
+  confirmedBy?: ConfirmedBy;
   storedStatus: DoseStatus;
   status: DisplayStatus;
   timeNote?: string;
   doseQuantity: string;
   route: string;
   window: DoseWindow;
+  /** Último instante para confirmar (limiteConfirmacao da API, igual a window.closesAt). */
+  confirmUntil: DateTimeKey;
   confirmability: Confirmability;
   toleranceMinutes: number;
 }
@@ -100,11 +105,11 @@ export interface AdherenceReport {
 /** Totais do relatório diário (UC-008), pelo status gravado das doses. */
 export interface DailyReportTotals {
   total: number;
-  taken: number;
+  onTime: number;
   late: number;
   missed: number;
   pending: number;
-  /** (tomadas + com atraso) / (total - pendentes) * 100, 1 casa; null sem dose encerrada. */
+  /** (no horário + com atraso) / (total - pendentes) * 100, 1 casa; null sem dose encerrada. */
   adherencePercent: number | null;
 }
 

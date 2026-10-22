@@ -5,17 +5,20 @@ import { radius, useTheme } from '../../theme';
 import { AppText } from './AppText';
 import type { IconComponent } from './icons';
 
-/** Status sempre com cor + ícone + texto (nunca só cor). */
+/**
+ * Status sempre com cor + ícone + texto (nunca só cor). Os rótulos do idoso falam do remédio ("Confirmado"); os do
+ * cuidador, da dose ("Confirmada").
+ */
 export const STATUS_META: Record<DisplayStatus, { label: string; elderLabel: string; icon: IconComponent }> = {
-  TOMADA: { label: 'Tomada', elderLabel: 'Tomado', icon: CheckCircle2 },
+  CONFIRMADA_NO_HORARIO: { label: 'Confirmada no horário', elderLabel: 'Confirmado no horário', icon: CheckCircle2 },
   PENDENTE: { label: 'Pendente', elderLabel: 'Aguardando', icon: Clock },
-  ATRASADA: { label: 'Não confirmada', elderLabel: 'Atrasado', icon: AlertTriangle },
-  NAO_TOMADA: { label: 'Não tomada', elderLabel: 'Não tomado', icon: XCircle },
-  CONFIRMADA_COM_ATRASO: { label: 'Com atraso', elderLabel: 'Tomado com atraso', icon: AlarmClockCheck },
+  ATRASADA: { label: 'Atrasada', elderLabel: 'Atrasado', icon: AlertTriangle },
+  NAO_TOMADA: { label: 'Não confirmada', elderLabel: 'Não confirmado', icon: XCircle },
+  CONFIRMADA_COM_ATRASO: { label: 'Confirmada com atraso', elderLabel: 'Confirmado com atraso', icon: AlarmClockCheck },
 };
 
 export function statusLabel(status: DisplayStatus, elder = false) {
-  return elder ? STATUS_META[status].elderLabel : status === 'CONFIRMADA_COM_ATRASO' ? 'Confirmada com atraso' : STATUS_META[status].label;
+  return elder ? STATUS_META[status].elderLabel : STATUS_META[status].label;
 }
 
 interface Props {
@@ -29,7 +32,7 @@ export function DoseStatusBadge({ status, size = 'sm' }: Props) {
   const meta = STATUS_META[status];
   const Icon = meta.icon;
   const elder = size === 'elder';
-  const label = elder ? meta.elderLabel : size === 'md' ? statusLabel(status) : meta.label;
+  const label = elder ? meta.elderLabel : meta.label;
   return (
     <View
       accessible
@@ -46,7 +49,8 @@ export function DoseStatusBadge({ status, size = 'sm' }: Props) {
       ]}
     >
       <Icon color={c.fg} size={elder ? 24 : 14} strokeWidth={2.5} />
-      <AppText variant={elder ? 'elderBody' : 'caption'} color={c.fg} style={elder ? undefined : styles.bold}>
+      {/* Rótulo longo ("Confirmada no horário") quebra linha em tela estreita, sem cortar */}
+      <AppText variant={elder ? 'elderBody' : 'caption'} color={c.fg} style={[styles.text, elder ? undefined : styles.bold]}>
         {label}
       </AppText>
     </View>
@@ -54,6 +58,7 @@ export function DoseStatusBadge({ status, size = 'sm' }: Props) {
 }
 
 const styles = StyleSheet.create({
-  badge: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: radius.pill, alignSelf: 'flex-start' },
+  badge: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: radius.pill, alignSelf: 'flex-start', maxWidth: '100%', flexShrink: 1 },
+  text: { flexShrink: 1 },
   bold: { fontFamily: 'NunitoSans_700Bold' },
 });

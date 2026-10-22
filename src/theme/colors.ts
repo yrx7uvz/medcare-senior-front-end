@@ -58,7 +58,7 @@ export interface ThemeColors {
 }
 
 const lightStatus: Record<DisplayStatus, StatusColors> = {
-  TOMADA: { fg: '#1B6E3E', bg: '#E8F8EF', accent: palette.green },
+  CONFIRMADA_NO_HORARIO: { fg: '#1B6E3E', bg: '#E8F8EF', accent: palette.green },
   PENDENTE: { fg: '#A04A00', bg: '#FFF3E0', accent: palette.orange },
   ATRASADA: { fg: '#B71C1C', bg: '#FDECEA', accent: palette.red },
   NAO_TOMADA: { fg: '#B71C1C', bg: '#FDECEA', accent: palette.red },
@@ -123,7 +123,7 @@ export const darkColors: ThemeColors = {
   pillTile: '#22364B',
   focus: '#A9D0F3',
   status: {
-    TOMADA: { fg: '#7EE2A5', bg: '#11331F', accent: '#3CC57A' },
+    CONFIRMADA_NO_HORARIO: { fg: '#7EE2A5', bg: '#11331F', accent: '#3CC57A' },
     PENDENTE: { fg: '#FFB870', bg: '#3A2410', accent: '#FF9A3D' },
     ATRASADA: { fg: '#FF9C94', bg: '#3A1717', accent: '#FF6B61' },
     NAO_TOMADA: { fg: '#FF9C94', bg: '#3A1717', accent: '#FF6B61' },
@@ -166,7 +166,7 @@ export const elderHighContrastColors: ThemeColors = {
   pillTile: '#1C1C1C',
   focus: '#FFE14D',
   status: {
-    TOMADA: { fg: '#7CFF9E', bg: '#000000', accent: '#7CFF9E' },
+    CONFIRMADA_NO_HORARIO: { fg: '#7CFF9E', bg: '#000000', accent: '#7CFF9E' },
     PENDENTE: { fg: '#FFC266', bg: '#000000', accent: '#FFC266' },
     ATRASADA: { fg: '#FF8A80', bg: '#000000', accent: '#FF8A80' },
     NAO_TOMADA: { fg: '#FF8A80', bg: '#000000', accent: '#FF8A80' },

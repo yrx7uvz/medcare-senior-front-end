@@ -114,7 +114,7 @@ export function DailyReportScreen({ route, navigation }: RootScreenProps<'DailyR
 function Totals({ totals }: { totals: DailyReportTotals }) {
   const { colors } = useTheme();
   const items: { label: string; value: number; fg: string; bg: string }[] = [
-    { label: 'Tomadas', value: totals.taken, ...colors.status.TOMADA },
+    { label: 'No horário', value: totals.onTime, ...colors.status.CONFIRMADA_NO_HORARIO },
     { label: 'Com atraso', value: totals.late, ...colors.status.CONFIRMADA_COM_ATRASO },
     { label: 'Não tomadas', value: totals.missed, ...colors.status.NAO_TOMADA },
     { label: 'Pendentes', value: totals.pending, ...colors.status.PENDENTE },
@@ -136,7 +136,7 @@ function Totals({ totals }: { totals: DailyReportTotals }) {
       <AppText variant="bodyStrong" accessibilityLiveRegion="polite">
         {totals.adherencePercent === null
           ? 'Adesão do dia: ainda sem doses encerradas'
-          : `Adesão do dia: ${String(totals.adherencePercent).replace('.', ',')}% (${totals.taken + totals.late} de ${totals.total - totals.pending})`}
+          : `Adesão do dia: ${String(totals.adherencePercent).replace('.', ',')}% (${totals.onTime + totals.late} de ${totals.total - totals.pending})`}
       </AppText>
     </Card>
   );

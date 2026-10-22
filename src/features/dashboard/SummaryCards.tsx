@@ -8,7 +8,7 @@ import { cardShadow, radius, spacing, useTheme } from '../../theme';
 /** Contadores do dia: Confirmadas / Pendentes / Não confirmadas. */
 export function SummaryCards({ summary }: { summary: DoseSummary }) {
   const items: { status: DisplayStatus; label: string; value: number; icon: IconComponent }[] = [
-    { status: 'TOMADA', label: 'Confirmadas', value: summary.confirmed, icon: CheckCircle2 },
+    { status: 'CONFIRMADA_NO_HORARIO', label: 'Confirmadas', value: summary.confirmed, icon: CheckCircle2 },
     { status: 'PENDENTE', label: 'Pendentes', value: summary.pending, icon: Clock },
     { status: 'NAO_TOMADA', label: 'Não confirmadas', value: summary.missed, icon: AlertTriangle },
   ];
