@@ -16,7 +16,7 @@ import type {
   MedicationInput,
   MedicationView,
   MessagePage,
-  PdfResult,
+  PdfFile,
   SignUpInput,
   TreatmentInput,
 } from '../types/views';
@@ -92,8 +92,13 @@ export interface MessageService {
 export interface ReportService {
   /** Relatório diário de uso dos medicamentos de um idoso (UC-008). */
   getDaily(elderId: ID, day: DateKey): Promise<DailyReport>;
+  /** Só o modo demonstração (a API não tem esta consulta; o PDF traz a adesão). */
   getAdherence(elderId: ID, from: string, to: string): Promise<AdherenceReport>;
-  generatePdf(elderId: ID, from: string, to: string): Promise<PdfResult>;
+  /**
+   * PDF do histórico de adesão (período de até 12 meses). 400 VALIDACAO (período inválido ou longo demais),
+   * 404 (paciente de outra conta) e 422 PERIODO_SEM_REGISTROS chegam como AppError com o código.
+   */
+  downloadPdf(elderId: ID, from: DateKey, to: DateKey): Promise<PdfFile>;
 }
 
 /**
