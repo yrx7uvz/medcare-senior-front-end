@@ -88,8 +88,20 @@ aparência do medicamento (formato, cores, tamanho em mm, imprint, sulco) — ho
 
 ## Decisões do protótipo
 
-- **Status "Não confirmada" (ATRASADA)**: é só de exibição. No banco a dose continua `PENDENTE` depois do aviso e pode
-  ser confirmada com atraso até 180 min (RN09); depois disso aparece como `NAO_TOMADA`.
+- **Janela da dose** (vem do servidor; o app só exibe): abre 60 min antes do horário; no aviso (horário + tolerância
+  do cuidador) a dose passa a "Atrasada" e ainda pode ser confirmada até `limiteConfirmacao` (aviso + 30 min), quando
+  vira "Não confirmada" (`NAO_TOMADA`). A dose confirmada até o aviso é "Confirmada no horário"
+  (`CONFIRMADA_NO_HORARIO`); depois, "Confirmada com atraso". O cuidador também confirma, na tela da dose, e o app
+  mostra quem confirmou.
+- **Aviso de dose (push)**: o toque abre a tela da dose (app fechado, em segundo plano ou aberto) com o Painel por
+  baixo. Inerte no Expo Go, no modo demo e fora do Android.
+- **Relatório em PDF**: baixado da API (até 12 meses) e enviado pelo menu de compartilhar do Android; o arquivo fica
+  no cache privado do app só durante o envio. Usa `expo-sharing` (módulo nativo: precisa de nova build de
+  desenvolvimento no EAS).
+- **Tema**: claro/escuro guardado no aparelho (sem escolha, segue o sistema); idoso com tema claro, escuro e alto
+  contraste. Todas as cores ficam em `src/theme/colors.ts` e o `npm run check:contrast` confere os cinco temas.
+- **Modo demo fora do release**: os mocks só entram no bundle com `EXPO_PUBLIC_DEMO=true` (`npm run check:mocks`
+  falha se algo fora do caminho do demo importar os mocks).
 - **Adesão** = doses confirmadas (no prazo ou com atraso) ÷ doses encerradas. Doses ainda em aberto não entram.
   Com os mocks, de 07/05 a 05/06: Metformina 92%, Losartana 88%, Atorvastatina 65%.
 - **Sem senha no código**: a conta de demonstração entra por um botão. Contas criadas no app guardam um hash

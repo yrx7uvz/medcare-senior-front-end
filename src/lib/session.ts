@@ -128,7 +128,7 @@ export function registerSessionHandlers() {
     if (IS_DEMO || state.session === prev.session) return;
     const next = state.session;
     void safely(() => (next ? caregiverSessionStorage.save(next) : caregiverSessionStorage.clear()), undefined);
-    // Entrou (login, cadastro ou app aberto já logado): liga o token do aparelho à conta (FE-27)
+    // Entrou (login, cadastro ou app aberto já logado): liga o token do aparelho à conta
     if (next && next.token !== prev.session?.token && state.viewAs === 'CAREGIVER') void pushRegistration.register();
   });
 }

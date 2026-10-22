@@ -29,7 +29,7 @@ export function ElderHomeScreen({ navigation }: RootScreenProps<'ElderHome'>) {
   useRefreshOnFocus(unread.refresh);
 
   const caregiver = profile.data?.caregiverFirstName ?? 'quem cuida de você';
-  // Status entre as atualizações: só compara agora com a janela que veio do servidor (FE-21)
+  // Status entre as atualizações: só compara agora com a janela que veio do servidor
   const list = (doses.data ?? []).map((d) => liveAt(d, now));
   const next = pickNextDose(list);
   const allDone = list.length > 0 && !next && list.every((d) => d.storedStatus !== 'PENDENTE' || d.status === 'NAO_TOMADA');

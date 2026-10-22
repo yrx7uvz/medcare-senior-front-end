@@ -175,7 +175,7 @@ function SectionTitle({ icon: Icon, title }: { icon: IconComponent; title: strin
   );
 }
 
-/** FE-26: estado da permissão de notificações neste aparelho, com a ação que cabe. */
+/** estado da permissão de notificações neste aparelho, com a ação que cabe. */
 function PushStatus() {
   const { colors } = useTheme();
   const [permission, setPermission] = useState<PushPermission | null>(null);
