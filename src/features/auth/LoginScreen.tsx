@@ -1,5 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { LogIn, ShieldCheck, UserRoundCheck } from 'lucide-react-native';
+import LogIn from 'lucide-react-native/icons/log-in';
+import ShieldCheck from 'lucide-react-native/icons/shield-check';
+import UserRoundCheck from 'lucide-react-native/icons/user-round-check';
 import { useForm } from 'react-hook-form';
 import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -84,7 +86,13 @@ export function LoginScreen({ navigation, route }: RootScreenProps<'Login'>) {
 
           <View style={styles.signup}>
             <AppText muted>Primeira vez?</AppText>
-            <Pressable accessibilityRole="link" onPress={() => navigation.navigate('SignUp')} hitSlop={10} style={styles.link}>
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Criar conta para cuidar de alguém"
+              onPress={() => navigation.navigate('SignUp')}
+              hitSlop={10}
+              style={styles.link}
+            >
               <AppText variant="bodyStrong" color={colors.primary}>
                 Criar conta para cuidar de alguém
               </AppText>
