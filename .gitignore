@@ -30,3 +30,12 @@ yarn-debug.log*
 
 # Exemplo de variáveis de ambiente é versionado (o padrão .env.* acima o ignoraria)
 !.env.example
+
+# IDE, ferramentas locais e saídas de análise (nunca versionar)
+.idea/
+.vscode/
+tools/
+*.jtl
+.scannerwork/
+backups/
+*.dump
