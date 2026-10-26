@@ -50,6 +50,12 @@ anote o que falhou (tela e passo).
 - [ ] **PIN:** cada tecla é anunciada pelo número; "Apagar último número" no botão de apagar.
 - [ ] **Alternâncias:** "Alto contraste" e as notificações anunciam o estado ("ligado"/"desligado") e a mudança.
 - [ ] **Mensagens:** o campo anuncia "Mensagem para ..."; uma mensagem nova é lida ao chegar ao fim da lista.
+- [ ] **Seletor de horário:** cada coluna anuncia "Horas" ou "Minutos", ajustável, com o valor por extenso; deslizar
+      para cima aumenta e para baixo diminui. Os botões são "Diminuir horas" (acima) e "Aumentar horas" (abaixo), e os
+      atalhos são lidos como "Horas: oito" e "Minutos: quinze", com o escolhido marcado.
+- [ ] **Horário a menos de 5 minutos:** ao salvar, a mensagem do campo dos horários é anunciada.
+- [ ] **Notificações desligadas:** no Painel e nos Ajustes, o aviso é anunciado como alerta, seguido do botão
+      "Ativar notificações".
 
 ### Alto contraste e tema escuro
 

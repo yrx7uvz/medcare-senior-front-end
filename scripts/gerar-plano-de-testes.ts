@@ -127,6 +127,13 @@ const CASOS: Item[] = [
     ['backend', 'PersistenciaPostgresTest', 'indiceUnicoDeixaUmaSoDoseNoMesmoHorarioDoMesmoTratamento'],
     ['app', 'tests/mapeadores.test.ts', 'tratamento: horários únicos e ordenados, dias em inglês; resposta vira HH:mm e índice'],
   ] },
+  { id: 'Horário do tratamento', descricao: 'Horário de hoje com pelo menos 5 minutos de antecedência (na edição, só os novos); o que já passou fica para o próximo dia', testes: [
+    ['backend', 'AntecedenciaDoHorarioTest', 'menosDeCincoMinutosAFrenteEhRecusado'],
+    ['backend', 'EditarTratamentoUseCaseTest', 'edicaoSemMudarOsHorariosNaoEhBloqueadaPorHorarioQueJaExistia'],
+    ['backend', 'TratamentoApiTest', 'horarioAgoraOuAMenosDeCincoMinutosResponde400ComAMensagemNoTopoENoCampo'],
+    ['app', 'tests/horarioDoTratamento.test.ts', 'a menos de 5 minutos é recusado; com 5 minutos ou mais, aceito'],
+    ['app', 'tests/horarioDoTratamento.test.ts', 'horário de hoje passou: amanhã, com o texto do aviso'],
+  ] },
   { id: 'Confirmação de dose', descricao: 'Paciente confirma as próprias doses; cuidador, as dos pacientes dele', testes: [
     ['backend', 'ConfirmarDoseUseCaseTest', 'noPrazoGravaConfirmadaNoHorarioComAHoraDoServidor'],
     ['backend', 'SegurancaApiTest', 'confirmarDoseNoPrazoDevolveConfirmadaNoHorarioEDuasVezesResponde409'],
@@ -137,6 +144,7 @@ const CASOS: Item[] = [
     ['backend', 'PushNotificadorDeDoseNaoTomadaAdapterTest', 'enviaMensagemEmPortuguesComPacienteEHorarioSemOMedicamento'],
     ['backend', 'PushNotificadorDeDoseNaoTomadaAdapterTest', 'tokenInvalidoEhDescartadoDoCuidador'],
     ['app', 'tests/notificacao.test.ts', 'payload válido com cuidador logado abre a dose (app aberto, em segundo plano ou fechado: mesma decisão)'],
+    ['app', 'tests/avisoNotificacoes.test.ts', 'aparece com a permissão negada ou ainda não pedida, só onde o push existe'],
   ] },
   { id: 'UC-08 Relatório diário', descricao: 'Doses do dia de um paciente, com totais', testes: [
     ['backend', 'GerarRelatorioDiarioUseCaseTest', 'semDataUsaHojeNoFusoDaAplicacaoEMontaTotaisEDoses'],
@@ -168,6 +176,7 @@ const CASOS: Item[] = [
   { id: 'Acessibilidade', descricao: 'Contraste, tamanho de fonte e alvos de toque', testes: [
     ['app', 'tests/acessibilidade.test.ts', 'cuidador: corpo ≥ 16 sp e rótulos ≥ 14 sp; paciente ≥ 20 sp'],
     ['app', 'tests/acessibilidade.test.ts', 'cada componente-base usa a área mínima'],
+    ['app', 'tests/seletorDeHorario.test.ts', 'a ação acessível increment aumenta e decrement diminui, com volta'],
     ['app', 'tests/tema.test.ts', 'lê o alto contraste gravado com o nome antigo (elderHighContrast) por versões anteriores'],
   ] },
 ];
@@ -176,10 +185,24 @@ const MANUAIS = [
   { caso: 'Push real', roteiro: [
     'APK de release instalado no celular do cuidador, com o FCM ligado no servidor.',
     'Entre como cuidador e aceite a permissão de notificações.',
-    'Cadastre um remédio com horário daqui a 2 minutos e não confirme a dose.',
+    'Cadastre um remédio com horário daqui a 6 minutos (o app recusa horário de hoje a menos de 5) e não confirme a dose.',
     'Feche o app (deslize para tirar da lista de recentes).',
     'No fim da tolerância, a notificação chega ("... não confirmou a dose das HH:MM"), sem o nome do remédio.',
     'Toque na notificação: o app abre direto na dose.',
+  ] },
+  { caso: 'Seletor de horário', roteiro: [
+    'Remédios → Novo remédio → Adicionar horário.',
+    'Arraste a coluna das horas e a dos minutos: só a coluna rola, a tela não.',
+    'Segure o "+" dos minutos: depois de um instante repete, cada vez mais rápido; ao soltar, para.',
+    'Toque nos atalhos (ex.: 08 e :30): o horário muda na hora.',
+    'Escolha um horário de hoje daqui a 2 minutos e salve: aparece a mensagem dos 5 minutos no campo dos horários.',
+    'Escolha um horário de hoje que já passou: aparece o aviso de que a primeira dose será no próximo dia.',
+  ] },
+  { caso: 'Notificações desligadas', roteiro: [
+    'No Android, desligue as notificações do MedCare (Configurações → Apps → MedCare → Notificações).',
+    'Volte ao app: o Painel e os Ajustes mostram que as notificações estão desligadas.',
+    'Toque em "Ativar notificações": o Android pede a permissão ou abre as configurações do app; ligue e volte.',
+    'O aviso some sem precisar reabrir o app.',
   ] },
   { caso: 'TalkBack', roteiro: [
     'Siga a checklist de docs/acessibilidade.md, seções "TalkBack ligado" e "Fonte e exibição no máximo".',

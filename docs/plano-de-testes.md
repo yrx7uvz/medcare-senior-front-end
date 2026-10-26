@@ -2,7 +2,7 @@
 
 Gerado por `npm run plano:testes` (repositório do app, com o do backend ao lado). O script **confere que cada teste
 citado existe** (método no backend, título no app) e falha se algum sumir ou mudar de nome: a matriz não fica
-desatualizada. São 93 referências a testes automatizados, todas conferidas.
+desatualizada. São 100 referências a testes automatizados, todas conferidas.
 
 Como rodar todos os testes automatizados:
 - **backend:** `.\mvnw.cmd verify` (com as variáveis `POSTGRES_*`);
@@ -37,14 +37,15 @@ Como rodar todos os testes automatizados:
 | PIN do paciente | PIN local de 4 números, com hash e bloqueio progressivo | app: `tests/pin.test.ts` › PBKDF2-SHA256 com o custo atual, sal de 16 bytes aleatório: o mesmo PIN gera hashes diferentes<br>app: `tests/pin.test.ts` › a cada 5 erros seguidos, bloqueio de 30 s, 2 min, 10 min e 10 min daí em diante<br>app: `tests/pin.test.ts` › nunca guarda o PIN em texto |
 | UC-04 Remédios | Cadastro, edição e remoção de remédios | backend: `CadastrarMedicamentoUseCaseTest` › deveCadastrarMedicamento<br>backend: `EditarMedicamentoUseCaseTest` › deveRejeitarTransferenciaParaPacienteDeOutroCuidador<br>app: `tests/mapeadores.test.ts` › pedido leva só os campos da API, formato só de comprimido e estoque opcional |
 | Tratamentos e doses | Horários e dias da semana; as doses são geradas numa janela rolante | backend: `SalvarTratamentoUseCaseTest` › deveSalvarTratamentoValido<br>backend: `GeradorDeDosesServiceTest` › deveGerarSomenteNosDiasDaSemanaDoTratamento<br>backend: `GeradorDeDosesServiceTest` › naoDeveDuplicarDosesJaExistentes<br>backend: `PersistenciaPostgresTest` › indiceUnicoDeixaUmaSoDoseNoMesmoHorarioDoMesmoTratamento<br>app: `tests/mapeadores.test.ts` › tratamento: horários únicos e ordenados, dias em inglês; resposta vira HH:mm e índice |
+| Horário do tratamento | Horário de hoje com pelo menos 5 minutos de antecedência (na edição, só os novos); o que já passou fica para o próximo dia | backend: `AntecedenciaDoHorarioTest` › menosDeCincoMinutosAFrenteEhRecusado<br>backend: `EditarTratamentoUseCaseTest` › edicaoSemMudarOsHorariosNaoEhBloqueadaPorHorarioQueJaExistia<br>backend: `TratamentoApiTest` › horarioAgoraOuAMenosDeCincoMinutosResponde400ComAMensagemNoTopoENoCampo<br>app: `tests/horarioDoTratamento.test.ts` › a menos de 5 minutos é recusado; com 5 minutos ou mais, aceito<br>app: `tests/horarioDoTratamento.test.ts` › horário de hoje passou: amanhã, com o texto do aviso |
 | Confirmação de dose | Paciente confirma as próprias doses; cuidador, as dos pacientes dele | backend: `ConfirmarDoseUseCaseTest` › noPrazoGravaConfirmadaNoHorarioComAHoraDoServidor<br>backend: `SegurancaApiTest` › confirmarDoseNoPrazoDevolveConfirmadaNoHorarioEDuasVezesResponde409<br>backend: `SegurancaApiTest` › cuidadorConfirmaDoseDoProprioPacienteENaoADoPacienteDeOutroCuidador<br>app: `tests/confirmacaoCuidador.test.ts` › pendente dentro da janela: pode confirmar até o limite que veio do servidor |
-| UC-07 Aviso por push | Cuidador recebe o aviso de dose não confirmada, sem o nome do remédio | backend: `PushNotificadorDeDoseNaoTomadaAdapterTest` › enviaMensagemEmPortuguesComPacienteEHorarioSemOMedicamento<br>backend: `PushNotificadorDeDoseNaoTomadaAdapterTest` › tokenInvalidoEhDescartadoDoCuidador<br>app: `tests/notificacao.test.ts` › payload válido com cuidador logado abre a dose (app aberto, em segundo plano ou fechado: mesma decisão) |
+| UC-07 Aviso por push | Cuidador recebe o aviso de dose não confirmada, sem o nome do remédio | backend: `PushNotificadorDeDoseNaoTomadaAdapterTest` › enviaMensagemEmPortuguesComPacienteEHorarioSemOMedicamento<br>backend: `PushNotificadorDeDoseNaoTomadaAdapterTest` › tokenInvalidoEhDescartadoDoCuidador<br>app: `tests/notificacao.test.ts` › payload válido com cuidador logado abre a dose (app aberto, em segundo plano ou fechado: mesma decisão)<br>app: `tests/avisoNotificacoes.test.ts` › aparece com a permissão negada ou ainda não pedida, só onde o push existe |
 | UC-08 Relatório diário | Doses do dia de um paciente, com totais | backend: `GerarRelatorioDiarioUseCaseTest` › semDataUsaHojeNoFusoDaAplicacaoEMontaTotaisEDoses<br>backend: `GerarRelatorioDiarioUseCaseTest` › segundaChamadaDoMesmoDiaVemDoCacheMasODonoEhConferidoSempre<br>app: `tests/mapeadores.test.ts` › RelatorioDiarioResponse vira DailyReport com totais e doses |
 | UC-10 Mensagens | Conversa entre o cuidador e cada paciente | backend: `MensagemApiTest` › cuidadorEnviaParaUmPacienteSeuEPacienteEnviaParaOCuidador<br>backend: `MensagemApiTest` › conteudoVazioSoEspacosAusenteOuMaiorQue500Eh400NoCampoConteudo<br>backend: `AcessoAConversaServiceTest` › pacienteInformandoOutroPacienteEhAcessoNegado<br>app: `tests/mensagens.test.ts` › vazio ou só espaços não envia; até 500 caracteres envia; 501 não |
 | UC-11 Histórico | Histórico de doses filtrável e paginado | backend: `ConsultarHistoricoUseCaseTest` › semFiltrosBuscaTodosOsPacientesDoCuidadorAteHojeEAvaliaAsDoses<br>backend: `ConsultarHistoricoUseCaseTest` › pacienteDeOutroCuidadorEhNaoEncontrado<br>app: `tests/mapeadores.test.ts` › HistoricoResponse vira HistoryPage; caminho com filtros e junção das páginas |
 | UC-12 PDF de adesão | Exportação do histórico em PDF; período sem doses não gera arquivo | backend: `GerarRelatorioPdfUseCaseTest` › periodoSemDosesNaoGeraArquivo<br>backend: `RelatorioPdfApiTest` › periodoSemDosesEh422ComCodigo<br>app: `tests/relatorioPdf.test.ts` › nome sem dado pessoal, igual ao do servidor |
 | Segurança e contrato | Perfil exigido em cada rota, HTTPS obrigatório no app de release, contrato da API | backend: `OpenApiContratoTest` › perfilAnotadoBateComOSecurityConfigEmTodasAsRotas<br>backend: `SwaggerDesligadoEmProducaoTest` › semAVariavelADocumentacaoResponde404<br>app: `tests/configuracaoRelease.test.ts` › recusa http:// no release: há problema de configuração e o cliente HTTP não recebe o endereço<br>app: `tests/configuracaoRelease.test.ts` › a tela de configuração mostra o motivo, como alerta acessível |
-| Acessibilidade | Contraste, tamanho de fonte e alvos de toque | app: `tests/acessibilidade.test.ts` › cuidador: corpo ≥ 16 sp e rótulos ≥ 14 sp; paciente ≥ 20 sp<br>app: `tests/acessibilidade.test.ts` › cada componente-base usa a área mínima<br>app: `tests/tema.test.ts` › lê o alto contraste gravado com o nome antigo (elderHighContrast) por versões anteriores |
+| Acessibilidade | Contraste, tamanho de fonte e alvos de toque | app: `tests/acessibilidade.test.ts` › cuidador: corpo ≥ 16 sp e rótulos ≥ 14 sp; paciente ≥ 20 sp<br>app: `tests/acessibilidade.test.ts` › cada componente-base usa a área mínima<br>app: `tests/seletorDeHorario.test.ts` › a ação acessível increment aumenta e decrement diminui, com volta<br>app: `tests/tema.test.ts` › lê o alto contraste gravado com o nome antigo (elderHighContrast) por versões anteriores |
 
 ## O que só se testa à mão
 
@@ -55,10 +56,34 @@ Estes itens dependem de aparelho real, de serviço externo ou de percepção hum
 
 1. APK de release instalado no celular do cuidador, com o FCM ligado no servidor.
 2. Entre como cuidador e aceite a permissão de notificações.
-3. Cadastre um remédio com horário daqui a 2 minutos e não confirme a dose.
+3. Cadastre um remédio com horário daqui a 6 minutos (o app recusa horário de hoje a menos de 5) e não confirme a dose.
 4. Feche o app (deslize para tirar da lista de recentes).
 5. No fim da tolerância, a notificação chega ("... não confirmou a dose das HH:MM"), sem o nome do remédio.
 6. Toque na notificação: o app abre direto na dose.
+
+| Aparelho e Android | Data | Resultado | Observação |
+|---|---|---|---|
+| | | | |
+
+### Seletor de horário
+
+1. Remédios → Novo remédio → Adicionar horário.
+2. Arraste a coluna das horas e a dos minutos: só a coluna rola, a tela não.
+3. Segure o "+" dos minutos: depois de um instante repete, cada vez mais rápido; ao soltar, para.
+4. Toque nos atalhos (ex.: 08 e :30): o horário muda na hora.
+5. Escolha um horário de hoje daqui a 2 minutos e salve: aparece a mensagem dos 5 minutos no campo dos horários.
+6. Escolha um horário de hoje que já passou: aparece o aviso de que a primeira dose será no próximo dia.
+
+| Aparelho e Android | Data | Resultado | Observação |
+|---|---|---|---|
+| | | | |
+
+### Notificações desligadas
+
+1. No Android, desligue as notificações do MedCare (Configurações → Apps → MedCare → Notificações).
+2. Volte ao app: o Painel e os Ajustes mostram que as notificações estão desligadas.
+3. Toque em "Ativar notificações": o Android pede a permissão ou abre as configurações do app; ligue e volte.
+4. O aviso some sem precisar reabrir o app.
 
 | Aparelho e Android | Data | Resultado | Observação |
 |---|---|---|---|

@@ -14,10 +14,13 @@ Um mesmo app tem dois perfis, escolhidos na primeira tela:
 **Cuidador** (abas Painel, Remédios, Histórico, Mensagens e Ajustes):
 1. Cria a conta (senha forte e aceite do termo LGPD) e entra.
 2. Cadastra o paciente e gera o **código de vínculo** de 6 números, válido por 24 horas.
-3. Cadastra os remédios (formato, cor, dosagem) e o tratamento (horários, dias da semana, início e fim).
+3. Cadastra os remédios (formato, cor, dosagem) e o tratamento (horários, dias da semana, início e fim). Os horários
+   saem de um seletor em rolagem com botões "−" e "+" (segurar repete) e atalhos. Um horário de hoje precisa de pelo
+   menos 5 minutos de antecedência; se os horários de hoje já passaram, o app avisa quando será a primeira dose.
 4. No **Painel**, vê as doses de hoje: pendentes, atrasadas, confirmadas e não confirmadas. Toca numa dose para ver os
    detalhes e, dentro da janela, **confirmar por ele**.
-5. Recebe o **aviso push** quando uma dose não é confirmada a tempo; o toque abre a dose.
+5. Recebe o **aviso push** quando uma dose não é confirmada a tempo; o toque abre a dose. Se as notificações estiverem
+   desligadas no aparelho, o Painel e os Ajustes avisam e oferecem "Ativar notificações".
 6. Consulta o **relatório do dia**, o **histórico** com filtros, e **exporta o PDF** de adesão (até 12 meses),
    compartilhado pelo menu do Android.
 7. Troca **mensagens** com cada paciente, ajusta a **tolerância** do aviso (5 a 120 minutos), o tema e as notificações,
