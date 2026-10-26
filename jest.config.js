@@ -8,10 +8,10 @@ module.exports = {
   setupFiles: ['<rootDir>/tests/setup-env.ts'],
   collectCoverageFrom: [
     'src/lib/{apiTime,dailyReport,date,doseLive,doseRules,formErrors,history,jwt,masks,medicationMeta,password,schemas,serverClock}.ts',
-    'src/features/elder/nextDose.ts',
+    'src/features/patient/nextDose.ts',
     'src/features/medications/formValues.ts',
     'src/adapters/http/{apiError,ids}.ts',
-    'src/adapters/http/{HttpDoseService,HttpElderService,HttpMedicationService,HttpReportService}.ts',
+    'src/adapters/http/{HttpDoseService,HttpPatientService,HttpMedicationService,HttpReportService}.ts',
   ],
   coverageReporters: ['text-summary', 'text'],
 };

@@ -3,7 +3,7 @@ import type { Services } from '../../services/types';
 import type { LinkCode } from '../../types/domain';
 import { mockAuthService } from './MockAuthService';
 import { mockDoseService } from './MockDoseService';
-import { mockElderService, resetPairingAttempts } from './MockElderService';
+import { mockPatientService, resetPairingAttempts } from './MockPatientService';
 import { mockMedicationInfoService } from './MockMedicationInfoService';
 import { mockMedicationService } from './MockMedicationService';
 import { mockMessageService } from './MockMessageService';
@@ -16,7 +16,7 @@ import { mockReportService } from './MockReportService';
  */
 export const mockServices: Services = {
   auth: mockAuthService,
-  elders: mockElderService,
+  patients: mockPatientService,
   medications: mockMedicationService,
   doses: mockDoseService,
   messages: mockMessageService,
@@ -36,7 +36,7 @@ export function resetDemoDb() {
 }
 
 /** Códigos de vínculo de teste, com o nome do paciente, para o menu do protótipo. */
-export function listDemoLinkCodes(): (LinkCode & { elderName: string })[] {
+export function listDemoLinkCodes(): (LinkCode & { patientName: string })[] {
   const db = getDb();
-  return db.linkCodes.map((c) => ({ ...c, elderName: db.elders.find((e) => e.id === c.elderId)?.name ?? '—' }));
+  return db.linkCodes.map((c) => ({ ...c, patientName: db.patients.find((e) => e.id === c.patientId)?.name ?? '—' }));
 }

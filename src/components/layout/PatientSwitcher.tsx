@@ -12,18 +12,18 @@ import { radius, spacing, useTheme } from '../../theme';
 import { AppText, Avatar } from '../ui';
 
 /**
- * Filtro de idosos fixo no topo das telas do cuidador. A escolha fica no estado
+ * Filtro de pacientes fixo no topo das telas do cuidador. A escolha fica no estado
  * global e persiste entre as abas. Ponto vermelho = dose não confirmada hoje.
  */
-export function ElderSwitcher() {
+export function PatientSwitcher() {
   const { colors } = useTheme();
   const navigation = useNavigation<RootNavigation>();
-  const selected = useAppStore((s) => s.selectedElderId);
-  const setSelected = useAppStore((s) => s.setSelectedElder);
+  const selected = useAppStore((s) => s.selectedPatientId);
+  const setSelected = useAppStore((s) => s.setSelectedPatient);
   const now = useNow();
-  const elders = useQuery(['elders'], () => services.elders.list());
+  const patients = useQuery(['patients'], () => services.patients.list());
   const alerts = useQuery(['alerts'], () => services.doses.listAlerts(), { silentKey: minuteStamp(now) });
-  const alertIds = new Set((alerts.data ?? []).map((a) => a.elderId));
+  const alertIds = new Set((alerts.data ?? []).map((a) => a.patientId));
   const first = useRef(true);
 
   useEffect(() => {
@@ -31,16 +31,16 @@ export function ElderSwitcher() {
       first.current = false;
       return;
     }
-    const name = selected === 'ALL' ? 'todos os pacientes' : elders.data?.find((e) => e.id === selected)?.name;
+    const name = selected === 'ALL' ? 'todos os pacientes' : patients.data?.find((e) => e.id === selected)?.name;
     if (name) AccessibilityInfo.announceForAccessibility(`Exibindo ${name}`);
-  }, [selected, elders.data]);
+  }, [selected, patients.data]);
 
-  // Se o idoso selecionado deixou de existir, volta para "Todos".
+  // Se o paciente selecionado deixou de existir, volta para "Todos".
   useEffect(() => {
-    if (selected !== 'ALL' && elders.data && !elders.data.some((e) => e.id === selected)) setSelected('ALL');
-  }, [elders.data, selected, setSelected]);
+    if (selected !== 'ALL' && patients.data && !patients.data.some((e) => e.id === selected)) setSelected('ALL');
+  }, [patients.data, selected, setSelected]);
 
-  const items = elders.data ?? [];
+  const items = patients.data ?? [];
   const allAlert = alertIds.size > 0;
 
   return (
@@ -57,7 +57,7 @@ export function ElderSwitcher() {
             </View>
           }
         />
-        {elders.loading && !items.length
+        {patients.loading && !items.length
           ? [0, 1].map((i) => <View key={i} style={[styles.placeholder, { backgroundColor: colors.skeleton }]} />)
           : items.map((e) => (
               <SwitchChip
@@ -73,7 +73,7 @@ export function ElderSwitcher() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Cadastrar novo paciente"
-          onPress={() => navigation.navigate('ElderForm')}
+          onPress={() => navigation.navigate('PatientForm')}
           style={({ pressed }) => [styles.chip, styles.newChip, { borderColor: colors.primary, opacity: pressed ? 0.7 : 1 }]}
         >
           <Plus color={colors.primary} size={18} />

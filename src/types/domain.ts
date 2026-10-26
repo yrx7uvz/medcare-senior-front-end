@@ -1,5 +1,5 @@
 /**
- * Modelo de domínio do front-end. Espelha as entidades da API (Cuidador, Idoso,
+ * Modelo de domínio do front-end. Espelha as entidades da API (Cuidador, Paciente,
  * Medicamento, Tratamento, Dose, Mensagem, CodigoVinculo) com os campos extras
  * de aparência do remédio usados pelo PillVisual.
  */
@@ -18,7 +18,7 @@ export interface Caregiver {
   lgpdConsentAt: DateTimeKey;
 }
 
-export interface Elder {
+export interface Patient {
   id: ID;
   caregiverId: ID;
   name: string;
@@ -52,7 +52,7 @@ export interface MedicationAppearance {
 
 export interface Medication extends MedicationAppearance {
   id: ID;
-  elderId: ID;
+  patientId: ID;
   name: string;
   dosage: string;
   stock?: number;
@@ -94,13 +94,13 @@ export type DoseStatus = 'PENDENTE' | 'CONFIRMADA_NO_HORARIO' | 'NAO_TOMADA' | '
  */
 export type DisplayStatus = DoseStatus | 'ATRASADA';
 
-/** Quem confirmou a dose (dose.confirmado_por): o idoso, no aparelho dele, ou o cuidador, na tela da dose. */
-export type ConfirmedBy = 'IDOSO' | 'CUIDADOR';
+/** Quem confirmou a dose (dose.confirmado_por): o paciente, no aparelho dele, ou o cuidador, na tela da dose. */
+export type ConfirmedBy = 'PACIENTE' | 'CUIDADOR';
 
 /** Dose registrada é imutável: toda mudança gera um novo objeto. */
 export interface Dose {
   readonly id: ID;
-  readonly elderId: ID;
+  readonly patientId: ID;
   readonly medicationId: ID;
   readonly treatmentId: ID | null;
   readonly scheduledAt: DateTimeKey;
@@ -111,11 +111,11 @@ export interface Dose {
   readonly timeNote?: string;
 }
 
-export type MessageAuthor = 'CUIDADOR' | 'IDOSO';
+export type MessageAuthor = 'CUIDADOR' | 'PACIENTE';
 
 export interface Message {
   id: ID;
-  elderId: ID;
+  patientId: ID;
   from: MessageAuthor;
   text: string;
   sentAt: DateTimeKey;
@@ -125,7 +125,7 @@ export interface Message {
 
 export interface LinkCode {
   code: string;
-  elderId: ID;
+  patientId: ID;
   /** Epoch em ms (relógio do protótipo). */
   expiresAt: number;
   used: boolean;

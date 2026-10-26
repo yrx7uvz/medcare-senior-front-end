@@ -3,13 +3,14 @@ import { createPinGuard, type PinCheck } from './pinCore';
 import { parseThemePrefs, serializeThemePrefs, type ThemePrefs } from './themePrefs';
 
 /**
- * Dados guardados no aparelho: o perfil escolhido (cuidador ou idoso), a sessão
- * do cuidador, a sessão do idoso (token de dispositivo) e o hash do PIN local de 4
+ * Dados guardados no aparelho: o perfil escolhido (cuidador ou paciente), a sessão
+ * do cuidador, a sessão do paciente (token de dispositivo) e o hash do PIN local de 4
  * dígitos com as tentativas (HU07, chaves em pinCore). Usa o Keystore do Android via
  * expo-secure-store; se indisponível (ex.: web), cai para memória e nada é persistido.
  */
 const KEYS = {
-  elderSession: 'medcare.elder.session',
+  // Nome antigo do perfil ("elder"): a chave já está gravada nos aparelhos pareados e mudar desconectaria todos
+  patientSession: 'medcare.elder.session',
   profile: 'medcare.device.profile',
   caregiverSession: 'medcare.caregiver.session',
   notificationPrefs: 'medcare.notification.prefs',
@@ -49,16 +50,18 @@ function parseJson<T>(raw: string | null): T | null {
   }
 }
 
-export type DeviceProfile = 'CUIDADOR' | 'IDOSO';
+export type DeviceProfile = 'CUIDADOR' | 'PACIENTE';
 
-/** Perfil escolhido na primeira tela ("Sou cuidador" / "Sou idoso"). */
+/** Perfil escolhido na primeira tela ("Sou cuidador" / "Sou paciente"). */
 export const profileStorage = {
   async save(profile: DeviceProfile) {
     await setItem(KEYS.profile, profile);
   },
   async load(): Promise<DeviceProfile | null> {
     const raw = await getItem(KEYS.profile);
-    return raw === 'CUIDADOR' || raw === 'IDOSO' ? raw : null;
+    // 'IDOSO' = nome antigo do perfil, gravado por versões anteriores
+    if (raw === 'IDOSO') return 'PACIENTE';
+    return raw === 'CUIDADOR' || raw === 'PACIENTE' ? raw : null;
   },
   async clear() {
     await removeItem(KEYS.profile);
@@ -103,18 +106,20 @@ const pinGuard = createPinGuard({
   monotonicNow: () => globalThis.performance.now(),
 });
 
-export interface StoredElderSession {
-  elderId: string;
+export interface StoredPatientSession {
+  patientId: string;
   token: string;
 }
 
-export const elderDeviceStorage = {
-  async saveSession(session: StoredElderSession) {
-    await setItem(KEYS.elderSession, JSON.stringify(session));
+export const patientDeviceStorage = {
+  async saveSession(session: StoredPatientSession) {
+    await setItem(KEYS.patientSession, JSON.stringify(session));
   },
-  async loadSession(): Promise<StoredElderSession | null> {
-    const s = parseJson<StoredElderSession>(await getItem(KEYS.elderSession));
-    return s && typeof s.elderId === 'string' && typeof s.token === 'string' ? s : null;
+  async loadSession(): Promise<StoredPatientSession | null> {
+    // elderId = nome antigo do campo, gravado por versões anteriores
+    const s = parseJson<Partial<StoredPatientSession> & { elderId?: unknown }>(await getItem(KEYS.patientSession));
+    const patientId = s?.patientId ?? s?.elderId;
+    return s && typeof patientId === 'string' && typeof s.token === 'string' ? { patientId, token: s.token } : null;
   },
   /** Grava só o hash do PIN (com sal aleatório) e zera as tentativas. */
   async savePin(pin: string) {
@@ -132,7 +137,7 @@ export const elderDeviceStorage = {
     await pinGuard.persist();
   },
   async clear() {
-    await removeItem(KEYS.elderSession);
+    await removeItem(KEYS.patientSession);
     await pinGuard.clear();
   },
 };
@@ -178,7 +183,7 @@ export const pushStorage = {
   },
 };
 
-/** Aparência escolhida (tema claro/escuro e alto contraste do idoso). Não é dado de saúde. */
+/** Aparência escolhida (tema claro/escuro e alto contraste do paciente). Não é dado de saúde. */
 export const themeStorage = {
   async load(): Promise<ThemePrefs> {
     return parseThemePrefs(await getItem(KEYS.themePrefs));

@@ -34,7 +34,7 @@ export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
   const showToast = useAppStore((s) => s.showToast);
 
   const tolerance = useQuery(['tolerance'], () => services.doses.getTolerance());
-  const elders = useQuery(['elders'], () => services.elders.list());
+  const patients = useQuery(['patients'], () => services.patients.list());
   const saveTolerance = useMutation(services.doses.setTolerance);
   const deleteAccount = useMutation(services.auth.deleteAccount);
   const [draft, setDraft] = useState<number | null>(null);
@@ -102,15 +102,15 @@ export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
 
         <Card style={styles.card}>
           <SectionTitle icon={UserPlus} title="Pacientes" />
-          {(elders.data ?? []).map((e) => (
-            <View key={e.id} style={styles.elderRow}>
+          {(patients.data ?? []).map((e) => (
+            <View key={e.id} style={styles.patientRow}>
               <Avatar name={e.name} color={e.avatarColor} size={36} />
               <AppText variant="bodyStrong" style={styles.flex}>{e.name}</AppText>
               <Button title="Código" icon={KeyRound} size="sm" variant="secondary" accessibilityLabel={`Gerar código de vínculo para ${e.name}`}
-                onPress={() => navigation.navigate('LinkCode', { elderId: e.id })} />
+                onPress={() => navigation.navigate('LinkCode', { patientId: e.id })} />
             </View>
           ))}
-          <Button title="Cadastrar novo paciente" icon={UserPlus} variant="secondary" onPress={() => navigation.navigate('ElderForm')} />
+          <Button title="Cadastrar novo paciente" icon={UserPlus} variant="secondary" onPress={() => navigation.navigate('PatientForm')} />
         </Card>
 
         <Card style={styles.card}>
@@ -234,6 +234,6 @@ const styles = StyleSheet.create({
   body: { padding: spacing.lg, gap: spacing.lg },
   card: { gap: spacing.md },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  elderRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  patientRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   prefRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 52 },
 });

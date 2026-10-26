@@ -15,7 +15,7 @@ function toView(m: Medication): MedicationView {
   const treatment = db.treatments.find((t) => t.medicationId === m.id && !t.removedAt);
   return {
     medication: m,
-    elderName: db.elders.find((e) => e.id === m.elderId)?.name ?? 'Paciente',
+    patientName: db.patients.find((e) => e.id === m.patientId)?.name ?? 'Paciente',
     treatment,
     activeTreatment: isTreatmentActive(treatment, toDateKey(getNow())),
     scheduleSummary: scheduleSummary(treatment),
@@ -33,12 +33,12 @@ function validate(input: MedicationInput) {
   if (input.treatment.endDate && input.treatment.startDate > input.treatment.endDate) {
     throw httpError(400, 'A data de início não pode ser posterior à data de fim.');
   }
-  if (!getDb().elders.some((e) => e.id === input.elderId)) throw httpError(404, 'Paciente não encontrado.');
+  if (!getDb().patients.some((e) => e.id === input.patientId)) throw httpError(404, 'Paciente não encontrado.');
 }
 
 function medicationFields(input: MedicationInput) {
   return {
-    elderId: input.elderId,
+    patientId: input.patientId,
     name: input.name.trim(),
     dosage: input.dosage.trim(),
     type: input.type,
@@ -75,9 +75,9 @@ export const mockMedicationService: MedicationService = {
   list: (filter) =>
     simulate(() =>
       getDb()
-        .medications.filter((m) => !m.removedAt && (filter === 'ALL' || m.elderId === filter))
+        .medications.filter((m) => !m.removedAt && (filter === 'ALL' || m.patientId === filter))
         .map(toView)
-        .sort((a, b) => a.elderName.localeCompare(b.elderName) || a.medication.name.localeCompare(b.medication.name)),
+        .sort((a, b) => a.patientName.localeCompare(b.patientName) || a.medication.name.localeCompare(b.medication.name)),
     ),
 
   get: (id) =>

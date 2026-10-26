@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import {
-  FOREIGN_ELDER_NOTICE,
+  FOREIGN_PATIENT_NOTICE,
   MISSING_DOSE_NOTICE,
   decideDoseOpen,
   doseOpenFailure,
@@ -9,15 +9,15 @@ import {
 } from '../src/lib/doseOpen';
 import { responseData } from '../src/lib/pushCore';
 
-const PAYLOAD = { tipo: 'DOSE_NAO_CONFIRMADA', doseId: '5000', idosoId: '12', data: '2026-10-18' };
-const ALVO = { doseId: '5000', elderId: '12', day: '2026-10-18' };
+const PAYLOAD = { tipo: 'DOSE_NAO_CONFIRMADA', doseId: '5000', pacienteId: '12', data: '2026-10-18' };
+const ALVO = { doseId: '5000', patientId: '12', day: '2026-10-18' };
 const CUIDADOR_LOGADO: DoseOpenContext = { viewAs: 'CAREGIVER', hasSession: true };
 
 describe('toque no aviso de dose: payload até o destino', () => {
   it('payload válido com cuidador logado abre a dose (app aberto, em segundo plano ou fechado: mesma decisão)', () => {
     expect(resolveDoseOpen(PAYLOAD, CUIDADOR_LOGADO)).toEqual({ action: 'abrir-dose', target: ALVO });
     // O FCM manda texto, mas números também são aceitos
-    expect(resolveDoseOpen({ ...PAYLOAD, doseId: 5000, idosoId: 12 }, CUIDADOR_LOGADO)).toEqual({ action: 'abrir-dose', target: ALVO });
+    expect(resolveDoseOpen({ ...PAYLOAD, doseId: 5000, pacienteId: 12 }, CUIDADOR_LOGADO)).toEqual({ action: 'abrir-dose', target: ALVO });
   });
 
   it.each([
@@ -25,7 +25,7 @@ describe('toque no aviso de dose: payload até o destino', () => {
     ['texto solto', 'DOSE_NAO_CONFIRMADA'],
     ['objeto vazio', {}],
     ['sem doseId', { ...PAYLOAD, doseId: undefined }],
-    ['sem idosoId', { ...PAYLOAD, idosoId: undefined }],
+    ['sem pacienteId', { ...PAYLOAD, pacienteId: undefined }],
     ['sem data', { ...PAYLOAD, data: undefined }],
     ['data em outro formato', { ...PAYLOAD, data: '18/10/2026' }],
     ['id que não é número', { ...PAYLOAD, doseId: 'abc' }],
@@ -43,14 +43,14 @@ describe('toque no aviso de dose: payload até o destino', () => {
     expect(resolveDoseOpen(PAYLOAD, { viewAs: null, hasSession: false })).toEqual({ action: 'aguardar-login', target: ALVO });
   });
 
-  it('aparelho no perfil do idoso ignora o aviso (ele é só do cuidador)', () => {
-    expect(resolveDoseOpen(PAYLOAD, { viewAs: 'ELDER', hasSession: false })).toEqual({ action: 'ignorar' });
-    expect(resolveDoseOpen(PAYLOAD, { viewAs: 'ELDER', hasSession: true })).toEqual({ action: 'ignorar' });
+  it('aparelho no perfil do paciente ignora o aviso (ele é só do cuidador)', () => {
+    expect(resolveDoseOpen(PAYLOAD, { viewAs: 'PATIENT', hasSession: false })).toEqual({ action: 'ignorar' });
+    expect(resolveDoseOpen(PAYLOAD, { viewAs: 'PATIENT', hasSession: true })).toEqual({ action: 'ignorar' });
   });
 
-  it('idoso que não pertence à conta logada leva ao Painel com aviso', () => {
-    expect(resolveDoseOpen(PAYLOAD, { ...CUIDADOR_LOGADO, knownElderIds: ['7', '8'] })).toEqual({ action: 'painel', notice: FOREIGN_ELDER_NOTICE });
-    expect(resolveDoseOpen(PAYLOAD, { ...CUIDADOR_LOGADO, knownElderIds: ['7', '12'] })).toEqual({ action: 'abrir-dose', target: ALVO });
+  it('paciente que não pertence à conta logada leva ao Painel com aviso', () => {
+    expect(resolveDoseOpen(PAYLOAD, { ...CUIDADOR_LOGADO, knownPatientIds: ['7', '8'] })).toEqual({ action: 'painel', notice: FOREIGN_PATIENT_NOTICE });
+    expect(resolveDoseOpen(PAYLOAD, { ...CUIDADOR_LOGADO, knownPatientIds: ['7', '12'] })).toEqual({ action: 'abrir-dose', target: ALVO });
   });
 
   it('decideDoseOpen aceita o destino já lido do payload', () => {

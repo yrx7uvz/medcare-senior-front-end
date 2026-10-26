@@ -29,7 +29,7 @@ function toSession(a: CaregiverAccount): CaregiverSession {
 function activate(account: CaregiverAccount) {
   mutateDb((db) => {
     db.activeCaregiverId = account.id;
-    db.elders.forEach((e) => {
+    db.patients.forEach((e) => {
       e.caregiverId = account.id;
     });
   });

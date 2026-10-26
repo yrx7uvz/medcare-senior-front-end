@@ -9,15 +9,15 @@ import { getDb } from '../../mocks/db';
 export function toDoseView(d: Dose, now: Date): DoseView {
   const db = getDb();
   const medication = db.medications.find((m) => m.id === d.medicationId)!;
-  const elder = db.elders.find((e) => e.id === d.elderId);
+  const patient = db.patients.find((e) => e.id === d.patientId);
   const treatment = db.treatments.find((t) => t.id === d.treatmentId);
   const scheduled = parseDateTime(d.scheduledAt);
   const tol = db.toleranceMinutes;
   const window = doseWindow(scheduled, tol);
   return {
     id: d.id,
-    elderId: d.elderId,
-    elderName: elder?.name ?? 'Paciente',
+    patientId: d.patientId,
+    patientName: patient?.name ?? 'Paciente',
     medication,
     treatmentId: d.treatmentId,
     scheduledAt: d.scheduledAt,

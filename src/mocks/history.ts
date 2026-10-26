@@ -46,14 +46,14 @@ export function buildHistory(treatment: Treatment, medication: Medication, today
       const scheduledAt = toDateTimeKey(scheduled);
       doses.push({
         id: doseId(treatment.id, scheduledAt),
-        elderId: medication.elderId,
+        patientId: medication.patientId,
         medicationId: medication.id,
         treatmentId: treatment.id,
         scheduledAt,
         status,
         confirmedAt: confirmed ? toDateTimeKey(confirmed) : undefined,
         // Algumas confirmadas pelo cuidador, na tela da dose
-        confirmedBy: confirmed ? (index % 9 === 4 ? 'CUIDADOR' : 'IDOSO') : undefined,
+        confirmedBy: confirmed ? (index % 9 === 4 ? 'CUIDADOR' : 'PACIENTE') : undefined,
         timeNote: t.note,
       });
       index += 1;

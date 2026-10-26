@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 import { parseApiError, parseJsonBody } from '../src/adapters/http/apiError';
 import { toDoseView, toHistoryPage, type DoseResponse } from '../src/adapters/http/HttpDoseService';
-import { avatarColorFor, toElder, toLinkCode } from '../src/adapters/http/HttpElderService';
+import { avatarColorFor, toPatient, toLinkCode } from '../src/adapters/http/HttpPatientService';
 import {
   apiColorToHex,
   toMedicamentoRequest,
@@ -30,8 +30,8 @@ import type { Treatment } from '../src/types/domain';
 
 const DOSE: DoseResponse = {
   id: 5000,
-  idosoId: 12,
-  idosoNome: 'José',
+  pacienteId: 12,
+  pacienteNome: 'José',
   medicamentoId: 501,
   medicamentoNome: 'Losartana',
   dosagem: '50mg',
@@ -55,30 +55,30 @@ describe('ids opacos', () => {
   });
 });
 
-describe('idoso e código de vínculo', () => {
-  it('IdosoResponse vira Elder com cor estável pelo id e telefone opcional', () => {
-    const e = toElder({ id: 7, nome: 'Maria', dataNascimento: '1945-03-12', telefone: null, cuidadorId: 1 });
+describe('paciente e código de vínculo', () => {
+  it('PacienteResponse vira Patient com cor estável pelo id e telefone opcional', () => {
+    const e = toPatient({ id: 7, nome: 'Maria', dataNascimento: '1945-03-12', telefone: null, cuidadorId: 1 });
     expect(e).toEqual({ id: '7', caregiverId: '1', name: 'Maria', birthDate: '1945-03-12', phone: undefined, avatarColor: avatarColorFor(7) });
-    expect(toElder({ id: 7, nome: 'Maria', dataNascimento: '1945-03-12', telefone: '11999998888', cuidadorId: 1 }).phone).toBe('11999998888');
+    expect(toPatient({ id: 7, nome: 'Maria', dataNascimento: '1945-03-12', telefone: '11999998888', cuidadorId: 1 }).phone).toBe('11999998888');
   });
 
   it('CodigoVinculoResponse vira LinkCode com validade em São Paulo; validade ilegível é erro', () => {
-    expect(toLinkCode({ codigo: '123456', idosoId: 7, expiraEm: '2026-10-19T08:00:00' })).toEqual({
+    expect(toLinkCode({ codigo: '123456', pacienteId: 7, expiraEm: '2026-10-19T08:00:00' })).toEqual({
       code: '123456',
-      elderId: '7',
+      patientId: '7',
       expiresAt: Date.UTC(2026, 9, 19, 11, 0),
       used: false,
     });
-    expect(() => toLinkCode({ codigo: '1', idosoId: 7, expiraEm: 'amanhã' })).toThrow(AppError);
+    expect(() => toLinkCode({ codigo: '1', pacienteId: 7, expiraEm: 'amanhã' })).toThrow(AppError);
   });
 });
 
 describe('medicamento e tratamento', () => {
-  const dto = { id: 501, nome: 'Losartana', dosagem: '50mg', tipo: 'CAPSULA', formato: 'oval', cor: '#3D7DCA', quantidadeEstoque: 30, bulaUrl: null, idosoId: 12 };
+  const dto = { id: 501, nome: 'Losartana', dosagem: '50mg', tipo: 'CAPSULA', formato: 'oval', cor: '#3D7DCA', quantidadeEstoque: 30, bulaUrl: null, pacienteId: 12 };
 
   it('MedicamentoResponse vira Medication; tipo legado e cor fora do padrão são tolerados', () => {
     const m = toMedication(dto);
-    expect(m).toMatchObject({ id: '501', elderId: '12', type: 'CAPSULA', shape: 'OVAL', primaryColor: '#3D7DCA', stock: 30, bulaUrl: undefined });
+    expect(m).toMatchObject({ id: '501', patientId: '12', type: 'CAPSULA', shape: 'OVAL', primaryColor: '#3D7DCA', stock: 30, bulaUrl: undefined });
     const legado = toMedication({ ...dto, tipo: 'Comprimido revestido', formato: 'Redondinho', cor: 'Branco', quantidadeEstoque: null });
     expect(legado).toMatchObject({ type: 'COMPRIMIDO', shape: undefined, primaryColor: undefined, stock: undefined });
     expect(apiColorToHex('#abcdef')).toBe('#abcdef');
@@ -88,12 +88,12 @@ describe('medicamento e tratamento', () => {
 
   it('pedido leva só os campos da API, formato só de comprimido e estoque opcional', () => {
     const input = {
-      elderId: '12', name: ' Losartana ', dosage: ' 50mg ', type: 'COMPRIMIDO' as const, shape: 'OVAL' as const, primaryColor: 'azul',
+      patientId: '12', name: ' Losartana ', dosage: ' 50mg ', type: 'COMPRIMIDO' as const, shape: 'OVAL' as const, primaryColor: 'azul',
       stock: 0, bulaUrl: '  ', appearanceSource: 'MANUAL' as const,
       treatment: { startDate: '2026-10-18', weekdays: [1], times: [{ time: '08:00' }] },
     };
     expect(toMedicamentoRequest(input)).toEqual({
-      nome: 'Losartana', dosagem: '50mg', tipo: 'COMPRIMIDO', formato: 'OVAL', cor: undefined, quantidadeEstoque: 0, bulaUrl: undefined, idosoId: 12,
+      nome: 'Losartana', dosagem: '50mg', tipo: 'COMPRIMIDO', formato: 'OVAL', cor: undefined, quantidadeEstoque: 0, bulaUrl: undefined, pacienteId: 12,
     });
     expect(toMedicamentoRequest({ ...input, type: 'GOTAS', stock: undefined }).formato).toBeUndefined();
   });
@@ -131,7 +131,7 @@ describe('medicamento e tratamento', () => {
     const t = toTreatment({ id: 900, medicamentoId: 501, dataInicio: '2026-10-18', dataFim: null, horarios: ['08:00:00'], diasSemana: ['MONDAY'] });
     const values = valuesFromMedication(m, t, new Date(2026, 9, 18));
     expect(values).toMatchObject({ name: 'Losartana', type: 'CAPSULA', stock: '30', startDate: '18/10/2026', endDate: '', weekdays: [1] });
-    expect(toMedicationInput(values)).toMatchObject({ elderId: '12', shape: undefined, stock: 30, treatment: { startDate: '2026-10-18', endDate: undefined, weekdays: [1] } });
+    expect(toMedicationInput(values)).toMatchObject({ patientId: '12', shape: undefined, stock: 30, treatment: { startDate: '2026-10-18', endDate: undefined, weekdays: [1] } });
     expect(toMedicationInput({ ...emptyMedicationValues('12', new Date(2026, 9, 18)), name: 'X', dosage: 'Y' }).stock).toBeUndefined();
   });
 });
@@ -140,7 +140,7 @@ describe('dose, relatório e histórico', () => {
   it('DoseResponseDTO vira DoseView com status, janela, confirmabilidade e cor do servidor', () => {
     const v = toDoseView(DOSE);
     expect(v).toMatchObject({
-      id: '5000', elderId: '12', elderName: 'José', treatmentId: '900', scheduledAt: '2026-10-18T08:00', confirmedAt: undefined,
+      id: '5000', patientId: '12', patientName: 'José', treatmentId: '900', scheduledAt: '2026-10-18T08:00', confirmedAt: undefined,
       storedStatus: 'PENDENTE', status: 'ATRASADA', confirmability: 'OK', toleranceMinutes: 30, doseQuantity: '1 comprimido', route: 'Via oral',
       window: { opensAt: '2026-10-18T07:00', alertAt: '2026-10-18T08:30', closesAt: '2026-10-18T11:00' },
     });
@@ -152,12 +152,12 @@ describe('dose, relatório e histórico', () => {
 
   it('RelatorioDiarioResponse vira DailyReport com totais e doses', () => {
     const r = toDailyReport({
-      idoso: { id: 12, nome: 'José' },
+      paciente: { id: 12, nome: 'José' },
       data: '2026-10-18',
       totais: { total: 4, confirmadasNoHorario: 1, confirmadasComAtraso: 1, naoTomadas: 1, pendentes: 1, aderenciaPercentual: 66.7 },
       doses: [DOSE],
     });
-    expect(r.elder).toEqual({ id: '12', name: 'José' });
+    expect(r.patient).toEqual({ id: '12', name: 'José' });
     expect(r.totals).toEqual({ total: 4, onTime: 1, late: 1, missed: 1, pending: 1, adherencePercent: 66.7 });
     expect(r.doses.map((d) => d.id)).toEqual(['5000']);
     expect(dailyTotals(['CONFIRMADA_NO_HORARIO', 'CONFIRMADA_COM_ATRASO', 'NAO_TOMADA', 'PENDENTE'])).toEqual(r.totals);

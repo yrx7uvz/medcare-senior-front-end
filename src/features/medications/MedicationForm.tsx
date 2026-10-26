@@ -6,18 +6,18 @@ import { AppText, Button, Card, FormTextField } from '../../components/ui';
 import { DEFAULT_PRIMARY, isBottle } from '../../lib/medicationMeta';
 import { medicationFormSchema, type MedicationFormValues } from '../../lib/schemas';
 import type { AppError } from '../../services/errors';
-import type { Elder, MedicationAppearance, MedicationType } from '../../types/domain';
+import type { Patient, MedicationAppearance, MedicationType } from '../../types/domain';
 import { spacing, useTheme } from '../../theme';
 import { AppearanceSection } from './form/AppearanceSection';
-import { ElderSection } from './form/ElderSection';
+import { PatientSection } from './form/PatientSection';
 import { FormErrorBox, NoticeBox } from './form/FormErrorBox';
 import { MedicationDataSection } from './form/MedicationDataSection';
 import { ScheduleSection } from './form/ScheduleSection';
 
 interface Props {
   defaultValues: MedicationFormValues;
-  elders: Elder[];
-  lockElder: boolean;
+  patients: Patient[];
+  lockPatient: boolean;
   isEdit: boolean;
   submitting: boolean;
   submitError?: AppError;
@@ -34,7 +34,7 @@ interface Props {
  * bula, dias, horários, início e fim. Cada parte fica num componente de ./form.
  */
 export function MedicationForm({
-  defaultValues, elders, lockElder, isEdit, submitting, submitError, submitLabel, lockMedicationFields, onSubmit,
+  defaultValues, patients, lockPatient, isEdit, submitting, submitError, submitLabel, lockMedicationFields, onSubmit,
 }: Props) {
   const { colors } = useTheme();
   const { control, handleSubmit, watch, setValue, formState } = useForm<MedicationFormValues>({
@@ -45,7 +45,7 @@ export function MedicationForm({
 
   // react-hook-form não é compatível com o React Compiler (só aviso; o projeto não usa o compilador).
   // eslint-disable-next-line react-hooks/incompatible-library
-  const [type, shape, primaryColor, name, dosage, elderId] = watch(['type', 'shape', 'primaryColor', 'name', 'dosage', 'elderId']);
+  const [type, shape, primaryColor, name, dosage, patientId] = watch(['type', 'shape', 'primaryColor', 'name', 'dosage', 'patientId']);
   const appearance: MedicationAppearance = { type, shape: type === 'COMPRIMIDO' ? shape : undefined, primaryColor };
 
   const set = <K extends keyof MedicationFormValues>(k: K, v: MedicationFormValues[K]) =>
@@ -58,7 +58,7 @@ export function MedicationForm({
 
   return (
     <View style={styles.wrap}>
-      <ElderSection control={control} elders={elders} lockElder={lockElder} elderId={elderId} />
+      <PatientSection control={control} patients={patients} lockPatient={lockPatient} patientId={patientId} />
       <MedicationDataSection control={control} type={type} onTypeChange={changeType} />
       <AppearanceSection
         appearance={appearance}

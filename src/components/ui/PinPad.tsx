@@ -42,7 +42,7 @@ export function PinPad({ onDigit, onBackspace, disabled }: PadProps) {
               },
             ]}
           >
-            {k === 'del' ? <Delete color={colors.text} size={30} /> : <AppText variant="elderDisplay" maxFontSizeMultiplier={1.2}>{k}</AppText>}
+            {k === 'del' ? <Delete color={colors.text} size={30} /> : <AppText variant="patientDisplay" maxFontSizeMultiplier={1.2}>{k}</AppText>}
           </Pressable>
         ),
       )}
@@ -76,7 +76,7 @@ export function DigitBoxes({ value, length, masked, error }: { value: string; le
               masked ? (
                 <View style={[styles.dot, { backgroundColor: colors.text }]} />
               ) : (
-                <AppText variant="elderDisplay" maxFontSizeMultiplier={1}>
+                <AppText variant="patientDisplay" maxFontSizeMultiplier={1}>
                   {value[i]}
                 </AppText>
               )

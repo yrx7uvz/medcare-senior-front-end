@@ -8,7 +8,7 @@ import { cardShadow, radius, spacing, useTheme } from '../../theme';
 
 interface Props {
   dose: DoseView;
-  showElder?: boolean;
+  showPatient?: boolean;
   onPress?: () => void;
 }
 
@@ -16,7 +16,7 @@ interface Props {
  * Linha de dose do cuidador: desenho do remédio, nome, horário, status e quem confirmou. Em tela estreita ou com fonte
  * ampliada os textos quebram linha em vez de cortar; o status fica embaixo do nome para ter a largura toda.
  */
-export function DoseCard({ dose, showElder, onPress }: Props) {
+export function DoseCard({ dose, showPatient, onPress }: Props) {
   const { colors, mode } = useTheme();
   const med = dose.medication;
   const time = formatTime(dose.scheduledAt);
@@ -25,7 +25,7 @@ export function DoseCard({ dose, showElder, onPress }: Props) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${med.name} ${med.dosage}, ${TYPE_LABEL[med.type]}, às ${time}${showElder ? `, ${dose.elderName}` : ''}. ${statusLabel(dose.status)}. ${detail ?? ''}`}
+      accessibilityLabel={`${med.name} ${med.dosage}, ${TYPE_LABEL[med.type]}, às ${time}${showPatient ? `, ${dose.patientName}` : ''}. ${statusLabel(dose.status)}. ${detail ?? ''}`}
       accessibilityHint="Abre os detalhes da dose"
       onPress={onPress}
       style={({ pressed }) => [
@@ -43,9 +43,9 @@ export function DoseCard({ dose, showElder, onPress }: Props) {
           {TYPE_LABEL[med.type]} • {dose.doseQuantity}
           {dose.timeNote ? ` • ${dose.timeNote}` : ''}
         </AppText>
-        {showElder ? (
-          <AppText variant="caption" color={colors.primaryDark} style={styles.elder} numberOfLines={2}>
-            {dose.elderName}
+        {showPatient ? (
+          <AppText variant="caption" color={colors.primaryDark} style={styles.patient} numberOfLines={2}>
+            {dose.patientName}
           </AppText>
         ) : null}
         {detail ? (
@@ -77,6 +77,6 @@ const styles = StyleSheet.create({
   },
   middle: { flex: 1, gap: 2, minWidth: 0 },
   badge: { marginTop: spacing.xs },
-  elder: { fontFamily: 'NunitoSans_700Bold' },
+  patient: { fontFamily: 'NunitoSans_700Bold' },
   time: { flexShrink: 0 },
 });

@@ -18,15 +18,15 @@ const slug = (s: string) =>
  * Adesão = doses confirmadas (no prazo ou com atraso) ÷ doses encerradas
  * (confirmadas + não tomadas). Doses ainda abertas não entram na conta.
  */
-function adherence(elderId: string, from: string, to: string) {
+function adherence(patientId: string, from: string, to: string) {
   if (from > to) throw httpError(400, 'A data de início não pode ser posterior à data de fim.');
   const db = getDb();
-  const elder = db.elders.find((e) => e.id === elderId);
-  if (!elder) throw httpError(404, 'Paciente não encontrado.');
+  const patient = db.patients.find((e) => e.id === patientId);
+  if (!patient) throw httpError(404, 'Paciente não encontrado.');
   const now = getNow();
   const nowKey = toDateTimeKey(now);
   const views = db.doses
-    .filter((d) => d.elderId === elderId && d.scheduledAt.slice(0, 10) >= from && d.scheduledAt.slice(0, 10) <= to && d.scheduledAt <= nowKey)
+    .filter((d) => d.patientId === patientId && d.scheduledAt.slice(0, 10) >= from && d.scheduledAt.slice(0, 10) <= to && d.scheduledAt <= nowKey)
     .map((d) => toDoseView(d, now));
 
   const byMed = new Map<string, AdherenceItem>();
@@ -47,7 +47,7 @@ function adherence(elderId: string, from: string, to: string) {
   const confirmed = items.reduce((s, i) => s + i.confirmed, 0);
   const closed = items.reduce((s, i) => s + i.confirmed + i.missed, 0);
   return {
-    elder,
+    patient,
     from,
     to,
     items,
@@ -57,30 +57,30 @@ function adherence(elderId: string, from: string, to: string) {
 }
 
 export const mockReportService: ReportService = {
-  getDaily: (elderId, day) =>
+  getDaily: (patientId, day) =>
     simulate(() => {
       const db = getDb();
-      const elder = db.elders.find((e) => e.id === elderId);
-      if (!elder) throw httpError(404, 'Paciente não encontrado.');
+      const patient = db.patients.find((e) => e.id === patientId);
+      if (!patient) throw httpError(404, 'Paciente não encontrado.');
       const now = getNow();
       const doses = db.doses
-        .filter((d) => d.elderId === elderId && d.scheduledAt.startsWith(day))
+        .filter((d) => d.patientId === patientId && d.scheduledAt.startsWith(day))
         .map((d) => toDoseView(d, now))
         .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
-      return { elder: { id: elder.id, name: elder.name }, day, totals: dailyTotals(doses.map((d) => d.storedStatus)), doses };
+      return { patient: { id: patient.id, name: patient.name }, day, totals: dailyTotals(doses.map((d) => d.storedStatus)), doses };
     }),
 
-  getAdherence: (elderId, from, to) => simulate(() => adherence(elderId, from, to)),
+  getAdherence: (patientId, from, to) => simulate(() => adherence(patientId, from, to)),
 
   /** Mesmas regras de período do servidor; o arquivo é um PDF de exemplo marcado como demonstração. */
-  downloadPdf: (elderId, from, to) =>
+  downloadPdf: (patientId, from, to) =>
     simulate(() => {
       const period = pdfPeriod(keyToBR(from), keyToBR(to));
       if (period.error) throw httpError(400, period.error, 'VALIDACAO');
-      const report = adherence(elderId, from, to);
+      const report = adherence(patientId, from, to);
       if (report.totalDoses === 0) throw httpError(422, 'Não há doses registradas neste período.', 'PERIODO_SEM_REGISTROS');
       return {
-        fileName: `demonstracao-${pdfFileName(slug(report.elder.name), from, to)}`,
+        fileName: `demonstracao-${pdfFileName(slug(report.patient.name), from, to)}`,
         bytes: demoPdfBytes(`Historico de adesao de ${from} a ${to} (exemplo)`),
         demo: true,
       };

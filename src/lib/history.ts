@@ -39,13 +39,13 @@ export function historyRange(period: HistoryPeriod, todayKey: DateKey, customFro
   return { from, to, error: null };
 }
 
-/** Caminho de GET /api/historico com só os filtros informados (idoso "Todos" e status "Todos" não vão). */
+/** Caminho de GET /api/historico com só os filtros informados (paciente "Todos" e status "Todos" não vão). */
 export function historyPath(
   base: string,
-  params: { elderApiId?: number; medicationApiId?: number; from: DateKey; to: DateKey; status: HistoryStatusFilter; page: number; size: number },
+  params: { patientApiId?: number; medicationApiId?: number; from: DateKey; to: DateKey; status: HistoryStatusFilter; page: number; size: number },
 ): string {
   const query: [string, string][] = [];
-  if (params.elderApiId !== undefined) query.push(['idosoId', String(params.elderApiId)]);
+  if (params.patientApiId !== undefined) query.push(['pacienteId', String(params.patientApiId)]);
   if (params.medicationApiId !== undefined) query.push(['medicamentoId', String(params.medicationApiId)]);
   query.push(['de', params.from], ['ate', params.to]);
   if (params.status !== 'ALL') query.push(['status', params.status]);

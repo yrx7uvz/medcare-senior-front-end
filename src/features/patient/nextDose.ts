@@ -1,7 +1,7 @@
 import type { DoseView } from '../../types/views';
 
 /**
- * Próxima dose do idoso: primeiro as atrasadas que ainda podem ser confirmadas,
+ * Próxima dose do paciente: primeiro as atrasadas que ainda podem ser confirmadas,
  * depois as do horário; se nenhuma estiver liberada, a próxima do dia.
  */
 export function pickNextDose(doses: DoseView[], afterId?: string): DoseView | undefined {

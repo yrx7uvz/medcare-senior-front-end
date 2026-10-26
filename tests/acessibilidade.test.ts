@@ -2,7 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { checkTheme, contrastRatio, MIN_LARGE_OR_UI, MIN_TEXT, relativeLuminance } from '../src/lib/contrast';
-import { darkColors, elderColors, elderHighContrastColors, lightColors } from '../src/theme/colors';
+import { darkColors, patientColors, patientHighContrastColors, lightColors } from '../src/theme/colors';
 import { hitSlopFor, touch } from '../src/theme/spacing';
 import { CAREGIVER_MIN_BODY, CAREGIVER_MIN_LABEL, textVariants } from '../src/theme/typography';
 
@@ -24,8 +24,8 @@ describe('contraste WCAG', () => {
   it.each([
     ['claro', lightColors],
     ['escuro', darkColors],
-    ['idoso', elderColors],
-    ['idoso alto contraste', elderHighContrastColors],
+    ['paciente', patientColors],
+    ['paciente alto contraste', patientHighContrastColors],
   ])('tema %s: todos os pares de texto ≥ 4,5:1 e bordas/indicadores ≥ 3:1', (_nome, cores) => {
     const reprovados = checkTheme(cores).filter((r) => !r.ok).map((r) => `${r.name}: ${r.ratio.toFixed(2)}`);
     expect(reprovados).toEqual([]);
@@ -39,11 +39,11 @@ describe('contraste WCAG', () => {
 });
 
 describe('tamanho de fonte', () => {
-  it('cuidador: corpo ≥ 16 sp e rótulos ≥ 14 sp; idoso ≥ 20 sp', () => {
+  it('cuidador: corpo ≥ 16 sp e rótulos ≥ 14 sp; paciente ≥ 20 sp', () => {
     expect(CAREGIVER_MIN_BODY).toBe(16);
     expect(CAREGIVER_MIN_LABEL).toBe(14);
     for (const [nome, estilo] of Object.entries(textVariants)) {
-      if (nome.startsWith('elder')) expect(estilo.fontSize).toBeGreaterThanOrEqual(20);
+      if (nome.startsWith('patient')) expect(estilo.fontSize).toBeGreaterThanOrEqual(20);
       else expect(estilo.fontSize).toBeGreaterThanOrEqual(CAREGIVER_MIN_LABEL);
     }
     expect(textVariants.body.fontSize).toBeGreaterThanOrEqual(CAREGIVER_MIN_BODY);

@@ -3,7 +3,7 @@ import { sha256 } from '@noble/hashes/sha2';
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
 
 /**
- * PIN local do idoso (HU07), sem React nem módulos nativos (as dependências entram por parâmetro, para testar).
+ * PIN local do paciente (HU07), sem React nem módulos nativos (as dependências entram por parâmetro, para testar).
  *
  * Guardado só como hash: PBKDF2-HMAC-SHA256 com sal aleatório de 16 bytes, comparação em tempo constante. PBKDF2 em
  * JavaScript puro (@noble/hashes) roda no Hermes sem módulo nativo; o custo (iterações) fica gravado junto do hash e,
@@ -57,6 +57,7 @@ export interface PinDeps {
   iterations?: number;
 }
 
+/** Chaves com o nome antigo do perfil ("elder"): já estão gravadas nos aparelhos e mudar apagaria o PIN. */
 export const PIN_KEYS = {
   record: 'medcare.elder.pinHash',
   attempts: 'medcare.elder.pinAttempts',

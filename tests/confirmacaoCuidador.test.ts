@@ -4,9 +4,9 @@ import type { DoseView } from '../src/types/views';
 
 const dose = (over: Partial<DoseView> = {}): DoseView => ({
   id: '1',
-  elderId: '12',
-  elderName: 'José Ferreira',
-  medication: { id: '501', elderId: '12', name: 'Losartana', dosage: '50mg', type: 'COMPRIMIDO', appearanceSource: 'MANUAL', createdAt: '' },
+  patientId: '12',
+  patientName: 'José Ferreira',
+  medication: { id: '501', patientId: '12', name: 'Losartana', dosage: '50mg', type: 'COMPRIMIDO', appearanceSource: 'MANUAL', createdAt: '' },
   treatmentId: '900',
   scheduledAt: '2026-10-18T08:00',
   storedStatus: 'PENDENTE',
@@ -42,7 +42,7 @@ describe('botão "Confirmar dose" do cuidador', () => {
 
   it('registrada: sem botão, com quem confirmou', () => {
     const registrada = { storedStatus: 'CONFIRMADA_NO_HORARIO' as const, status: 'CONFIRMADA_NO_HORARIO' as const, confirmability: 'JA_REGISTRADA' as const };
-    expect(caregiverConfirmState(dose({ ...registrada, confirmedAt: '2026-10-18T08:05', confirmedBy: 'IDOSO' }))).toEqual({
+    expect(caregiverConfirmState(dose({ ...registrada, confirmedAt: '2026-10-18T08:05', confirmedBy: 'PACIENTE' }))).toEqual({
       kind: 'registrada',
       message: 'Confirmada por José às 08:05',
     });

@@ -3,7 +3,7 @@ import { ClipboardPaste, Link2 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
-import { ElderScreen } from '../../components/layout/ElderScreen';
+import { PatientScreen } from '../../components/layout/PatientScreen';
 import { SwitchProfileLink } from '../../components/layout/SwitchProfileLink';
 import { AppText, BigActionButton, Button, DigitBoxes, PinPad } from '../../components/ui';
 import { services } from '../../services';
@@ -14,17 +14,17 @@ import { useMutation } from '../../lib/useQuery';
 import { radius, spacing, useTheme } from '../../theme';
 
 /**
- * Pareamento do aparelho do idoso: código de 6 números (digitado no teclado da tela ou colado), com bloqueio
+ * Pareamento do aparelho do paciente: código de 6 números (digitado no teclado da tela ou colado), com bloqueio
  * temporário depois de muitas tentativas erradas.
  */
-export function PairingScreen({ navigation }: RootScreenProps<'ElderPairing'>) {
+export function PairingScreen({ navigation }: RootScreenProps<'PatientPairing'>) {
   const { colors } = useTheme();
   const [code, setCode] = useState('');
   const [blockedUntil, setBlockedUntil] = useState<number | null>(null);
   const [tick, setTick] = useState(() => Date.now());
   const [pasteMessage, setPasteMessage] = useState<string | null>(null);
-  const validate = useMutation(services.elders.validateLinkCode);
-  // Ex.: aparelho desconectado pela API (sessão do idoso inválida)
+  const validate = useMutation(services.patients.validateLinkCode);
+  // Ex.: aparelho desconectado pela API (sessão do paciente inválida)
   const flash = useAppStore((s) => s.flash);
   const setFlash = useAppStore((s) => s.setFlash);
 
@@ -60,7 +60,7 @@ export function PairingScreen({ navigation }: RootScreenProps<'ElderPairing'>) {
     setFlash(null);
     const pairing = await validate.mutate(code);
     if (pairing) {
-      navigation.navigate('ElderCreatePin', pairing);
+      navigation.navigate('PatientCreatePin', pairing);
       setCode('');
     } else {
       setCode('');
@@ -80,7 +80,7 @@ export function PairingScreen({ navigation }: RootScreenProps<'ElderPairing'>) {
       : null;
 
   return (
-    <ElderScreen
+    <PatientScreen
       footer={
         <BigActionButton
           title="CONECTAR"
@@ -92,14 +92,14 @@ export function PairingScreen({ navigation }: RootScreenProps<'ElderPairing'>) {
       }
     >
       <View style={styles.head}>
-        <AppText variant="elderDisplay" accessibilityRole="header">Vamos conectar seu celular</AppText>
-        <AppText variant="elderBody" muted>
+        <AppText variant="patientDisplay" accessibilityRole="header">Vamos conectar seu celular</AppText>
+        <AppText variant="patientBody" muted>
           Digite os 6 números que quem cuida de você recebeu no aplicativo.
         </AppText>
       </View>
       {flash ? (
         <View style={[styles.error, { backgroundColor: colors.infoSoft }]} accessibilityRole="alert">
-          <AppText variant="elderBody" align="center">{flash}</AppText>
+          <AppText variant="patientBody" align="center">{flash}</AppText>
         </View>
       ) : null}
       <DigitBoxes value={code} length={6} error={!!errorText} />
@@ -114,11 +114,11 @@ export function PairingScreen({ navigation }: RootScreenProps<'ElderPairing'>) {
         onPress={() => void pasteCode()}
       />
       {pasteMessage ? (
-        <AppText variant="elderBody" color={colors.danger} align="center" accessibilityRole="alert">{pasteMessage}</AppText>
+        <AppText variant="patientBody" color={colors.danger} align="center" accessibilityRole="alert">{pasteMessage}</AppText>
       ) : null}
       {errorText ? (
         <View style={[styles.error, { backgroundColor: colors.dangerSoft }]} accessibilityRole="alert">
-          <AppText variant="elderBody" color={colors.danger} align="center">{errorText}</AppText>
+          <AppText variant="patientBody" color={colors.danger} align="center">{errorText}</AppText>
         </View>
       ) : null}
       <PinPad
@@ -131,7 +131,7 @@ export function PairingScreen({ navigation }: RootScreenProps<'ElderPairing'>) {
         onBackspace={() => setCode((c) => c.slice(0, -1))}
       />
       <SwitchProfileLink />
-    </ElderScreen>
+    </PatientScreen>
   );
 }
 

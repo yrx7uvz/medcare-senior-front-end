@@ -19,7 +19,7 @@ export type CaregiverConfirmState =
 
 export function caregiverConfirmState(dose: DoseView): CaregiverConfirmState {
   if (dose.storedStatus !== 'PENDENTE') {
-    return { kind: 'registrada', message: dose.confirmedAt ? confirmedByText(dose.confirmedBy, firstName(dose.elderName), formatTime(dose.confirmedAt)) : null };
+    return { kind: 'registrada', message: dose.confirmedAt ? confirmedByText(dose.confirmedBy, firstName(dose.patientName), formatTime(dose.confirmedAt)) : null };
   }
   if (dose.confirmability === 'MUITO_CEDO') return { kind: 'cedo', message: `A confirmação abre às ${formatTime(dose.window.opensAt)}` };
   if (dose.confirmability === 'ENCERRADA' || dose.status === 'NAO_TOMADA') {
@@ -30,7 +30,7 @@ export function caregiverConfirmState(dose: DoseView): CaregiverConfirmState {
 
 /** Pergunta do diálogo antes de enviar: "Confirmar que José tomou Losartana das 08:00?" */
 export const confirmQuestion = (dose: DoseView) =>
-  `Confirmar que ${firstName(dose.elderName)} tomou ${dose.medication.name} das ${formatTime(dose.scheduledAt)}?`;
+  `Confirmar que ${firstName(dose.patientName)} tomou ${dose.medication.name} das ${formatTime(dose.scheduledAt)}?`;
 
 /**
  * Mensagem clara para cada falha da confirmação. `reload` = a dose mudou no servidor (já registrada ou fora do prazo):
@@ -62,6 +62,6 @@ export function doseCardDetail(dose: DoseView): string | null {
     case 'NAO_TOMADA':
       return 'Prazo encerrado sem confirmação';
     default:
-      return dose.confirmedAt ? confirmedByText(dose.confirmedBy, firstName(dose.elderName), formatTime(dose.confirmedAt)) : null;
+      return dose.confirmedAt ? confirmedByText(dose.confirmedBy, firstName(dose.patientName), formatTime(dose.confirmedAt)) : null;
   }
 }

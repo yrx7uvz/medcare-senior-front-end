@@ -6,16 +6,16 @@ import type { DoseService } from '../../services/types';
 import { MEDICATION_TYPE_VALUES, type ConfirmedBy, type DateKey, type DoseStatus, type MedicationType } from '../../types/domain';
 import type { AlertView, Confirmability, DoseView, HistoryPage } from '../../types/views';
 import { endpoints } from './endpoints';
-import { toElder, type IdosoResponse } from './HttpElderService';
+import { toPatient, type PacienteResponse } from './HttpPatientService';
 import { getViewer, request } from './httpClient';
 import { apiColorToHex } from './HttpMedicationService';
 import { fromApiId, toApiId } from './ids';
 
-/** GET /api/idosos/{id}/doses, GET /api/idosos/me/doses e PUT /api/doses/{id}/confirmar (DoseResponseDTO). */
+/** GET /api/pacientes/{id}/doses, GET /api/pacientes/me/doses e PUT /api/doses/{id}/confirmar (DoseResponseDTO). */
 export interface DoseResponse {
   id: number;
-  idosoId: number;
-  idosoNome: string;
+  pacienteId: number;
+  pacienteNome: string;
   medicamentoId: number;
   medicamentoNome: string;
   dosagem: string;
@@ -47,14 +47,14 @@ const toType = (tipo: string): MedicationType => ((MEDICATION_TYPE_VALUES as rea
  */
 export function toDoseView(dto: DoseResponse): DoseView {
   const type = toType(dto.tipo);
-  const elderId = fromApiId(dto.idosoId);
+  const patientId = fromApiId(dto.pacienteId);
   return {
     id: fromApiId(dto.id),
-    elderId,
-    elderName: dto.idosoNome,
+    patientId,
+    patientName: dto.pacienteNome,
     medication: {
       id: fromApiId(dto.medicamentoId),
-      elderId,
+      patientId,
       name: dto.medicamentoNome,
       dosage: dto.dosagem,
       type,
@@ -80,13 +80,13 @@ export function toDoseView(dto: DoseResponse): DoseView {
 
 /**
  * A API não tem GET de uma dose: o detalhe é achado no dia dela. Guardamos de onde veio cada dose já listada
- * (idoso e dia) para buscar o dia de novo e pegar a versão atual.
+ * (paciente e dia) para buscar o dia de novo e pegar a versão atual.
  */
-const doseOrigin = new Map<string, { elderId: string; day: DateKey }>();
+const doseOrigin = new Map<string, { patientId: string; day: DateKey }>();
 export const forgetDoseOrigins = () => doseOrigin.clear();
 
 export function remember(views: DoseView[]) {
-  for (const v of views) doseOrigin.set(v.id, { elderId: v.elderId, day: v.scheduledAt.slice(0, 10) });
+  for (const v of views) doseOrigin.set(v.id, { patientId: v.patientId, day: v.scheduledAt.slice(0, 10) });
   return views;
 }
 
@@ -109,25 +109,25 @@ export function toHistoryPage(dto: HistoricoResponse): HistoryPage {
   };
 }
 
-const byTime = (a: DoseView, b: DoseView) => a.scheduledAt.localeCompare(b.scheduledAt) || a.elderName.localeCompare(b.elderName);
+const byTime = (a: DoseView, b: DoseView) => a.scheduledAt.localeCompare(b.scheduledAt) || a.patientName.localeCompare(b.patientName);
 
-/** Doses de um idoso num dia: o cuidador usa a rota do idoso; o idoso, a rota "me" (o idoso vem do token). */
-async function listOfElder(elderId: string, day: DateKey): Promise<DoseView[]> {
-  const path = getViewer() === 'ELDER' ? endpoints.myDoses(day) : endpoints.elderDoses(String(toApiId(elderId)), day);
+/** Doses de um paciente num dia: o cuidador usa a rota do paciente; o paciente, a rota "me" (o paciente vem do token). */
+async function listOfPatient(patientId: string, day: DateKey): Promise<DoseView[]> {
+  const path = getViewer() === 'PATIENT' ? endpoints.myDoses(day) : endpoints.patientDoses(String(toApiId(patientId)), day);
   return remember((await request<DoseResponse[]>('GET', path)).map(toDoseView));
 }
 
 async function listForDay(filter: string, day: DateKey): Promise<DoseView[]> {
-  if (filter !== 'ALL') return (await listOfElder(filter, day)).sort(byTime);
-  // "Todos" (só cuidador): a API lista por idoso
-  const elders = (await request<IdosoResponse[]>('GET', endpoints.elders)).map(toElder);
-  const lists = await Promise.all(elders.map((e) => listOfElder(e.id, day)));
+  if (filter !== 'ALL') return (await listOfPatient(filter, day)).sort(byTime);
+  // "Todos" (só cuidador): a API lista por paciente
+  const patients = (await request<PacienteResponse[]>('GET', endpoints.patients)).map(toPatient);
+  const lists = await Promise.all(patients.map((e) => listOfPatient(e.id, day)));
   return lists.flat().sort(byTime);
 }
 
 /**
- * Doses reais na API. Confirmar (PUT /api/doses/{id}/confirmar) vale para o idoso (a própria dose) e para o cuidador
- * (dose de um idoso dele): o servidor sabe quem é pelo token e grava confirmadoPor. Os erros 409 DOSE_JA_REGISTRADA,
+ * Doses reais na API. Confirmar (PUT /api/doses/{id}/confirmar) vale para o paciente (a própria dose) e para o cuidador
+ * (dose de um paciente dele): o servidor sabe quem é pelo token e grava confirmadoPor. Os erros 409 DOSE_JA_REGISTRADA,
  * DOSE_MUITO_CEDO e DOSE_ENCERRADA chegam como AppError com o código e a mensagem clara.
  */
 export const httpDoseService: DoseService = {
@@ -136,7 +136,7 @@ export const httpDoseService: DoseService = {
   async get(id, hint) {
     const origin = hint ?? doseOrigin.get(id);
     if (!origin) throw httpError(404, 'Não encontramos esta dose. Volte e abra de novo pela lista.', 'RECURSO_NAO_ENCONTRADO');
-    const dose = (await listOfElder(origin.elderId, origin.day)).find((d) => d.id === id);
+    const dose = (await listOfPatient(origin.patientId, origin.day)).find((d) => d.id === id);
     if (!dose) throw httpError(404, 'Não encontramos esta dose. Ela pode ter sido removida.', 'RECURSO_NAO_ENCONTRADO');
     return dose;
   },
@@ -154,8 +154,8 @@ export const httpDoseService: DoseService = {
       .filter((d) => d.storedStatus === 'PENDENTE' && (d.status === 'ATRASADA' || d.status === 'NAO_TOMADA'))
       .map<AlertView>((d) => ({
         doseId: d.id,
-        elderId: d.elderId,
-        elderName: d.elderName,
+        patientId: d.patientId,
+        patientName: d.patientName,
         medicationName: d.medication.name,
         dosage: d.medication.dosage,
         scheduledAt: d.scheduledAt,
@@ -164,12 +164,12 @@ export const httpDoseService: DoseService = {
   },
 
   /**
-   * GET /api/historico (só cuidador): idoso "Todos" não manda idosoId (a API restringe aos idosos do cuidador).
-   * Período invertido chega como 400 VALIDACAO com a mensagem da API; idoso alheio, 404.
+   * GET /api/historico (só cuidador): paciente "Todos" não manda pacienteId (a API restringe aos pacientes do cuidador).
+   * Período invertido chega como 400 VALIDACAO com a mensagem da API; paciente alheio, 404.
    */
   async listHistory(query) {
     const path = historyPath(endpoints.history, {
-      elderApiId: query.elder === 'ALL' ? undefined : toApiId(query.elder),
+      patientApiId: query.patient === 'ALL' ? undefined : toApiId(query.patient),
       medicationApiId: query.medicationId ? toApiId(query.medicationId) : undefined,
       from: query.from,
       to: query.to,

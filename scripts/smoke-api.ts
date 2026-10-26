@@ -1,9 +1,9 @@
 /// <reference types="node" />
 /**
- * Teste ponta a ponta REAL contra a API (backend rodando). Cria um cuidador com e-mail aleatório, um idoso, um
- * remédio e um tratamento com dose daqui a ~20 min, pareia o idoso, confirma a dose e por fim exclui a conta (o que
- * apaga tudo o que foi criado). Além das chamadas diretas, faz o fluxo do app pelos ADAPTERS HTTP (idosos, remédio e
- * tratamento, doses do cuidador e do idoso, confirmação, edição e remoção com a RN06, histórico, mensagens nos dois
+ * Teste ponta a ponta REAL contra a API (backend rodando). Cria um cuidador com e-mail aleatório, um paciente, um
+ * remédio e um tratamento com dose daqui a ~20 min, pareia o paciente, confirma a dose e por fim exclui a conta (o que
+ * apaga tudo o que foi criado). Além das chamadas diretas, faz o fluxo do app pelos ADAPTERS HTTP (pacientes, remédio e
+ * tratamento, doses do cuidador e do paciente, confirmação, edição e remoção com a RN06, histórico, mensagens nos dois
  * papéis). Falha em qualquer passo =
  * código de saída != 0 com o passo.
  *
@@ -58,7 +58,7 @@ async function main() {
   // Importados depois de definir o ambiente: env.ts lê EXPO_PUBLIC_* ao carregar
   const { request, setTokenProvider, setViewerProvider } = await import('../src/adapters/http/httpClient');
   const { httpAuthService } = await import('../src/adapters/http/HttpAuthService');
-  const { httpElderService } = await import('../src/adapters/http/HttpElderService');
+  const { httpPatientService } = await import('../src/adapters/http/HttpPatientService');
   const { httpMedicationService } = await import('../src/adapters/http/HttpMedicationService');
   const { httpDoseService } = await import('../src/adapters/http/HttpDoseService');
   const { httpReportService } = await import('../src/adapters/http/HttpReportService');
@@ -71,7 +71,7 @@ async function main() {
 
   let token: string | null = null;
   setTokenProvider(() => token);
-  let viewer: 'CAREGIVER' | 'ELDER' = 'CAREGIVER';
+  let viewer: 'CAREGIVER' | 'PATIENT' = 'CAREGIVER';
   setViewerProvider(() => viewer);
 
   let passo = '';
@@ -119,17 +119,17 @@ async function main() {
     assert.equal(sessao.caregiverId, cadastro.caregiverId);
     token = sessao.token;
 
-    const idoso = await step('cadastro do idoso (POST /api/idosos)', () =>
-      request<{ id: number; nome: string }>('POST', '/api/idosos', { nome: 'Idoso Smoke', dataNascimento: '1945-03-12' }),
+    const paciente = await step('cadastro do paciente (POST /api/pacientes)', () =>
+      request<{ id: number; nome: string }>('POST', '/api/pacientes', { nome: 'Paciente Smoke', dataNascimento: '1945-03-12' }),
     );
-    const idosoId = fromApiId(idoso.id);
+    const pacienteId = fromApiId(paciente.id);
 
     const medicamento = await step('cadastro do remédio (POST /api/medicamentos, COMPRIMIDO)', () =>
       request<{ id: number; tipo: string }>('POST', '/api/medicamentos', {
         nome: 'Losartana',
         dosagem: '50mg',
         tipo: 'COMPRIMIDO',
-        idosoId: toApiId(idosoId),
+        pacienteId: toApiId(pacienteId),
       }),
     );
     assert.equal(medicamento.tipo, 'COMPRIMIDO');
@@ -142,25 +142,25 @@ async function main() {
       }),
     );
 
-    const codigo = await step('gerar código de vínculo (POST /api/idosos/{id}/gerar-codigo)', () =>
-      request<{ codigo: string }>('POST', `/api/idosos/${toApiId(idosoId)}/gerar-codigo`),
+    const codigo = await step('gerar código de vínculo (POST /api/pacientes/{id}/gerar-codigo)', () =>
+      request<{ codigo: string }>('POST', `/api/pacientes/${toApiId(pacienteId)}/gerar-codigo`),
     );
     assert.match(codigo.codigo, /^\d{6}$/);
 
     token = null;
-    const pareamento = await step('pareamento do idoso (POST /api/vinculo/validar)', () =>
+    const pareamento = await step('pareamento do paciente (POST /api/vinculo/validar)', () =>
       request<{ token: string; id: number; nome: string }>('POST', '/api/vinculo/validar', { codigo: codigo.codigo }),
     );
-    assert.equal(fromApiId(pareamento.id), idosoId);
-    assert.equal(pareamento.nome, 'Idoso Smoke');
-    const tokenIdoso = pareamento.token;
-    token = tokenIdoso;
+    assert.equal(fromApiId(pareamento.id), pacienteId);
+    assert.equal(pareamento.nome, 'Paciente Smoke');
+    const tokenPaciente = pareamento.token;
+    token = tokenPaciente;
 
-    const dose = await step('GET /api/idosos/me e /api/idosos/me/doses (dose na janela)', async () => {
-      const me = await request<{ id: number; nome: string; cuidadorNome: string }>('GET', '/api/idosos/me');
-      assert.equal(fromApiId(me.id), idosoId);
+    const dose = await step('GET /api/pacientes/me e /api/pacientes/me/doses (dose na janela)', async () => {
+      const me = await request<{ id: number; nome: string; cuidadorNome: string }>('GET', '/api/pacientes/me');
+      assert.equal(fromApiId(me.id), pacienteId);
       assert.equal(me.cuidadorNome, 'Cuidador Smoke');
-      const doses = await request<DoseDTO[]>('GET', '/api/idosos/me/doses');
+      const doses = await request<DoseDTO[]>('GET', '/api/pacientes/me/doses');
       const encontrada = doses.find((d) => d.medicamentoId === medicamento.id && d.horarioProgramado.startsWith(`${hoje.dia}T${alvo.hora}`));
       assert.ok(encontrada, `dose de ${alvo.hora} não encontrada em ${JSON.stringify(doses)}`);
       assert.equal(encontrada.confirmabilidade, 'OK');
@@ -173,23 +173,23 @@ async function main() {
     // ---- Fluxo do app pelos adapters HTTP ----
     token = sessao.token;
     viewer = 'CAREGIVER';
-    await step('app: idosos do cuidador (httpElderService.list/get)', async () => {
-      const lista = await httpElderService.list();
-      assert.ok(lista.some((e) => e.id === idosoId && e.name === 'Idoso Smoke'));
-      const detalhe = await httpElderService.get(idosoId);
+    await step('app: pacientes do cuidador (httpPatientService.list/get)', async () => {
+      const lista = await httpPatientService.list();
+      assert.ok(lista.some((e) => e.id === pacienteId && e.name === 'Paciente Smoke'));
+      const detalhe = await httpPatientService.get(pacienteId);
       assert.equal(detalhe.birthDate, '1945-03-12');
     });
 
-    const outroIdoso = await step('app: cadastrar outro idoso e repetir -> 409 IDOSO_DUPLICADO', async () => {
-      const novo = await httpElderService.create({ name: 'Outra Idosa Smoke', birthDate: '1950-07-01', phone: '(61) 98888-7777' });
+    const outroPaciente = await step('app: cadastrar outro paciente e repetir -> 409 PACIENTE_DUPLICADO', async () => {
+      const novo = await httpPatientService.create({ name: 'Outra Paciente Smoke', birthDate: '1950-07-01', phone: '(61) 98888-7777' });
       assert.equal(novo.phone, '61988887777');
-      await expectError(() => httpElderService.create({ name: 'Outra Idosa Smoke', birthDate: '1950-07-01' }), 409, 'IDOSO_DUPLICADO');
+      await expectError(() => httpPatientService.create({ name: 'Outra Paciente Smoke', birthDate: '1950-07-01' }), 409, 'PACIENTE_DUPLICADO');
       return novo;
     });
 
     const remedio2 = await step(`app: remédio + tratamento em duas chamadas, dose às ${alvo2.hora} (httpMedicationService.create)`, () =>
       httpMedicationService.create({
-        elderId: idosoId,
+        patientId: pacienteId,
         name: 'Metformina',
         dosage: '500mg',
         type: 'CAPSULA',
@@ -200,20 +200,20 @@ async function main() {
     );
     assert.equal(remedio2.treatment?.times[0]?.time, alvo2.hora);
 
-    await step('app: remédios do idoso e de "Todos" com o tratamento (httpMedicationService.list)', async () => {
-      const doIdoso = await httpMedicationService.list(idosoId);
-      assert.deepEqual(doIdoso.map((v) => v.medication.name), ['Losartana', 'Metformina']);
-      const metformina = doIdoso.find((v) => v.medication.name === 'Metformina')!;
+    await step('app: remédios do paciente e de "Todos" com o tratamento (httpMedicationService.list)', async () => {
+      const doPaciente = await httpMedicationService.list(pacienteId);
+      assert.deepEqual(doPaciente.map((v) => v.medication.name), ['Losartana', 'Metformina']);
+      const metformina = doPaciente.find((v) => v.medication.name === 'Metformina')!;
       assert.equal(metformina.activeTreatment, true);
       assert.equal(metformina.medication.primaryColor, '#3D7DCA');
       const todos = await httpMedicationService.list('ALL');
-      assert.ok(todos.length >= 2 && todos.every((v) => v.elderName));
-      assert.deepEqual(await httpMedicationService.list(outroIdoso.id), []);
+      assert.ok(todos.length >= 2 && todos.every((v) => v.patientName));
+      assert.deepEqual(await httpMedicationService.list(outroPaciente.id), []);
     });
 
-    await step('app: doses de hoje vistas pelo cuidador (httpDoseService.listForDay idoso e "Todos")', async () => {
-      const doIdoso = await httpDoseService.listForDay(idosoId, hoje.dia);
-      const daMetformina = doIdoso.find((d) => d.medication.id === remedio2.medication.id);
+    await step('app: doses de hoje vistas pelo cuidador (httpDoseService.listForDay paciente e "Todos")', async () => {
+      const doPaciente = await httpDoseService.listForDay(pacienteId, hoje.dia);
+      const daMetformina = doPaciente.find((d) => d.medication.id === remedio2.medication.id);
       assert.ok(daMetformina, 'dose do remédio cadastrado pelo app não apareceu');
       assert.equal(daMetformina.scheduledAt, `${hoje.dia}T${alvo2.hora}`);
       assert.equal(daMetformina.confirmability, 'OK');
@@ -222,50 +222,50 @@ async function main() {
       assert.ok(todos.some((d) => d.id === daMetformina.id));
     });
 
-    await step('app: toque no aviso abre a dose (payload do push -> detalhe com remédio e idoso; idoso alheio -> 404 com aviso)', async () => {
+    await step('app: toque no aviso abre a dose (payload do push -> detalhe com remédio e paciente; paciente alheio -> 404 com aviso)', async () => {
       // Mesmo payload que o backend manda no push (PushNotificadorDeDoseNaoTomadaAdapter): tudo como texto
-      const payload = { tipo: 'DOSE_NAO_CONFIRMADA', doseId: String(dose.id), idosoId: String(toApiId(idosoId)), data: hoje.dia };
-      const conhecidos = (await httpElderService.list()).map((e) => e.id);
-      const decisao = resolveDoseOpen(payload, { viewAs: 'CAREGIVER', hasSession: true, knownElderIds: conhecidos });
+      const payload = { tipo: 'DOSE_NAO_CONFIRMADA', doseId: String(dose.id), pacienteId: String(toApiId(pacienteId)), data: hoje.dia };
+      const conhecidos = (await httpPatientService.list()).map((e) => e.id);
+      const decisao = resolveDoseOpen(payload, { viewAs: 'CAREGIVER', hasSession: true, knownPatientIds: conhecidos });
       assert.equal(decisao.action, 'abrir-dose');
       if (decisao.action !== 'abrir-dose') return;
-      const aberta = await httpDoseService.get(decisao.target.doseId, { elderId: decisao.target.elderId, day: decisao.target.day });
-      assert.deepEqual([aberta.id, aberta.medication.name, aberta.elderName], [String(dose.id), 'Losartana', 'Idoso Smoke']);
+      const aberta = await httpDoseService.get(decisao.target.doseId, { patientId: decisao.target.patientId, day: decisao.target.day });
+      assert.deepEqual([aberta.id, aberta.medication.name, aberta.patientName], [String(dose.id), 'Losartana', 'Paciente Smoke']);
       // Sessão expirada: espera o login; payload estranho: ignorado
       assert.equal(resolveDoseOpen(payload, { viewAs: 'CAREGIVER', hasSession: false }).action, 'aguardar-login');
       assert.equal(resolveDoseOpen({ ...payload, tipo: 'OUTRO' }, { viewAs: 'CAREGIVER', hasSession: true }).action, 'ignorar');
       // Paciente que não é da conta: a API responde 404 e a tela mostra o aviso com o caminho do Painel
-      const alheio = resolveDoseOpen({ ...payload, idosoId: '999999999' }, { viewAs: 'CAREGIVER', hasSession: true });
+      const alheio = resolveDoseOpen({ ...payload, pacienteId: '999999999' }, { viewAs: 'CAREGIVER', hasSession: true });
       assert.equal(alheio.action, 'abrir-dose');
       if (alheio.action !== 'abrir-dose') return;
       try {
-        await httpDoseService.get(alheio.target.doseId, { elderId: alheio.target.elderId, day: alheio.target.day });
-        assert.fail('esperava 404 para idoso alheio');
+        await httpDoseService.get(alheio.target.doseId, { patientId: alheio.target.patientId, day: alheio.target.day });
+        assert.fail('esperava 404 para paciente alheio');
       } catch (e) {
         assert.ok(doseOpenFailure(e as { status?: number; code?: string }), `esperava aviso de dose não encontrada: ${String(e)}`);
       }
     });
 
     await step('app: cor do remédio na dose (DoseResponseDTO.cor; sem cor = null)', async () => {
-      const cruas = await request<(DoseDTO & { cor: string | null })[]>('GET', `/api/idosos/${toApiId(idosoId)}/doses`);
+      const cruas = await request<(DoseDTO & { cor: string | null })[]>('GET', `/api/pacientes/${toApiId(pacienteId)}/doses`);
       assert.equal(cruas.find((d) => d.medicamentoId === toApiId(remedio2.medication.id))?.cor, '#3D7DCA');
       assert.equal(cruas.find((d) => d.medicamentoId === medicamento.id)?.cor, null);
-      const doIdoso = await httpDoseService.listForDay(idosoId, hoje.dia);
-      assert.equal(doIdoso.find((d) => d.medication.id === remedio2.medication.id)?.medication.primaryColor, '#3D7DCA');
-      assert.equal(doIdoso.find((d) => d.medication.id === fromApiId(medicamento.id))?.medication.primaryColor, undefined);
+      const doPaciente = await httpDoseService.listForDay(pacienteId, hoje.dia);
+      assert.equal(doPaciente.find((d) => d.medication.id === remedio2.medication.id)?.medication.primaryColor, '#3D7DCA');
+      assert.equal(doPaciente.find((d) => d.medication.id === fromApiId(medicamento.id))?.medication.primaryColor, undefined);
     });
 
-    token = tokenIdoso;
-    viewer = 'ELDER';
-    const doseApp = await step('app: idoso lista as doses de hoje (/me/doses) e confirma pelo adapter -> CONFIRMADA_NO_HORARIO', async () => {
-      const minhas = await httpDoseService.listForDay(idosoId, hoje.dia);
+    token = tokenPaciente;
+    viewer = 'PATIENT';
+    const doseApp = await step('app: paciente lista as doses de hoje (/me/doses) e confirma pelo adapter -> CONFIRMADA_NO_HORARIO', async () => {
+      const minhas = await httpDoseService.listForDay(pacienteId, hoje.dia);
       const alvoApp = minhas.find((d) => d.medication.id === remedio2.medication.id)!;
-      const perfil = await httpElderService.getProfile(idosoId);
+      const perfil = await httpPatientService.getProfile(pacienteId);
       assert.equal(perfil.caregiverFirstName, 'Cuidador');
       assert.equal(alvoApp.confirmUntil, alvoApp.window.closesAt);
       const confirmada = await httpDoseService.confirm(alvoApp.id);
       assert.equal(confirmada.storedStatus, 'CONFIRMADA_NO_HORARIO');
-      assert.equal(confirmada.confirmedBy, 'IDOSO');
+      assert.equal(confirmada.confirmedBy, 'PACIENTE');
       assert.equal(confirmada.confirmability, 'JA_REGISTRADA');
       await expectError(() => httpDoseService.confirm(alvoApp.id), 409, 'DOSE_JA_REGISTRADA');
       const detalhe = await httpDoseService.get(alvoApp.id);
@@ -279,7 +279,7 @@ async function main() {
       const atual = await httpMedicationService.get(remedio2.medication.id);
       assert.ok(atual.treatment);
       const editado = await httpMedicationService.update(remedio2.medication.id, {
-        elderId: idosoId,
+        patientId: pacienteId,
         name: 'Metformina',
         dosage: '850mg',
         type: 'CAPSULA',
@@ -293,10 +293,10 @@ async function main() {
       assert.deepEqual(editado.treatment?.times.map((x) => x.time), [alvo2.hora, '22:00'].sort());
       await expectError(() => httpMedicationService.remove(remedio2.medication.id, { confirmed: false }), 409, 'TRATAMENTO_ATIVO');
       await httpMedicationService.remove(remedio2.medication.id, { confirmed: true });
-      assert.ok(!(await httpMedicationService.list(idosoId)).some((v) => v.medication.id === remedio2.medication.id));
+      assert.ok(!(await httpMedicationService.list(pacienteId)).some((v) => v.medication.id === remedio2.medication.id));
       // O remédio removido sai também do dia (a dose registrada fica no histórico, RN08)
-      const doIdoso = await httpDoseService.listForDay(idosoId, hoje.dia);
-      assert.ok(!doIdoso.some((d) => d.id === doseApp.id));
+      const doPaciente = await httpDoseService.listForDay(pacienteId, hoje.dia);
+      assert.ok(!doPaciente.some((d) => d.id === doseApp.id));
     });
 
     await step('app: tolerância (GET padrão 30; PUT 4 e 121 -> 400 VALIDACAO; PUT 45 -> GET 45; doses com 45)', async () => {
@@ -308,25 +308,25 @@ async function main() {
       assert.equal(await httpDoseService.setTolerance(120), 120);
       assert.equal(await httpDoseService.setTolerance(45), 45);
       assert.equal(await httpDoseService.getTolerance(), 45);
-      const doIdoso = await httpDoseService.listForDay(idosoId, hoje.dia);
-      assert.ok(doIdoso.length > 0 && doIdoso.every((d) => d.toleranceMinutes === 45));
+      const doPaciente = await httpDoseService.listForDay(pacienteId, hoje.dia);
+      assert.ok(doPaciente.length > 0 && doPaciente.every((d) => d.toleranceMinutes === 45));
     });
 
     await step('app: relatório diário de hoje (GET /api/relatorios/diario) com totais e doses', async () => {
-      const r = await httpReportService.getDaily(idosoId, hoje.dia);
-      assert.equal(r.elder.id, idosoId);
-      assert.equal(r.elder.name, 'Idoso Smoke');
+      const r = await httpReportService.getDaily(pacienteId, hoje.dia);
+      assert.equal(r.patient.id, pacienteId);
+      assert.equal(r.patient.name, 'Paciente Smoke');
       assert.equal(r.day, hoje.dia);
       assert.equal(r.totals.total, r.doses.length);
       assert.equal(r.totals.onTime + r.totals.late + r.totals.missed + r.totals.pending, r.totals.total);
       assert.ok(r.doses.some((d) => d.id === String(dose.id)));
-      await expectError(() => httpReportService.getDaily(outroIdoso.id, 'ontem'), 400, 'VALIDACAO');
+      await expectError(() => httpReportService.getDaily(outroPaciente.id, 'ontem'), 400, 'VALIDACAO');
     });
 
     token = sessao.token;
     viewer = 'CAREGIVER';
     await step('app: cuidador confirma a dose na tela da dose (PUT /api/doses/{id}/confirmar) -> confirmada por CUIDADOR', async () => {
-      const antes = await httpDoseService.get(String(dose.id), { elderId: idosoId, day: hoje.dia });
+      const antes = await httpDoseService.get(String(dose.id), { patientId: pacienteId, day: hoje.dia });
       assert.equal(antes.storedStatus, 'PENDENTE');
       const confirmada = await httpDoseService.confirm(String(dose.id));
       assert.equal(confirmada.storedStatus, 'CONFIRMADA_NO_HORARIO');
@@ -336,19 +336,19 @@ async function main() {
       await expectError(() => httpDoseService.confirm(String(dose.id)), 409, 'DOSE_JA_REGISTRADA');
     });
 
-    token = tokenIdoso;
-    viewer = 'ELDER';
-    const segunda = await step('idoso tenta confirmar a dose já confirmada pelo cuidador -> 409 DOSE_JA_REGISTRADA', () =>
+    token = tokenPaciente;
+    viewer = 'PATIENT';
+    const segunda = await step('paciente tenta confirmar a dose já confirmada pelo cuidador -> 409 DOSE_JA_REGISTRADA', () =>
       expectError(() => request('PUT', `/api/doses/${dose.id}/confirmar`), 409, 'DOSE_JA_REGISTRADA'),
     );
     console.log(`    (${segunda})`);
 
     token = sessao.token;
-    await step('histórico (GET /api/historico): filtro por idoso e status, paginação, RN-011 e idoso alheio', async () => {
+    await step('histórico (GET /api/historico): filtro por paciente e status, paginação, RN-011 e paciente alheio', async () => {
       type Pagina = { conteudo: DoseDTO[]; pagina: number; tamanho: number; totalElementos: number; totalPaginas: number };
-      const tudo = await request<Pagina>('GET', `/api/historico?idosoId=${toApiId(idosoId)}&de=${hoje.dia}`);
+      const tudo = await request<Pagina>('GET', `/api/historico?pacienteId=${toApiId(pacienteId)}&de=${hoje.dia}`);
       assert.ok(tudo.totalElementos >= 2, `esperava doses de hoje: ${tudo.totalElementos}`);
-      const tomadas = await request<Pagina>('GET', `/api/historico?idosoId=${toApiId(idosoId)}&de=${hoje.dia}&status=CONFIRMADA_NO_HORARIO`);
+      const tomadas = await request<Pagina>('GET', `/api/historico?pacienteId=${toApiId(pacienteId)}&de=${hoje.dia}&status=CONFIRMADA_NO_HORARIO`);
       assert.ok(tomadas.conteudo.some((d) => d.id === dose.id) && tomadas.conteudo.every((d) => d.status === 'CONFIRMADA_NO_HORARIO'));
       const pagina = await request<Pagina>('GET', `/api/historico?de=${hoje.dia}&size=1&page=0`);
       assert.equal(pagina.conteudo.length, 1);
@@ -362,12 +362,12 @@ async function main() {
       await expectError(() => request('GET', '/api/historico?size=101'), 400, 'VALIDACAO');
       const vazio = await request<Pagina>('GET', '/api/historico?de=1990-01-01&ate=1990-01-31');
       assert.equal(vazio.totalElementos, 0);
-      await expectError(() => request('GET', '/api/historico?idosoId=999999999'), 404, 'RECURSO_NAO_ENCONTRADO');
+      await expectError(() => request('GET', '/api/historico?pacienteId=999999999'), 404, 'RECURSO_NAO_ENCONTRADO');
     });
 
     viewer = 'CAREGIVER';
     await step('app: histórico pelo adapter (filtros, página, cor de remédio removido, 400 e período vazio)', async () => {
-      const base = { elder: idosoId, from: hoje.dia, to: hoje.dia };
+      const base = { patient: pacienteId, from: hoje.dia, to: hoje.dia };
       const tudo = await httpDoseService.listHistory({ ...base, status: 'ALL' });
       assert.ok(tudo.totalElements >= 2 && tudo.page === 0 && tudo.size === 20);
       // Remédio removido continua no histórico (RN08), com a cor do cadastro
@@ -382,15 +382,15 @@ async function main() {
       assert.notEqual(pag0.items[0].id, pag1.items[0].id);
       // A dose vinda do histórico abre o detalhe
       assert.equal((await httpDoseService.get(pag1.items[0].id)).id, pag1.items[0].id);
-      await expectError(() => httpDoseService.listHistory({ elder: 'ALL', from: hoje.dia, to: '2000-01-01', status: 'ALL' }), 400, 'VALIDACAO');
-      const vazio = await httpDoseService.listHistory({ elder: 'ALL', from: '1990-01-01', to: '1990-01-31', status: 'ALL' });
+      await expectError(() => httpDoseService.listHistory({ patient: 'ALL', from: hoje.dia, to: '2000-01-01', status: 'ALL' }), 400, 'VALIDACAO');
+      const vazio = await httpDoseService.listHistory({ patient: 'ALL', from: '1990-01-01', to: '1990-01-31', status: 'ALL' });
       assert.deepEqual([vazio.items.length, vazio.totalElements, vazio.totalPages], [0, 0, 0]);
     });
 
     await step('PDF do histórico (GET /api/relatorios/pdf): arquivo com anexo e no-store; período vazio -> 422', async () => {
       const base = getApiBaseUrl();
       const pedir = (de: string, ate: string) =>
-        fetch(`${base}/api/relatorios/pdf?idosoId=${toApiId(idosoId)}&de=${de}&ate=${ate}`, { headers: { Authorization: `Bearer ${sessao.token}` } });
+        fetch(`${base}/api/relatorios/pdf?pacienteId=${toApiId(pacienteId)}&de=${de}&ate=${ate}`, { headers: { Authorization: `Bearer ${sessao.token}` } });
       const res = await pedir(hoje.dia, hoje.dia);
       assert.equal(res.status, 200);
       assert.equal(res.headers.get('content-type'), 'application/pdf');
@@ -411,28 +411,28 @@ async function main() {
     // ---- Mensagens (UC-010) pelos adapters, nos dois papéis ----
     token = sessao.token;
     viewer = 'CAREGIVER';
-    await step('app: cuidador envia mensagem; vazia e com 501 caracteres -> 400 VALIDACAO; idoso inexistente -> 404', async () => {
-      const enviada = await httpMessageService.send(idosoId, 'CUIDADOR', '  Bom dia! Lembre do remédio.  ');
-      assert.deepEqual([enviada.from, enviada.text, enviada.read, enviada.elderId], ['CUIDADOR', 'Bom dia! Lembre do remédio.', false, idosoId]);
-      await expectError(() => httpMessageService.send(idosoId, 'CUIDADOR', '   '), 400, 'VALIDACAO');
-      await expectError(() => httpMessageService.send(idosoId, 'CUIDADOR', 'a'.repeat(501)), 400, 'VALIDACAO');
+    await step('app: cuidador envia mensagem; vazia e com 501 caracteres -> 400 VALIDACAO; paciente inexistente -> 404', async () => {
+      const enviada = await httpMessageService.send(pacienteId, 'CUIDADOR', '  Bom dia! Lembre do remédio.  ');
+      assert.deepEqual([enviada.from, enviada.text, enviada.read, enviada.patientId], ['CUIDADOR', 'Bom dia! Lembre do remédio.', false, pacienteId]);
+      await expectError(() => httpMessageService.send(pacienteId, 'CUIDADOR', '   '), 400, 'VALIDACAO');
+      await expectError(() => httpMessageService.send(pacienteId, 'CUIDADOR', 'a'.repeat(501)), 400, 'VALIDACAO');
       await expectError(() => httpMessageService.send('999999999', 'CUIDADOR', 'Oi'), 404, 'RECURSO_NAO_ENCONTRADO');
     });
 
-    token = tokenIdoso;
-    viewer = 'ELDER';
-    await step('app: idoso vê 1 não lida, lê a conversa, marca como lida (idempotente) e responde; outro idoso -> 403', async () => {
-      assert.equal(await httpMessageService.unreadCount(idosoId, 'IDOSO'), 1);
+    token = tokenPaciente;
+    viewer = 'PATIENT';
+    await step('app: paciente vê 1 não lida, lê a conversa, marca como lida (idempotente) e responde; outro paciente -> 403', async () => {
+      assert.equal(await httpMessageService.unreadCount(pacienteId, 'PACIENTE'), 1);
       const conversas = await httpMessageService.listConversations();
-      assert.deepEqual(conversas.map((c) => [c.elder.id, c.unread, c.lastMessage?.from]), [[idosoId, 1, 'CUIDADOR']]);
-      const pagina = await httpMessageService.listThread(idosoId);
+      assert.deepEqual(conversas.map((c) => [c.patient.id, c.unread, c.lastMessage?.from]), [[pacienteId, 1, 'CUIDADOR']]);
+      const pagina = await httpMessageService.listThread(pacienteId);
       assert.deepEqual(pagina.items.map((m) => m.text), ['Bom dia! Lembre do remédio.']);
-      assert.equal(await httpMessageService.markRead(idosoId, 'IDOSO'), 1);
-      assert.equal(await httpMessageService.markRead(idosoId, 'IDOSO'), 0);
-      assert.equal(await httpMessageService.unreadCount(idosoId, 'IDOSO'), 0);
-      const resposta = await httpMessageService.send(idosoId, 'IDOSO', 'Já tomei, obrigado');
-      assert.equal(resposta.from, 'IDOSO');
-      await expectError(() => httpMessageService.listThread(outroIdoso.id), 403, 'ACESSO_NEGADO');
+      assert.equal(await httpMessageService.markRead(pacienteId, 'PACIENTE'), 1);
+      assert.equal(await httpMessageService.markRead(pacienteId, 'PACIENTE'), 0);
+      assert.equal(await httpMessageService.unreadCount(pacienteId, 'PACIENTE'), 0);
+      const resposta = await httpMessageService.send(pacienteId, 'PACIENTE', 'Já tomei, obrigado');
+      assert.equal(resposta.from, 'PACIENTE');
+      await expectError(() => httpMessageService.listThread(outroPaciente.id), 403, 'ACESSO_NEGADO');
     });
 
     token = sessao.token;
@@ -440,25 +440,25 @@ async function main() {
     await step('app: cuidador vê a resposta não lida, conversa paginada da mais recente, lê e o contador zera', async () => {
       assert.equal(await httpMessageService.unreadCount('ALL', 'CUIDADOR'), 1);
       const conversas = await httpMessageService.listConversations();
-      const daMaria = conversas.find((c) => c.elder.id === idosoId);
+      const daMaria = conversas.find((c) => c.patient.id === pacienteId);
       assert.deepEqual([daMaria?.unread, daMaria?.lastMessage?.text], [1, 'Já tomei, obrigado']);
-      const doOutro = conversas.find((c) => c.elder.id === outroIdoso.id);
+      const doOutro = conversas.find((c) => c.patient.id === outroPaciente.id);
       assert.deepEqual([doOutro?.unread, doOutro?.lastMessage], [0, undefined]);
       // Mais 20 mensagens: 22 no total, duas páginas de 20
-      for (let i = 1; i <= 20; i += 1) await httpMessageService.send(idosoId, 'CUIDADOR', `Mensagem ${i}`);
-      const primeira = await httpMessageService.listThread(idosoId, 0);
-      const segunda = await httpMessageService.listThread(idosoId, 1);
+      for (let i = 1; i <= 20; i += 1) await httpMessageService.send(pacienteId, 'CUIDADOR', `Mensagem ${i}`);
+      const primeira = await httpMessageService.listThread(pacienteId, 0);
+      const segunda = await httpMessageService.listThread(pacienteId, 1);
       assert.deepEqual([primeira.items.length, primeira.totalElements, primeira.totalPages], [20, 22, 2]);
       assert.equal(primeira.items[0].text, 'Mensagem 20');
       assert.deepEqual(segunda.items.map((m) => m.text), ['Já tomei, obrigado', 'Bom dia! Lembre do remédio.']);
-      // A primeira mensagem do cuidador foi lida pelo idoso
+      // A primeira mensagem do cuidador foi lida pelo paciente
       assert.equal(segunda.items[1].read, true);
-      assert.equal(await httpMessageService.markRead(idosoId, 'CUIDADOR'), 1);
+      assert.equal(await httpMessageService.markRead(pacienteId, 'CUIDADOR'), 1);
       assert.equal(await httpMessageService.unreadCount('ALL', 'CUIDADOR'), 0);
     });
 
-    await step('cuidador vê a dose CONFIRMADA_NO_HORARIO (GET /api/idosos/{id}/doses)', async () => {
-      const doses = await request<DoseDTO[]>('GET', `/api/idosos/${toApiId(idosoId)}/doses`);
+    await step('cuidador vê a dose CONFIRMADA_NO_HORARIO (GET /api/pacientes/{id}/doses)', async () => {
+      const doses = await request<DoseDTO[]>('GET', `/api/pacientes/${toApiId(pacienteId)}/doses`);
       const vista = doses.find((d) => d.id === dose.id);
       assert.equal(vista?.status, 'CONFIRMADA_NO_HORARIO');
       assert.equal(vista?.statusExibicao, 'CONFIRMADA_NO_HORARIO');
@@ -478,15 +478,15 @@ async function main() {
       contaExcluida = true;
     });
 
-    token = tokenIdoso;
-    const sessaoInvalida = await step('token do idoso após a exclusão -> 401 SESSAO_INVALIDA', () =>
-      expectError(() => request('GET', '/api/idosos/me'), 401, 'SESSAO_INVALIDA'),
+    token = tokenPaciente;
+    const sessaoInvalida = await step('token do paciente após a exclusão -> 401 SESSAO_INVALIDA', () =>
+      expectError(() => request('GET', '/api/pacientes/me'), 401, 'SESSAO_INVALIDA'),
     );
     console.log(`    (${sessaoInvalida})`);
 
     token = tokenCuidador;
     const cuidadorExcluido = await step('token do cuidador após a exclusão -> 401 SESSAO_INVALIDA (rotas do cuidador)', async () => {
-      const r = await expectError(() => request('GET', '/api/idosos'), 401, 'SESSAO_INVALIDA');
+      const r = await expectError(() => request('GET', '/api/pacientes'), 401, 'SESSAO_INVALIDA');
       await expectError(() => request('GET', '/api/cuidadores/me'), 401, 'SESSAO_INVALIDA');
       return r;
     });
@@ -495,7 +495,7 @@ async function main() {
     await step('mensagens após a exclusão -> 401 SESSAO_INVALIDA nos dois papéis', async () => {
       token = tokenCuidador;
       await expectError(() => httpMessageService.unreadCount('ALL', 'CUIDADOR'), 401, 'SESSAO_INVALIDA');
-      token = tokenIdoso;
+      token = tokenPaciente;
       await expectError(() => httpMessageService.listConversations(), 401, 'SESSAO_INVALIDA');
     });
 

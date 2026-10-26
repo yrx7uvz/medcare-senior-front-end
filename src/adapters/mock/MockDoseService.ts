@@ -17,7 +17,7 @@ export const mockDoseService: DoseService = {
     simulate(() => {
       const now = getNow();
       return getDb()
-        .doses.filter((d) => d.scheduledAt.startsWith(day) && (filter === 'ALL' || d.elderId === filter))
+        .doses.filter((d) => d.scheduledAt.startsWith(day) && (filter === 'ALL' || d.patientId === filter))
         .map((d) => toDoseView(d, now))
         .sort(byTime);
     }),
@@ -46,7 +46,7 @@ export const mockDoseService: DoseService = {
         ...current,
         status: statusOnConfirm(parseDateTime(current.scheduledAt), now, db.toleranceMinutes),
         confirmedAt: toDateTimeKey(now),
-        confirmedBy: useAppStore.getState().viewAs === 'CAREGIVER' ? ('CUIDADOR' as const) : ('IDOSO' as const),
+        confirmedBy: useAppStore.getState().viewAs === 'CAREGIVER' ? ('CUIDADOR' as const) : ('PACIENTE' as const),
       };
       mutateDb((d) => {
         d.doses[index] = next;
@@ -65,7 +65,7 @@ export const mockDoseService: DoseService = {
         .doses.filter((d) => {
           const day = d.scheduledAt.slice(0, 10);
           if (day < q.from || day > q.to) return false;
-          if (q.elder !== 'ALL' && d.elderId !== q.elder) return false;
+          if (q.patient !== 'ALL' && d.patientId !== q.patient) return false;
           if (q.medicationId && d.medicationId !== q.medicationId) return false;
           return q.status === 'ALL' || d.status === q.status;
         })
@@ -90,8 +90,8 @@ export const mockDoseService: DoseService = {
         .filter((v) => v.status === 'ATRASADA' || v.status === 'NAO_TOMADA')
         .map<AlertView>((v) => ({
           doseId: v.id,
-          elderId: v.elderId,
-          elderName: v.elderName,
+          patientId: v.patientId,
+          patientName: v.patientName,
           medicationName: v.medication.name,
           dosage: v.medication.dosage,
           scheduledAt: v.scheduledAt,

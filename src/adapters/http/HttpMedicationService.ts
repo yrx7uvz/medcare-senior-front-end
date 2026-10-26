@@ -3,9 +3,9 @@ import { isTreatmentActive, pickCurrentTreatment, scheduleSummary } from '../../
 import { toAppError, TreatmentNotSavedError } from '../../services/errors';
 import type { MedicationService } from '../../services/types';
 import { MEDICATION_TYPE_VALUES, PILL_SHAPE_VALUES, type Medication, type MedicationType, type PillShape, type Treatment } from '../../types/domain';
-import type { ElderFilter, MedicationInput, MedicationView, TreatmentInput } from '../../types/views';
+import type { PatientFilter, MedicationInput, MedicationView, TreatmentInput } from '../../types/views';
 import { endpoints } from './endpoints';
-import { toElder, type IdosoResponse } from './HttpElderService';
+import { toPatient, type PacienteResponse } from './HttpPatientService';
 import { request } from './httpClient';
 import { fromApiId, toApiId } from './ids';
 
@@ -19,7 +19,7 @@ export interface MedicamentoResponse {
   cor: string | null;
   quantidadeEstoque: number | null;
   bulaUrl: string | null;
-  idosoId: number;
+  pacienteId: number;
 }
 
 /** GET/POST /api/medicamentos/{id}/tratamentos e PUT /api/tratamentos/{id} (TratamentoResponseDTO). */
@@ -49,7 +49,7 @@ const toShape = (formato: string | null): PillShape | undefined => {
 export function toMedication(dto: MedicamentoResponse): Medication {
   return {
     id: fromApiId(dto.id),
-    elderId: fromApiId(dto.idosoId),
+    patientId: fromApiId(dto.pacienteId),
     name: dto.nome,
     dosage: dto.dosagem,
     type: toType(dto.tipo),
@@ -76,7 +76,7 @@ export function toMedicamentoRequest(input: MedicationInput) {
     cor: apiColorToHex(input.primaryColor),
     quantidadeEstoque: input.stock,
     bulaUrl: input.bulaUrl?.trim() || undefined,
-    idosoId: toApiId(input.elderId),
+    pacienteId: toApiId(input.patientId),
   };
 }
 
@@ -120,11 +120,11 @@ export const toTratamentoEdicaoRequest = (input: TreatmentInput) => ({
 
 const todayKey = () => saoPauloDateKey(Date.now());
 
-function toView(medication: Medication, treatments: Treatment[], elderName: string): MedicationView {
+function toView(medication: Medication, treatments: Treatment[], patientName: string): MedicationView {
   const treatment = pickCurrentTreatment(treatments, todayKey());
   return {
     medication,
-    elderName,
+    patientName,
     treatment,
     activeTreatment: isTreatmentActive(treatment, todayKey()),
     scheduleSummary: scheduleSummary(treatment),
@@ -140,18 +140,18 @@ async function fetchMedication(id: string): Promise<Medication> {
   return toMedication(await request<MedicamentoResponse>('GET', endpoints.medication(String(toApiId(id)))));
 }
 
-/** Remédios de um idoso, cada um com os tratamentos (uma chamada por remédio, em paralelo). */
-async function listOfElder(elderId: string, elderName: string): Promise<MedicationView[]> {
-  const dtos = await request<MedicamentoResponse[]>('GET', endpoints.medicationsOfElder(String(toApiId(elderId))));
+/** Remédios de um paciente, cada um com os tratamentos (uma chamada por remédio, em paralelo). */
+async function listOfPatient(patientId: string, patientName: string): Promise<MedicationView[]> {
+  const dtos = await request<MedicamentoResponse[]>('GET', endpoints.medicationsOfPatient(String(toApiId(patientId))));
   return Promise.all(
     dtos.map(async (dto) => {
       const medication = toMedication(dto);
-      return toView(medication, await fetchTreatments(medication.id), elderName);
+      return toView(medication, await fetchTreatments(medication.id), patientName);
     }),
   );
 }
 
-const byElderThenName = (a: MedicationView, b: MedicationView) => a.elderName.localeCompare(b.elderName) || a.medication.name.localeCompare(b.medication.name);
+const byPatientThenName = (a: MedicationView, b: MedicationView) => a.patientName.localeCompare(b.patientName) || a.medication.name.localeCompare(b.medication.name);
 
 /**
  * Medicamentos e tratamentos na API. Cadastro em duas chamadas (medicamento, depois tratamento):
@@ -160,16 +160,16 @@ const byElderThenName = (a: MedicationView, b: MedicationView) => a.elderName.lo
  */
 export const httpMedicationService: MedicationService = {
   /**
-   * "Todos" (ALL): a API lista por idoso (idosoId obrigatório), então busca os idosos do cuidador e
+   * "Todos" (ALL): a API lista por paciente (pacienteId obrigatório), então busca os pacientes do cuidador e
    * os remédios de cada um em paralelo.
    */
-  async list(filter: ElderFilter) {
-    const elders =
+  async list(filter: PatientFilter) {
+    const patients =
       filter === 'ALL'
-        ? (await request<IdosoResponse[]>('GET', endpoints.elders)).map(toElder)
-        : [toElder(await request<IdosoResponse>('GET', endpoints.elder(String(toApiId(filter)))))];
-    const lists = await Promise.all(elders.map((e) => listOfElder(e.id, e.name)));
-    return lists.flat().sort(byElderThenName);
+        ? (await request<PacienteResponse[]>('GET', endpoints.patients)).map(toPatient)
+        : [toPatient(await request<PacienteResponse>('GET', endpoints.patient(String(toApiId(filter)))))];
+    const lists = await Promise.all(patients.map((e) => listOfPatient(e.id, e.name)));
+    return lists.flat().sort(byPatientThenName);
   },
 
   async get(id) {

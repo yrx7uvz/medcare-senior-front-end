@@ -17,21 +17,21 @@ import { radius, spacing, useTheme } from '../../theme';
 import { DoseCard } from '../dashboard/DoseCard';
 
 /**
- * UC-008 / HU06 — "Visualizar Relatório Diário de Uso dos Medicamentos": as doses de um dia de um idoso, com o status
+ * UC-008 / HU06 — "Visualizar Relatório Diário de Uso dos Medicamentos": as doses de um dia de um paciente, com o status
  * de cada uma e os totais, atualizado automaticamente. Paciente e dia selecionáveis (dias passados e hoje).
  */
 export function DailyReportScreen({ route, navigation }: RootScreenProps<'DailyReport'>) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const filter = useAppStore((s) => s.selectedElderId);
+  const filter = useAppStore((s) => s.selectedPatientId);
   const now = useNow();
   const today = appTodayKey(now);
-  const elders = useQuery(['elders'], () => services.elders.list());
-  const [chosenElder, setChosenElder] = useState<string | undefined>(route.params?.elderId ?? (filter !== 'ALL' ? filter : undefined));
+  const patients = useQuery(['patients'], () => services.patients.list());
+  const [chosenPatient, setChosenPatient] = useState<string | undefined>(route.params?.patientId ?? (filter !== 'ALL' ? filter : undefined));
   const [day, setDay] = useState(route.params?.day ?? today);
-  const elderId = chosenElder ?? elders.data?.[0]?.id;
-  const report = useQuery(['daily-report', elderId, day], () => services.reports.getDaily(elderId!, day), {
-    enabled: !!elderId,
+  const patientId = chosenPatient ?? patients.data?.[0]?.id;
+  const report = useQuery(['daily-report', patientId, day], () => services.reports.getDaily(patientId!, day), {
+    enabled: !!patientId,
     silentKey: minuteStamp(now),
   });
 
@@ -39,26 +39,26 @@ export function DailyReportScreen({ route, navigation }: RootScreenProps<'DailyR
   const doses = (report.data?.doses ?? []).map((d) => liveAt(d, now));
 
   let content: React.ReactNode;
-  if (elders.loading || (report.loading && !!elderId)) {
+  if (patients.loading || (report.loading && !!patientId)) {
     content = <LoadingSkeleton rows={3} />;
-  } else if (elders.error || report.error) {
+  } else if (patients.error || report.error) {
     content = (
       <ErrorState
-        error={elders.error ?? report.error}
+        error={patients.error ?? report.error}
         onRetry={() => {
-          elders.reload();
+          patients.reload();
           report.reload();
         }}
       />
     );
-  } else if (!elders.data?.length) {
+  } else if (!patients.data?.length) {
     content = (
       <EmptyState
         icon={UserPlus}
         title="Nenhum paciente cadastrado"
         description="Cadastre um paciente para acompanhar o uso dos medicamentos."
         actionLabel="Cadastrar paciente"
-        onAction={() => navigation.navigate('ElderForm')}
+        onAction={() => navigation.navigate('PatientForm')}
       />
     );
   } else if (report.data) {
@@ -82,14 +82,14 @@ export function DailyReportScreen({ route, navigation }: RootScreenProps<'DailyR
         contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + spacing.xxl }]}
         refreshControl={<RefreshControl refreshing={false} onRefresh={report.reload} colors={[colors.primary]} />}
       >
-        {elders.data && elders.data.length > 1 ? (
+        {patients.data && patients.data.length > 1 ? (
           <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel="Paciente">
-            {elders.data.map((e) => (
+            {patients.data.map((e) => (
               <Chip
                 key={e.id}
                 label={e.name}
-                selected={e.id === elderId}
-                onPress={() => setChosenElder(e.id)}
+                selected={e.id === patientId}
+                onPress={() => setChosenPatient(e.id)}
                 leading={<Avatar name={e.name} color={e.avatarColor} size={24} />}
               />
             ))}

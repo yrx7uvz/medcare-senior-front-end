@@ -32,7 +32,7 @@ export function AlertBanner({ alert, onDetails, onDismiss, extraCount = 0 }: Pro
         <AlertTriangle color={c.fg} size={22} />
         <View style={styles.texts}>
           <AppText variant="bodyStrong" color={c.fg}>
-            Dose não confirmada — {alert.elderName}
+            Dose não confirmada — {alert.patientName}
           </AppText>
           <AppText variant="body" color={colors.text}>
             {alertMessage(alert)}

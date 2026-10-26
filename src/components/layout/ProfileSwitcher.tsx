@@ -7,7 +7,7 @@ import { useDevStore } from '../../store/devStore';
 import { getDemo } from '../../config/demo';
 import { DEMO_START, useClockStore } from '../../lib/clock';
 import { formatDateBR, formatTime } from '../../lib/date';
-import { elderDeviceStorage } from '../../lib/secureStorage';
+import { patientDeviceStorage } from '../../lib/secureStorage';
 import { useNow } from '../../lib/useNow';
 import { hitSlopFor, radius, spacing, useTheme } from '../../theme';
 import { demoColors } from '../../theme/colors';
@@ -37,7 +37,7 @@ export function ProfileSwitcher() {
   const viewAs = useAppStore((s) => s.viewAs);
   const setViewAs = useAppStore((s) => s.setViewAs);
   const resetUi = useAppStore((s) => s.resetUi);
-  const setElderSession = useAppStore((s) => s.setElderSession);
+  const setPatientSession = useAppStore((s) => s.setPatientSession);
   const showToast = useAppStore((s) => s.showToast);
   const dev = useDevStore();
   const setTime = useClockStore((s) => s.setTime);
@@ -82,7 +82,7 @@ export function ProfileSwitcher() {
               <Section title="Visualizar como">
                 <View style={styles.row}>
                   <Chip label="Cuidador" selected={viewAs === 'CAREGIVER'} onPress={() => setViewAs('CAREGIVER')} />
-                  <Chip label="Idoso" selected={viewAs === 'ELDER'} onPress={() => setViewAs('ELDER')} />
+                  <Chip label="Paciente" selected={viewAs === 'PATIENT'} onPress={() => setViewAs('PATIENT')} />
                 </View>
               </Section>
 
@@ -117,7 +117,7 @@ export function ProfileSwitcher() {
                   const state = c.used ? 'já usado' : c.expiresAt <= now.getTime() ? 'expirado' : 'válido';
                   return (
                     <AppText key={c.code} variant="body">
-                      {c.code} • {c.elderName} • {state}
+                      {c.code} • {c.patientName} • {state}
                     </AppText>
                   );
                 })}
@@ -130,8 +130,8 @@ export function ProfileSwitcher() {
                   onPress={async () => {
                     getDemo()?.resetDemoData();
                     resetUi();
-                    await elderDeviceStorage.clear().catch(() => undefined);
-                    setElderSession(null);
+                    await patientDeviceStorage.clear().catch(() => undefined);
+                    setPatientSession(null);
                     setTime(DEMO_START);
                     dev.set({ simulateError: false, offline: false, slow: false });
                     showToast('Dados de demonstração restaurados', 'info');

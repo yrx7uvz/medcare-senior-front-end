@@ -2,20 +2,20 @@ import { ShieldCheck } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
-import { ElderScreen } from '../../components/layout/ElderScreen';
+import { PatientScreen } from '../../components/layout/PatientScreen';
 import { SwitchProfileLink } from '../../components/layout/SwitchProfileLink';
 import { AppText, BigActionButton, DigitBoxes, PinPad } from '../../components/ui';
 import { useAppStore } from '../../store/appStore';
 import { firstName } from '../../lib/date';
-import { elderDeviceStorage } from '../../lib/secureStorage';
+import { patientDeviceStorage } from '../../lib/secureStorage';
 import { radius, spacing, useTheme } from '../../theme';
 
 /** Criação do PIN local de 4 dígitos, guardado só no aparelho (HU07). */
-export function CreatePinScreen({ route }: RootScreenProps<'ElderCreatePin'>) {
+export function CreatePinScreen({ route }: RootScreenProps<'PatientCreatePin'>) {
   const { colors } = useTheme();
-  const { elderId, elderName, token } = route.params;
-  const setElderSession = useAppStore((s) => s.setElderSession);
-  const setUnlocked = useAppStore((s) => s.setElderUnlocked);
+  const { patientId, patientName, token } = route.params;
+  const setPatientSession = useAppStore((s) => s.setPatientSession);
+  const setUnlocked = useAppStore((s) => s.setPatientUnlocked);
   const [first, setFirst] = useState<string | null>(null);
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -24,15 +24,15 @@ export function CreatePinScreen({ route }: RootScreenProps<'ElderCreatePin'>) {
 
   async function persist(confirmed: string) {
     try {
-      await elderDeviceStorage.saveSession({ elderId, token });
-      await elderDeviceStorage.savePin(confirmed);
+      await patientDeviceStorage.saveSession({ patientId, token });
+      await patientDeviceStorage.savePin(confirmed);
     } catch {
       setUnsaved(confirmed);
       return;
     }
     setUnsaved(null);
     setUnlocked(true);
-    setElderSession({ elderId, token });
+    setPatientSession({ patientId, token });
   }
 
   useEffect(() => {
@@ -55,19 +55,19 @@ export function CreatePinScreen({ route }: RootScreenProps<'ElderCreatePin'>) {
   }, [pin, first]);
 
   return (
-    <ElderScreen>
+    <PatientScreen>
       <View style={styles.head}>
-        <AppText variant="elderDisplay" accessibilityRole="header">
-          {first === null ? `Olá, ${firstName(elderName)}! Crie seu PIN` : 'Digite o PIN de novo'}
+        <AppText variant="patientDisplay" accessibilityRole="header">
+          {first === null ? `Olá, ${firstName(patientName)}! Crie seu PIN` : 'Digite o PIN de novo'}
         </AppText>
-        <AppText variant="elderBody" muted>
+        <AppText variant="patientBody" muted>
           {first === null ? 'Escolha 4 números fáceis de lembrar. Você vai usá-los para abrir o app.' : 'Para confirmar que está certo.'}
         </AppText>
       </View>
       <DigitBoxes value={pin} length={4} masked error={!!error} />
       {unsaved ? (
         <View style={[styles.box, { backgroundColor: colors.dangerSoft }]} accessibilityRole="alert">
-          <AppText variant="elderBody" color={colors.danger} align="center">
+          <AppText variant="patientBody" color={colors.danger} align="center">
             Não foi possível guardar o PIN neste celular.
           </AppText>
         </View>
@@ -75,7 +75,7 @@ export function CreatePinScreen({ route }: RootScreenProps<'ElderCreatePin'>) {
       {unsaved ? <BigActionButton title="Tentar novamente" variant="primary" onPress={() => void persist(unsaved)} /> : null}
       {error ? (
         <View style={[styles.box, { backgroundColor: colors.dangerSoft }]} accessibilityRole="alert">
-          <AppText variant="elderBody" color={colors.danger} align="center">{error}</AppText>
+          <AppText variant="patientBody" color={colors.danger} align="center">{error}</AppText>
         </View>
       ) : null}
       <PinPad
@@ -87,10 +87,10 @@ export function CreatePinScreen({ route }: RootScreenProps<'ElderCreatePin'>) {
       />
       <View style={[styles.box, styles.row, { backgroundColor: colors.infoSoft }]}>
         <ShieldCheck color={colors.primaryDark} size={26} />
-        <AppText variant="elderBody" style={styles.flex}>O PIN fica guardado só neste celular.</AppText>
+        <AppText variant="patientBody" style={styles.flex}>O PIN fica guardado só neste celular.</AppText>
       </View>
       <SwitchProfileLink />
-    </ElderScreen>
+    </PatientScreen>
   );
 }
 

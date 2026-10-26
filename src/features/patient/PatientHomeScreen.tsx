@@ -1,7 +1,7 @@
 import { CalendarCheck, CheckCircle2, MessageCircle, Pill } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
-import { ElderScreen } from '../../components/layout/ElderScreen';
+import { PatientScreen } from '../../components/layout/PatientScreen';
 import { AppText, BigActionButton, Card, DoseStatusBadge, EmptyState, ErrorState, LoadingSkeleton, PillVisual, RefreshFailedBanner } from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
@@ -12,20 +12,20 @@ import { useQuery } from '../../lib/useQuery';
 import { minuteStamp, useNow } from '../../lib/useNow';
 import { useRefreshOnFocus } from '../../lib/useScreenActivity';
 import { radius, spacing, useTheme } from '../../theme';
-import { ElderDoseRow } from './ElderDoseRow';
+import { PatientDoseRow } from './PatientDoseRow';
 import { pickNextDose } from './nextDose';
 
-/** T10 — Início do idoso: próxima dose, botão gigante e o dia de hoje. */
-export function ElderHomeScreen({ navigation }: RootScreenProps<'ElderHome'>) {
+/** T10 — Início do paciente: próxima dose, botão gigante e o dia de hoje. */
+export function PatientHomeScreen({ navigation }: RootScreenProps<'PatientHome'>) {
   const { colors } = useTheme();
-  const elderId = useAppStore((s) => s.elderSession?.elderId ?? '');
+  const patientId = useAppStore((s) => s.patientSession?.patientId ?? '');
   const now = useNow();
   const today = appTodayKey(now);
   const silentKey = minuteStamp(now);
-  const profile = useQuery(['elder-profile', elderId], () => services.elders.getProfile(elderId));
-  const doses = useQuery(['elder-day', elderId, today], () => services.doses.listForDay(elderId, today), { silentKey });
+  const profile = useQuery(['patient-profile', patientId], () => services.patients.getProfile(patientId));
+  const doses = useQuery(['patient-day', patientId, today], () => services.doses.listForDay(patientId, today), { silentKey });
   // Contador de mensagens: ao voltar para esta tela (ex.: da conversa) e ao voltar ao app, sem atualização periódica
-  const unread = useQuery(['elder-unread', elderId], () => services.messages.unreadCount(elderId, 'IDOSO'));
+  const unread = useQuery(['patient-unread', patientId], () => services.messages.unreadCount(patientId, 'PACIENTE'));
   useRefreshOnFocus(unread.refresh);
 
   const caregiver = profile.data?.caregiverFirstName ?? 'quem cuida de você';
@@ -35,12 +35,12 @@ export function ElderHomeScreen({ navigation }: RootScreenProps<'ElderHome'>) {
   const allDone = list.length > 0 && !next && list.every((d) => d.storedStatus !== 'PENDENTE' || d.status === 'NAO_TOMADA');
 
   return (
-    <ElderScreen>
+    <PatientScreen>
       <View>
-        <AppText variant="elderDisplay" accessibilityRole="header">
-          {greeting(now)}, {firstName(profile.data?.elder.name ?? '')}
+        <AppText variant="patientDisplay" accessibilityRole="header">
+          {greeting(now)}, {firstName(profile.data?.patient.name ?? '')}
         </AppText>
-        <AppText variant="elderBody" muted>
+        <AppText variant="patientBody" muted>
           {formatLongDate(now)}
         </AppText>
       </View>
@@ -48,7 +48,7 @@ export function ElderHomeScreen({ navigation }: RootScreenProps<'ElderHome'>) {
       {doses.refreshError ? <RefreshFailedBanner onRetry={doses.refresh} /> : null}
 
       {doses.loading || profile.loading ? (
-        <LoadingSkeleton variant="elder" rows={2} />
+        <LoadingSkeleton variant="patient" rows={2} />
       ) : doses.error || profile.error ? (
         <ErrorState error={doses.error ?? profile.error} onRetry={() => { doses.reload(); profile.reload(); }} />
       ) : list.length === 0 ? (
@@ -57,36 +57,36 @@ export function ElderHomeScreen({ navigation }: RootScreenProps<'ElderHome'>) {
         <>
           {next ? (
             <Card style={[styles.next, { borderColor: colors.status[next.status].accent }]}>
-              <AppText variant="elderStrong" muted>
+              <AppText variant="patientStrong" muted>
                 {next.status === 'ATRASADA' ? 'Remédio atrasado' : 'Próxima dose'}
               </AppText>
               <View style={styles.nextRow}>
                 <PillVisual appearance={next.medication} size="xl" name={next.medication.name} />
                 <View style={styles.flex}>
-                  <AppText variant="elderTitle">{next.medication.name}</AppText>
-                  <AppText variant="elderStrong">{next.medication.dosage}</AppText>
-                  <AppText variant="elderBody" muted>
+                  <AppText variant="patientTitle">{next.medication.name}</AppText>
+                  <AppText variant="patientStrong">{next.medication.dosage}</AppText>
+                  <AppText variant="patientBody" muted>
                     {next.doseQuantity} • {next.route}
                   </AppText>
                 </View>
               </View>
               <View style={styles.timeRow}>
-                <AppText variant="elderHuge" accessibilityLabel={`Horário: ${formatTime(next.scheduledAt)}`}>
+                <AppText variant="patientHuge" accessibilityLabel={`Horário: ${formatTime(next.scheduledAt)}`}>
                   {formatTime(next.scheduledAt)}
                 </AppText>
-                <DoseStatusBadge status={next.status} size="elder" />
+                <DoseStatusBadge status={next.status} size="patient" />
               </View>
-              {next.timeNote ? <AppText variant="elderBody">{next.timeNote}</AppText> : null}
+              {next.timeNote ? <AppText variant="patientBody">{next.timeNote}</AppText> : null}
               {next.confirmability === 'OK' ? (
                 <BigActionButton
                   title="TOMAR REMÉDIO AGORA"
                   icon={Pill}
-                  onPress={() => navigation.navigate('ElderConfirmDose', { doseId: next.id })}
+                  onPress={() => navigation.navigate('PatientConfirmDose', { doseId: next.id })}
                   accessibilityHint="Abre a confirmação. Depois é só tocar em Tomei o remédio."
                 />
               ) : (
                 <View style={[styles.wait, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
-                  <AppText variant="elderBody" align="center">
+                  <AppText variant="patientBody" align="center">
                     Ainda não é hora. Você poderá confirmar a partir das {formatTime(next.window.opensAt)}.
                   </AppText>
                 </View>
@@ -95,17 +95,17 @@ export function ElderHomeScreen({ navigation }: RootScreenProps<'ElderHome'>) {
           ) : allDone ? (
             <Card style={[styles.next, styles.center]}>
               <CheckCircle2 color={colors.status.CONFIRMADA_NO_HORARIO.fg} size={56} />
-              <AppText variant="elderTitle" align="center">Pronto por hoje!</AppText>
-              <AppText variant="elderBody" muted align="center">Não há mais remédios para tomar hoje.</AppText>
+              <AppText variant="patientTitle" align="center">Pronto por hoje!</AppText>
+              <AppText variant="patientBody" muted align="center">Não há mais remédios para tomar hoje.</AppText>
             </Card>
           ) : null}
 
-          <AppText variant="elderTitle" accessibilityRole="header">
+          <AppText variant="patientTitle" accessibilityRole="header">
             Seu dia de hoje
           </AppText>
           <View style={styles.list}>
             {list.map((d) => (
-              <ElderDoseRow key={d.id} dose={d} onPress={() => navigation.navigate('ElderConfirmDose', { doseId: d.id })} />
+              <PatientDoseRow key={d.id} dose={d} onPress={() => navigation.navigate('PatientConfirmDose', { doseId: d.id })} />
             ))}
           </View>
         </>
@@ -116,9 +116,9 @@ export function ElderHomeScreen({ navigation }: RootScreenProps<'ElderHome'>) {
         subtitle={unread.data ? `${unread.data} ${unread.data === 1 ? 'mensagem nova' : 'mensagens novas'}` : undefined}
         icon={MessageCircle}
         variant="primary"
-        onPress={() => navigation.navigate('ElderMessages')}
+        onPress={() => navigation.navigate('PatientMessages')}
       />
-    </ElderScreen>
+    </PatientScreen>
   );
 }
 

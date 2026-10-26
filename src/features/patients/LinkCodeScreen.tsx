@@ -16,13 +16,13 @@ import { LinkCodeDisplay } from './LinkCodeDisplay';
 export function LinkCodeScreen({ route, navigation }: RootScreenProps<'LinkCode'>) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const { elderId, justCreated } = route.params;
-  const elder = useQuery(['elder', elderId], () => services.elders.get(elderId));
-  const active = useQuery(['link-code', elderId], () => services.elders.getActiveLinkCode(elderId));
-  const generate = useMutation(services.elders.generateLinkCode);
+  const { patientId, justCreated } = route.params;
+  const patient = useQuery(['patient', patientId], () => services.patients.get(patientId));
+  const active = useQuery(['link-code', patientId], () => services.patients.getActiveLinkCode(patientId));
+  const generate = useMutation(services.patients.generateLinkCode);
   const [fresh, setFresh] = useState<LinkCode | null>(null);
   const newCode = async () => {
-    const created = await generate.mutate(elderId);
+    const created = await generate.mutate(patientId);
     if (created) setFresh(created);
   };
 
@@ -37,7 +37,7 @@ export function LinkCodeScreen({ route, navigation }: RootScreenProps<'LinkCode'
   }, [justCreated, active.data]);
 
   const link = generate.loading ? undefined : fresh ?? active.data;
-  const name = elder.data?.name ?? '';
+  const name = patient.data?.name ?? '';
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
@@ -62,7 +62,7 @@ export function LinkCodeScreen({ route, navigation }: RootScreenProps<'LinkCode'
           ) : active.error ? (
             <ErrorState error={active.error} onRetry={active.reload} />
           ) : link ? (
-            <LinkCodeDisplay link={link} elderName={name} />
+            <LinkCodeDisplay link={link} patientName={name} />
           ) : (
             <EmptyState
               icon={KeyRound}

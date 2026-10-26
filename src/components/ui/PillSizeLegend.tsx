@@ -15,12 +15,12 @@ const DP_PER_MM = 160 / 25.4;
 interface Props {
   appearance: MedicationAppearance;
   doseQuantity?: string;
-  elder?: boolean;
+  patient?: boolean;
 }
 
-export function PillSizeLegend({ appearance, doseQuantity, elder }: Props) {
+export function PillSizeLegend({ appearance, doseQuantity, patient }: Props) {
   const { colors } = useTheme();
-  const variant = elder ? 'elderBody' : 'caption';
+  const variant = patient ? 'patientBody' : 'caption';
   const { lengthMm, widthMm, type } = appearance;
 
   if (!hasPhysicalSize(type)) {
@@ -29,7 +29,7 @@ export function PillSizeLegend({ appearance, doseQuantity, elder }: Props) {
       : `Aplicação${doseQuantity ? `: ${doseQuantity}` : ''}.`;
     return (
       <View style={styles.row} accessible accessibilityLabel={text}>
-        <AppText variant={variant} muted align={elder ? 'center' : 'left'}>
+        <AppText variant={variant} muted align={patient ? 'center' : 'left'}>
           {text}
         </AppText>
       </View>
@@ -38,7 +38,7 @@ export function PillSizeLegend({ appearance, doseQuantity, elder }: Props) {
 
   if (!lengthMm) {
     return (
-      <AppText variant={variant} muted align={elder ? 'center' : 'left'}>
+      <AppText variant={variant} muted align={patient ? 'center' : 'left'}>
         Tamanho não informado.
       </AppText>
     );
@@ -48,14 +48,14 @@ export function PillSizeLegend({ appearance, doseQuantity, elder }: Props) {
   const dims = widthMm && widthMm !== lengthMm ? `${lengthMm} × ${widthMm} mm` : `${lengthMm} mm`;
   const rulerMm = Math.max(20, Math.ceil(lengthMm / 5) * 5);
   const w = rulerMm * DP_PER_MM + 16;
-  const h = elder ? 46 : 38;
+  const h = patient ? 46 : 38;
   const text = `Tamanho real aproximado: ${dims}${comparison ? `, ${comparison}` : ''}.`;
 
   return (
-    <View style={[styles.wrap, elder && styles.center]} accessible accessibilityLabel={text}>
-      <View style={[styles.row, elder && styles.center]}>
-        <Ruler color={colors.textMuted} size={elder ? 22 : 14} />
-        <AppText variant={elder ? 'elderStrong' : 'label'} muted={!elder}>
+    <View style={[styles.wrap, patient && styles.center]} accessible accessibilityLabel={text}>
+      <View style={[styles.row, patient && styles.center]}>
+        <Ruler color={colors.textMuted} size={patient ? 22 : 14} />
+        <AppText variant={patient ? 'patientStrong' : 'label'} muted={!patient}>
           Tamanho real aproximado: {dims}
         </AppText>
       </View>
@@ -74,13 +74,13 @@ export function PillSizeLegend({ appearance, doseQuantity, elder }: Props) {
           />
         ))}
         {Array.from({ length: rulerMm / 5 + 1 }, (_, i) => (
-          <SvgText key={i} x={8 + i * 5 * DP_PER_MM} y={h - 1} fontSize={elder ? 12 : 9} fill={colors.textMuted} textAnchor="middle">
+          <SvgText key={i} x={8 + i * 5 * DP_PER_MM} y={h - 1} fontSize={patient ? 12 : 9} fill={colors.textMuted} textAnchor="middle">
             {i * 5}
           </SvgText>
         ))}
       </Svg>
       {comparison ? (
-        <AppText variant={variant} muted align={elder ? 'center' : 'left'}>
+        <AppText variant={variant} muted align={patient ? 'center' : 'left'}>
           {comparison.charAt(0).toUpperCase() + comparison.slice(1)}.
         </AppText>
       ) : null}

@@ -15,21 +15,21 @@ import { usePolling, useScreenActive } from '../../lib/useScreenActivity';
 import { cardShadow, radius, spacing, useTheme } from '../../theme';
 
 /**
- * T09 — Mensagens do cuidador (UC-010). "Todos" mostra a lista de conversas por idoso; um idoso, a conversa. Atualiza
+ * T09 — Mensagens do cuidador (UC-010). "Todos" mostra a lista de conversas por paciente; um paciente, a conversa. Atualiza
  * sozinha só enquanto esta tela está visível.
  */
 export function CaregiverMessagesScreen(_: TabScreenProps<'Mensagens'>) {
-  const filter = useAppStore((s) => s.selectedElderId);
+  const filter = useAppStore((s) => s.selectedPatientId);
   return (
-    <CaregiverScreen title="Mensagens" subtitle={filter === 'ALL' ? 'Conversas por paciente' : undefined} withElderSwitcher>
-      {filter === 'ALL' ? <ConversationList /> : <Conversation elderId={filter} />}
+    <CaregiverScreen title="Mensagens" subtitle={filter === 'ALL' ? 'Conversas por paciente' : undefined} withPatientSwitcher>
+      {filter === 'ALL' ? <ConversationList /> : <Conversation patientId={filter} />}
     </CaregiverScreen>
   );
 }
 
 function ConversationList() {
   const { colors, mode } = useTheme();
-  const setSelected = useAppStore((s) => s.setSelectedElder);
+  const setSelected = useAppStore((s) => s.setSelectedPatient);
   const now = useNow();
   const today = appTodayKey(now);
   const active = useScreenActive();
@@ -40,7 +40,7 @@ function ConversationList() {
   return (
     <FlatList
       data={q.data}
-      keyExtractor={(c) => c.elder.id}
+      keyExtractor={(c) => c.patient.id}
       contentContainerStyle={styles.list}
       ListEmptyComponent={<EmptyState icon={MessageCircle} title="Nenhuma conversa" description="Cadastre um paciente para trocar mensagens." />}
       renderItem={({ item }) => {
@@ -50,14 +50,14 @@ function ConversationList() {
         return (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Conversa com ${item.elder.name}. ${item.unread ? `${item.unread} não lidas. ` : ''}${last ? `Última mensagem: ${last.text}` : 'Sem mensagens'}`}
-            onPress={() => setSelected(item.elder.id)}
+            accessibilityLabel={`Conversa com ${item.patient.name}. ${item.unread ? `${item.unread} não lidas. ` : ''}${last ? `Última mensagem: ${last.text}` : 'Sem mensagens'}`}
+            onPress={() => setSelected(item.patient.id)}
             style={({ pressed }) => [styles.row, cardShadow(mode === 'dark'), { backgroundColor: colors.surface, borderColor: colors.border, opacity: pressed ? 0.85 : 1 }]}
           >
-            <Avatar name={item.elder.name} color={item.elder.avatarColor} size={44} />
+            <Avatar name={item.patient.name} color={item.patient.avatarColor} size={44} />
             <View style={styles.flex}>
               <View style={styles.rowTop}>
-                <AppText variant="heading" style={styles.flex} numberOfLines={1}>{item.elder.name}</AppText>
+                <AppText variant="heading" style={styles.flex} numberOfLines={1}>{item.patient.name}</AppText>
                 <AppText variant="caption" muted>{when}</AppText>
               </View>
               <AppText variant="body" muted numberOfLines={1}>
@@ -76,10 +76,10 @@ function ConversationList() {
   );
 }
 
-function Conversation({ elderId }: { elderId: string }) {
+function Conversation({ patientId }: { patientId: string }) {
   const now = useNow();
-  const thread = useMessageThread(elderId, 'CUIDADOR');
-  const elder = useQuery(['elder', elderId], () => services.elders.get(elderId));
+  const thread = useMessageThread(patientId, 'CUIDADOR');
+  const patient = useQuery(['patient', patientId], () => services.patients.get(patientId));
 
   if (thread.loading) return <View style={styles.pad}><LoadingSkeleton rows={3} /></View>;
   if (thread.error) return <ErrorState error={thread.error} onRetry={thread.reload} />;
@@ -88,7 +88,7 @@ function Conversation({ elderId }: { elderId: string }) {
       <ChatThread
         messages={thread.messages}
         viewer="CUIDADOR"
-        otherName={firstName(elder.data?.name ?? 'Paciente')}
+        otherName={firstName(patient.data?.name ?? 'Paciente')}
         todayKey={appTodayKey(now)}
         sending={thread.sending}
         sendError={thread.sendError}

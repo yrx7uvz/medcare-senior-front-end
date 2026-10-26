@@ -36,10 +36,10 @@ export function ChatBubble({ message, mine, authorName, large }: Props) {
           },
         ]}
       >
-        <AppText variant={large ? 'elderBody' : 'body'} color={fg}>
+        <AppText variant={large ? 'patientBody' : 'body'} color={fg}>
           {message.text}
         </AppText>
-        <AppText variant={large ? 'elderBody' : 'caption'} color={fg} style={[styles.time, { opacity: mine ? 0.85 : 0.75 }]}>
+        <AppText variant={large ? 'patientBody' : 'caption'} color={fg} style={[styles.time, { opacity: mine ? 0.85 : 0.75 }]}>
           {time}
         </AppText>
       </View>

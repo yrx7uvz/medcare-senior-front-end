@@ -5,8 +5,8 @@ export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28 } as cons
 
 export const radius = { sm: 8, md: 12, lg: 16, xl: 22, pill: 999 } as const;
 
-/** Toque mínimo (RNF01: 48dp; botões do idoso são maiores). */
-export const touch = { min: 48, elder: 64, elderPrimary: 88 } as const;
+/** Toque mínimo (RNF01: 48dp; botões do paciente são maiores). */
+export const touch = { min: 48, patient: 64, patientPrimary: 88 } as const;
 
 /** hitSlop (em cada lado) para um alvo visual de `size` dp chegar à área de toque mínima de 48 dp. */
 export const hitSlopFor = (size: number) => Math.max(0, Math.ceil((touch.min - size) / 2));

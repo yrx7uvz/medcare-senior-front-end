@@ -28,23 +28,23 @@ import { radius, spacing, useTheme } from '../../theme';
 export function DoseDetailScreen({ route, navigation }: RootScreenProps<'DoseDetail'>) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const setSelected = useAppStore((s) => s.setSelectedElder);
+  const setSelected = useAppStore((s) => s.setSelectedPatient);
   const showToast = useAppStore((s) => s.showToast);
   const now = useNow();
-  const { doseId, elderId, day, fromPush } = route.params;
-  const hint = elderId && day ? { elderId, day } : undefined;
+  const { doseId, patientId, day, fromPush } = route.params;
+  const hint = patientId && day ? { patientId, day } : undefined;
   const q = useQuery(['dose', doseId], () => services.doses.get(doseId, hint), { silentKey: minuteStamp(now) });
   const d = q.data ? liveAt(q.data, now) : undefined;
   const missing = doseOpenFailure(q.error);
-  const loadedElderId = q.data?.elderId;
+  const loadedPatientId = q.data?.patientId;
   const confirm = useMutation(services.doses.confirm);
   const [asking, setAsking] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
 
   // Aberta por um aviso: o Painel por baixo passa a mostrar o paciente da dose (só depois de a API confirmar que é dele)
   useEffect(() => {
-    if (fromPush && loadedElderId) setSelected(loadedElderId);
-  }, [fromPush, loadedElderId, setSelected]);
+    if (fromPush && loadedPatientId) setSelected(loadedPatientId);
+  }, [fromPush, loadedPatientId, setSelected]);
 
   const goToPanel = () =>
     navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'CaregiverTabs', params: { screen: 'Painel' } }] }));
@@ -70,7 +70,7 @@ export function DoseDetailScreen({ route, navigation }: RootScreenProps<'DoseDet
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
-      <StackHeader title="Detalhes da dose" subtitle={d ? d.elderName : undefined} />
+      <StackHeader title="Detalhes da dose" subtitle={d ? d.patientName : undefined} />
       {q.loading && !q.data ? (
         <View style={styles.body}><LoadingSkeleton rows={2} /></View>
       ) : missing ? (
@@ -107,7 +107,7 @@ export function DoseDetailScreen({ route, navigation }: RootScreenProps<'DoseDet
                   setFailure(null);
                   setAsking(true);
                 }}
-                accessibilityHint={`Registra que ${firstName(d.elderName)} tomou esta dose`}
+                accessibilityHint={`Registra que ${firstName(d.patientName)} tomou esta dose`}
               />
               {d.status === 'ATRASADA' ? (
                 <AppText variant="caption" muted>
@@ -133,7 +133,7 @@ export function DoseDetailScreen({ route, navigation }: RootScreenProps<'DoseDet
           </Card>
 
           <Card style={styles.gap}>
-            <Row label="Paciente" value={d.elderName} />
+            <Row label="Paciente" value={d.patientName} />
             <Row label="Data" value={formatDateBR(d.scheduledAt.slice(0, 10))} />
             <Row label="Horário programado" value={formatTime(d.scheduledAt)} />
             {d.timeNote ? <Row label="Observação" value={d.timeNote} /> : null}
@@ -145,13 +145,13 @@ export function DoseDetailScreen({ route, navigation }: RootScreenProps<'DoseDet
 
           {d.status === 'ATRASADA' ? (
             <Card tone="alt" style={styles.gap}>
-              <AppText>Quer lembrar {firstName(d.elderName)} de confirmar a dose?</AppText>
+              <AppText>Quer lembrar {firstName(d.patientName)} de confirmar a dose?</AppText>
               <Button
-                title={`Enviar mensagem para ${firstName(d.elderName)}`}
+                title={`Enviar mensagem para ${firstName(d.patientName)}`}
                 icon={MessageCircle}
                 variant="secondary"
                 onPress={() => {
-                  setSelected(d.elderId);
+                  setSelected(d.patientId);
                   navigation.navigate('CaregiverTabs', { screen: 'Mensagens' });
                 }}
               />

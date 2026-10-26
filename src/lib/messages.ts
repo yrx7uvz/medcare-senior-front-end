@@ -24,7 +24,7 @@ export function messageError(text: string): string | null {
  * genérica); nos outros códigos (SESSAO_INVALIDA, ACESSO_NEGADO, RECURSO_NAO_ENCONTRADO, rede), a mensagem do erro.
  */
 export function messageSendError(error: Pick<AppError, 'code' | 'message' | 'fieldErrors'>): string {
-  if (error.code === 'VALIDACAO') return error.fieldErrors?.conteudo ?? error.fieldErrors?.idosoId ?? error.message;
+  if (error.code === 'VALIDACAO') return error.fieldErrors?.conteudo ?? error.fieldErrors?.pacienteId ?? error.message;
   return error.message;
 }
 

@@ -11,24 +11,24 @@ import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import { ageOn, dateBRToKey, toDateKey } from '../../lib/date';
 import { applyFieldErrors, mapFieldErrors } from '../../lib/formErrors';
-import { elderSchema, type ElderValues } from '../../lib/schemas';
+import { patientSchema, type PatientValues } from '../../lib/schemas';
 import { useMutation } from '../../lib/useQuery';
 import { useNow } from '../../lib/useNow';
 import { radius, spacing, useTheme } from '../../theme';
 
-const ELDER_FIELDS = ['name', 'birthDate', 'phone'] as const;
+const PATIENT_FIELDS = ['name', 'birthDate', 'phone'] as const;
 
 /** T04 — Cadastrar paciente. Aviso (não bloqueio) para menos de 60 anos; RN03. */
-export function ElderFormScreen({ navigation }: RootScreenProps<'ElderForm'>) {
+export function PatientFormScreen({ navigation }: RootScreenProps<'PatientForm'>) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const now = useNow(60_000);
-  const setSelected = useAppStore((s) => s.setSelectedElder);
-  const { control, handleSubmit, watch, setError } = useForm<ElderValues>({
-    resolver: zodResolver(elderSchema),
+  const setSelected = useAppStore((s) => s.setSelectedPatient);
+  const { control, handleSubmit, watch, setError } = useForm<PatientValues>({
+    resolver: zodResolver(patientSchema),
     defaultValues: { name: '', birthDate: '', phone: '' },
   });
-  const create = useMutation(services.elders.create);
+  const create = useMutation(services.patients.create);
   // react-hook-form não é compatível com o React Compiler (só aviso; o projeto não usa o compilador).
   // eslint-disable-next-line react-hooks/incompatible-library
   const birth = watch('birthDate');
@@ -36,13 +36,13 @@ export function ElderFormScreen({ navigation }: RootScreenProps<'ElderForm'>) {
   const age = birthKey ? ageOn(birthKey, now) : null;
   const future = birthKey ? birthKey > toDateKey(now) : false;
 
-  // Erros da API mostrados nos campos: paciente duplicado (codigo IDOSO_DUPLICADO) e validação por campo (campos[])
-  const duplicate = create.error?.code === 'IDOSO_DUPLICADO';
-  const inlineError = duplicate || mapFieldErrors<ElderValues>(create.error, ELDER_FIELDS).length > 0;
+  // Erros da API mostrados nos campos: paciente duplicado (codigo PACIENTE_DUPLICADO) e validação por campo (campos[])
+  const duplicate = create.error?.code === 'PACIENTE_DUPLICADO';
+  const inlineError = duplicate || mapFieldErrors<PatientValues>(create.error, PATIENT_FIELDS).length > 0;
   useEffect(() => {
     if (!create.error) return;
-    if (create.error.code === 'IDOSO_DUPLICADO') setError('name', { message: create.error.message });
-    else applyFieldErrors(setError, create.error, ELDER_FIELDS);
+    if (create.error.code === 'PACIENTE_DUPLICADO') setError('name', { message: create.error.message });
+    else applyFieldErrors(setError, create.error, PATIENT_FIELDS);
   }, [create.error, setError]);
 
   const onSubmit = handleSubmit(async (v) => {
@@ -51,10 +51,10 @@ export function ElderFormScreen({ navigation }: RootScreenProps<'ElderForm'>) {
       setError('birthDate', { message: 'A data de nascimento não pode estar no futuro' });
       return;
     }
-    const elder = await create.mutate({ name: v.name, birthDate: key, phone: v.phone || undefined });
-    if (elder) {
-      setSelected(elder.id);
-      navigation.replace('LinkCode', { elderId: elder.id, justCreated: true });
+    const patient = await create.mutate({ name: v.name, birthDate: key, phone: v.phone || undefined });
+    if (patient) {
+      setSelected(patient.id);
+      navigation.replace('LinkCode', { patientId: patient.id, justCreated: true });
     }
   });
 

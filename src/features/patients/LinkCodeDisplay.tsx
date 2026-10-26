@@ -9,7 +9,7 @@ import type { LinkCode } from '../../types/domain';
 import { radius, spacing, useTheme } from '../../theme';
 
 /** Código de vínculo de 6 dígitos, uso único, válido por 24 h (RN11). */
-export function LinkCodeDisplay({ link, elderName }: { link: LinkCode; elderName: string }) {
+export function LinkCodeDisplay({ link, patientName }: { link: LinkCode; patientName: string }) {
   const { colors } = useTheme();
   const showToast = useAppStore((s) => s.showToast);
   const now = useNow(1000);
@@ -70,7 +70,7 @@ export function LinkCodeDisplay({ link, elderName }: { link: LinkCode; elderName
           style={styles.flex}
           onPress={() =>
             Share.share({
-              message: `Código para conectar o celular de ${elderName} ao MedCare Sênior: ${link.code}. Vale por 24 horas e só pode ser usado uma vez.`,
+              message: `Código para conectar o celular de ${patientName} ao MedCare Sênior: ${link.code}. Vale por 24 horas e só pode ser usado uma vez.`,
             })
           }
         />

@@ -20,7 +20,7 @@ export async function hydrateTheme(): Promise<void> {
 export function persistTheme(): () => void {
   return useAppStore.subscribe((s, prev) => {
     if (!s.themeLoaded) return;
-    if (s.themeChoice === prev.themeChoice && s.elderHighContrast === prev.elderHighContrast) return;
-    void themeStorage.save({ mode: s.themeChoice, elderHighContrast: s.elderHighContrast }).catch(() => undefined);
+    if (s.themeChoice === prev.themeChoice && s.patientHighContrast === prev.patientHighContrast) return;
+    void themeStorage.save({ mode: s.themeChoice, patientHighContrast: s.patientHighContrast }).catch(() => undefined);
   });
 }
