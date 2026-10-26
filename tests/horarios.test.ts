@@ -2,7 +2,9 @@ import { describe, expect, it } from '@jest/globals';
 import { medicationFormSchema } from '../src/lib/schemas';
 import { DUPLICATE_TIME_MESSAGE, EMPTY_TIMES_MESSAGE, addTime, removeTime } from '../src/lib/timeList';
 import {
-  indexFromOffset, numberToWords, parseHHmm, spokenTime, stepValue, toHHmm, wheelItemHeight,
+  HOUR_SHORTCUTS, MINUTE_SHORTCUTS, holdRepeatDelay, hourShortcutLabel, indexFromOffset, minuteShortcutLabel,
+  numberToWords, parseHHmm,
+  spokenTime, stepValue, toHHmm, wheelItemHeight, wheelSteps,
 } from '../src/lib/timeWheel';
 import { emptyMedicationValues } from '../src/features/medications/formValues';
 
@@ -82,5 +84,45 @@ describe('seletor de horário em rolagem', () => {
     expect(spokenTime(12, 0)).toBe('doze horas em ponto');
     expect(spokenTime(0, 15)).toBe('zero horas e quinze minutos');
     expect(numberToWords(59)).toBe('cinquenta e nove');
+  });
+});
+
+describe('atalhos, botões segurados e roda do mouse do seletor', () => {
+  it('atalhos de horas e de minutos com rótulo falado', () => {
+    expect(HOUR_SHORTCUTS).toEqual([6, 8, 12, 14, 18, 20, 22]);
+    expect(MINUTE_SHORTCUTS).toEqual([0, 15, 30, 45]);
+    expect(minuteShortcutLabel(15)).toBe('Minutos: quinze');
+    expect(minuteShortcutLabel(0)).toBe('Minutos: zero');
+    expect(hourShortcutLabel(8)).toBe('Horas: oito');
+    expect(hourShortcutLabel(22)).toBe('Horas: vinte e duas');
+  });
+
+  it('segurar o botão: 400 ms até repetir, depois acelera até cerca de 12 passos por segundo', () => {
+    expect(holdRepeatDelay(0)).toBe(400);
+    const esperas = Array.from({ length: 20 }, (_, i) => holdRepeatDelay(i + 1));
+    // Sempre mais rápido (ou igual, no limite) que o passo anterior
+    esperas.forEach((ms, i) => expect(ms).toBeLessThanOrEqual(i === 0 ? 400 : esperas[i - 1]));
+    expect(Math.min(...esperas)).toBe(83);
+    expect(1000 / holdRepeatDelay(50)).toBeCloseTo(12, 0);
+    // Em cerca de 1,5 s segurando, já está na velocidade máxima
+    let tempo = holdRepeatDelay(0);
+    let passos = 0;
+    while (holdRepeatDelay(passos + 1) > 83) tempo += holdRepeatDelay(++passos);
+    expect(tempo).toBeLessThan(1600);
+  });
+
+  it('roda do mouse: um clique da roda é um passo; para baixo aumenta; o trackpad acumula', () => {
+    expect(wheelSteps(0, 100)).toEqual({ steps: 1, rest: 0 });
+    expect(wheelSteps(0, -100)).toEqual({ steps: -1, rest: 0 });
+    expect(wheelSteps(0, 3, 1)).toEqual({ steps: 1, rest: 20 });
+    let resto = 0;
+    let total = 0;
+    for (let i = 0; i < 10; i++) {
+      const r = wheelSteps(resto, 30);
+      resto = r.rest;
+      total += r.steps;
+    }
+    expect(total).toBe(3);
+    expect(resto).toBe(0);
   });
 });
