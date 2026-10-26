@@ -395,6 +395,25 @@ checkAsync('Cadastro em duas chamadas: falha no tratamento avisa com o id e não
   assert.equal(view.scheduleSummary, '08:00 • Seg');
 });
 
+checkAsync('Tratamento: primeiraDose da resposta chega na view; horário a menos de 5 minutos chega no campo horarios', async () => {
+  fakeFetch([{ status: 201, body: MED_DTO }, { status: 201, body: { ...TRAT_DTO, primeiraDose: '2026-10-20T08:00:00' } }]);
+  const view = await httpMedicationService.create(MED_INPUT);
+  assert.deepEqual(view.firstDose, { dateKey: '2026-10-20', time: '08:00' });
+
+  fakeFetch([{ status: 200, body: MED_DTO }, { status: 201, body: { ...TRAT_DTO, primeiraDose: null } }]);
+  assert.equal((await httpMedicationService.createTreatment('501', MED_INPUT.treatment)).firstDose, undefined);
+
+  const mensagem = 'Não é possível cadastrar um horário que seja agora ou daqui a menos de 5 minutos. Escolha um horário com pelo menos 5 minutos de diferença do horário atual.';
+  fakeFetch([
+    { status: 201, body: MED_DTO },
+    { status: 400, body: { codigo: 'VALIDACAO', mensagem, campos: [{ campo: 'horarios', mensagem }] } },
+  ]);
+  const erro = await httpMedicationService.create(MED_INPUT).then(() => assert.fail('deveria falhar'), (e: unknown) => e);
+  assert.ok(erro instanceof TreatmentNotSavedError);
+  assert.equal(erro.fieldErrors?.horarios, mensagem);
+  assert.deepEqual(mapFieldErrors(erro, ['times'], { horarios: 'times' }), [['times', mensagem]]);
+});
+
 checkAsync('Filtro "Todos": busca os pacientes e os remédios de cada um, ordenados por paciente e nome', async () => {
   const chamadas = fakeFetch([
     { status: 200, body: [{ id: 2, nome: 'Zélia', dataNascimento: '1940-01-01', telefone: null, cuidadorId: 1 }, { id: 1, nome: 'Ana', dataNascimento: '1941-01-01', telefone: null, cuidadorId: 1 }] },

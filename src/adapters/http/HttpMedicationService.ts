@@ -1,5 +1,6 @@
 import { apiTimeToHHmm, apiWeekdayToIndex, indexToApiWeekday, saoPauloDateKey } from '../../lib/apiTime';
 import { isTreatmentActive, pickCurrentTreatment, scheduleSummary } from '../../lib/medicationMeta';
+import { parseFirstDose } from '../../lib/treatmentTime';
 import { toAppError, TreatmentNotSavedError } from '../../services/errors';
 import type { MedicationService } from '../../services/types';
 import { MEDICATION_TYPE_VALUES, PILL_SHAPE_VALUES, type Medication, type MedicationType, type PillShape, type Treatment } from '../../types/domain';
@@ -30,6 +31,8 @@ export interface TratamentoResponse {
   dataFim: string | null;
   horarios: string[];
   diasSemana: string[];
+  /** Só no cadastro e na edição: primeira dose a partir de agora (null na listagem). */
+  primeiraDose?: string | null;
 }
 
 const HEX_COLOR_RE = /^#[0-9a-f]{6}$/i;
@@ -120,14 +123,16 @@ export const toTratamentoEdicaoRequest = (input: TreatmentInput) => ({
 
 const todayKey = () => saoPauloDateKey(Date.now());
 
-function toView(medication: Medication, treatments: Treatment[], patientName: string): MedicationView {
+function toView(medication: Medication, treatments: Treatment[], patientName: string, primeiraDose?: string | null): MedicationView {
   const treatment = pickCurrentTreatment(treatments, todayKey());
+  const firstDose = parseFirstDose(primeiraDose);
   return {
     medication,
     patientName,
     treatment,
     activeTreatment: isTreatmentActive(treatment, todayKey()),
     scheduleSummary: scheduleSummary(treatment),
+    ...(firstDose ? { firstDose } : {}),
   };
 }
 
@@ -179,20 +184,20 @@ export const httpMedicationService: MedicationService = {
 
   async create(input) {
     const medication = toMedication(await request<MedicamentoResponse>('POST', endpoints.medications, toMedicamentoRequest(input)));
-    let treatment: Treatment;
+    let dto: TratamentoResponse;
     try {
-      treatment = toTreatment(await request<TratamentoResponse>('POST', endpoints.treatments(String(toApiId(medication.id))), toTratamentoRequest(input.treatment)));
+      dto = await request<TratamentoResponse>('POST', endpoints.treatments(String(toApiId(medication.id))), toTratamentoRequest(input.treatment));
     } catch (e) {
       throw new TreatmentNotSavedError(medication.id, toAppError(e));
     }
     // O nome do paciente não vem nas respostas; as listas recarregam depois da escrita
-    return toView(medication, [treatment], '');
+    return toView(medication, [toTreatment(dto)], '', dto.primeiraDose);
   },
 
   async createTreatment(medicationId, input) {
     const medication = await fetchMedication(medicationId);
-    const treatment = toTreatment(await request<TratamentoResponse>('POST', endpoints.treatments(String(toApiId(medicationId))), toTratamentoRequest(input)));
-    return toView(medication, [treatment], '');
+    const dto = await request<TratamentoResponse>('POST', endpoints.treatments(String(toApiId(medicationId))), toTratamentoRequest(input));
+    return toView(medication, [toTreatment(dto)], '', dto.primeiraDose);
   },
 
   /**
@@ -201,21 +206,20 @@ export const httpMedicationService: MedicationService = {
    */
   async update(id, input) {
     const medication = toMedication(await request<MedicamentoResponse>('PUT', endpoints.medication(String(toApiId(id))), toMedicamentoRequest(input)));
-    let treatment: Treatment;
+    let dto: TratamentoResponse;
     try {
       const current = pickCurrentTreatment(await fetchTreatments(id), todayKey());
-      const dto = current
+      dto = current
         ? await request<TratamentoResponse>('PUT', endpoints.treatment(String(toApiId(current.id))), toTratamentoEdicaoRequest(input.treatment))
         : await request<TratamentoResponse>('POST', endpoints.treatments(String(toApiId(id))), toTratamentoRequest(input.treatment));
-      treatment = toTreatment(dto);
     } catch (e) {
       throw new TreatmentNotSavedError(medication.id, toAppError(e));
     }
-    return toView(medication, [treatment], '');
+    return toView(medication, [toTreatment(dto)], '', dto.primeiraDose);
   },
 
   /**
-   * RN06: DELETE ?forcarRemocao=false primeiro; com tratamento ativo a API responde 409
+   * DELETE ?forcarRemocao=false primeiro; com tratamento ativo a API responde 409
    * TRATAMENTO_ATIVO e a tela pede a confirmação forçada (forcarRemocao=true).
    */
   async remove(id, { confirmed }) {

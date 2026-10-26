@@ -2,6 +2,7 @@ import { IS_DEMO } from '../config/env';
 import type { DateKey } from '../types/domain';
 import { apiDateTimeToEpochMs, saoPauloDateKey } from './apiTime';
 import { parseDateTime, toDateKey } from './date';
+import { localNowOf, saoPauloNow, type LocalNow } from './treatmentTime';
 
 /**
  * Relógio do servidor visto do aparelho. O celular pode estar adiantado ou atrasado: as janelas de dose vêm do
@@ -53,4 +54,9 @@ export function doseInstantMs(key: string): number | null {
     return Number.isFinite(ms) ? ms : null;
   }
   return apiDateTimeToEpochMs(key);
+}
+
+/** "Agora" no relógio dos tratamentos: São Paulo corrigido pelo servidor no modo real; no demo, o relógio simulado. */
+export function appLocalNow(now: Date): LocalNow {
+  return IS_DEMO ? localNowOf(now) : saoPauloNow(appNowMs(now));
 }

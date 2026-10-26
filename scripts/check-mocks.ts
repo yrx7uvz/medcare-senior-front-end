@@ -1,7 +1,8 @@
 /**
  * Confere os mocks do modo demonstração: (1) nenhum código fora do caminho do demo importa os mocks, e o carregador
  * (src/config/demo.ts) só os exige dentro da condição de build que o Metro remove do bundle de produção; (2) os números
- * fecham entre painel, histórico e PDF e seguem a regra da janela (aviso + 30 min).
+ * fecham entre painel, histórico e PDF e seguem a regra da janela (aviso + 30 min); (3) o cadastro e a edição de
+ * tratamento seguem a antecedência mínima de 5 minutos e devolvem a primeira dose, como a API.
  * Uso: npm run check:mocks (sai com erro se algo falhar)
  */
 import assert from 'node:assert/strict';
@@ -9,6 +10,8 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { services } from '../src/services';
 import { summarize } from '../src/lib/doseRules';
+import { TOO_SOON_MESSAGE } from '../src/lib/treatmentTime';
+import type { AppError } from '../src/services/errors';
 
 const SRC = join(__dirname, '..', 'src');
 const DEMO_PATHS = ['adapters/mock/', 'mocks/'];
@@ -41,6 +44,42 @@ function conferirIsolamento() {
   console.log('Isolamento : mocks só no caminho do demo; carregador com a condição de build');
 }
 
+/** Antecedência mínima e primeira dose no mock, com a mesma regra da API (relógio do demo: sexta, 05/06, 14:02). */
+async function conferirHorarioDoTratamento() {
+  const { useClockStore } = await import('../src/lib/clock');
+  const as1402 = () => useClockStore.getState().setTime(new Date(2026, 5, 5, 14, 2, 0));
+  const remedio = (times: string[], weekdays = [0, 1, 2, 3, 4, 5, 6]) => ({
+    patientId: 'e-jose',
+    name: 'Teste de horário',
+    dosage: '1mg',
+    type: 'COMPRIMIDO' as const,
+    appearanceSource: 'MANUAL' as const,
+    treatment: { startDate: '2026-06-05', weekdays, times: times.map((time) => ({ time })) },
+  });
+  const recusa = async (fn: () => Promise<unknown>) => {
+    as1402();
+    const erro = await fn().then(() => null, (e: unknown) => e as AppError);
+    assert.equal(erro?.status, 400);
+    assert.equal(erro?.code, 'VALIDACAO');
+    assert.equal(erro?.fieldErrors?.horarios, TOO_SOON_MESSAGE);
+  };
+
+  await recusa(() => services.medications.create(remedio(['14:05'])));
+  as1402();
+  const hoje = await services.medications.create(remedio(['14:08']));
+  assert.deepEqual(hoje.firstDose, { dateKey: '2026-06-05', time: '14:08' });
+  as1402();
+  const semanal = await services.medications.create(remedio(['08:00'], [5, 6]));
+  assert.deepEqual(semanal.firstDose, { dateKey: '2026-06-06', time: '08:00' });
+  // Edição: o 08:00 salvo não bloqueia; um horário novo a 2 minutos é recusado
+  await recusa(() => services.medications.update(semanal.medication.id, remedio(['08:00', '14:04'], [5, 6])));
+  as1402();
+  const editado = await services.medications.update(semanal.medication.id, { ...remedio(['08:00'], [5, 6]), dosage: '2mg' });
+  assert.equal(editado.medication.dosage, '2mg');
+  for (const view of [hoje, semanal]) await services.medications.remove(view.medication.id, { confirmed: true });
+  console.log('Horários    : menos de 5 min recusado (cadastro e horário novo da edição); primeira dose hoje ou no próximo dia');
+}
+
 async function main() {
   conferirIsolamento();
   const day = '2026-06-05';
@@ -71,6 +110,7 @@ async function main() {
   const ok = await services.patients.validateLinkCode('482913');
   console.log('Código válido →', ok.patientName);
   try { await services.patients.validateLinkCode('482913'); } catch (e) { console.log('Reuso →', (e as Error).message); }
+  await conferirHorarioDoTratamento();
   process.exit(0);
 }
 void main();

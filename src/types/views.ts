@@ -56,6 +56,8 @@ export interface MedicationView {
   treatment?: Treatment;
   activeTreatment: boolean;
   scheduleSummary: string;
+  /** Só no cadastro e na edição: dia e hora ('HH:mm') da primeira dose a partir de agora (primeiraDose da API). */
+  firstDose?: { dateKey: DateKey; time: string };
 }
 
 export interface AlertView {

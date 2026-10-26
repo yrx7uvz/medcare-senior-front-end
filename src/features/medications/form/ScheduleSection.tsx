@@ -7,8 +7,8 @@ import { spacing, useTheme } from '../../../theme';
 import { WeekdayChips } from '../WeekdayChips';
 import { TimesField } from './TimesField';
 
-/** Dias da semana, horários (seletor em rolagem) e período do tratamento. */
-export function ScheduleSection({ control, isEdit }: { control: Control<MedicationFormValues>; isEdit: boolean }) {
+/** Dias da semana, horários (seletor em rolagem) e período do tratamento. `timesNotice`: aviso de primeira dose. */
+export function ScheduleSection({ control, isEdit, timesNotice }: { control: Control<MedicationFormValues>; isEdit: boolean; timesNotice?: string | null }) {
   const { colors } = useTheme();
   return (
     <Card style={styles.card}>
@@ -31,6 +31,7 @@ export function ScheduleSection({ control, isEdit }: { control: Control<Medicati
             value={field.value}
             onChange={field.onChange}
             error={fieldState.error?.message ?? fieldState.error?.root?.message}
+            notice={timesNotice}
           />
         )}
       />

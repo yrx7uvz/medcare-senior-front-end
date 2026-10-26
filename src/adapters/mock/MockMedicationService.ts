@@ -1,28 +1,42 @@
 import type { MedicationService } from '../../services/types';
 import type { Medication, Treatment } from '../../types/domain';
-import type { MedicationInput, MedicationView } from '../../types/views';
+import type { MedicationInput, MedicationView, TreatmentInput } from '../../types/views';
 import { httpError } from '../../services/errors';
 import { getNow } from '../../lib/clock';
 import { toDateKey, toDateTimeKey } from '../../lib/date';
 import { GENERATION_WINDOW_DAYS, generateDoses } from '../../lib/doseGenerator';
 import { uid } from '../../lib/ids';
 import { isTreatmentActive, scheduleSummary } from '../../lib/medicationMeta';
+import { TOO_SOON_MESSAGE, firstDoseAfter, localNowOf, newTimes, tooSoonTimes, type TreatmentSchedule } from '../../lib/treatmentTime';
 import { getDb, mutateDb } from '../../mocks/db';
 import { simulate } from './simulate';
 
-function toView(m: Medication): MedicationView {
+/** `withFirstDose`: no cadastro e na edição a resposta traz a primeira dose, como a primeiraDose da API. */
+function toView(m: Medication, withFirstDose = false): MedicationView {
   const db = getDb();
   const treatment = db.treatments.find((t) => t.medicationId === m.id && !t.removedAt);
+  const firstDose = withFirstDose && treatment ? firstDoseAfter(scheduleOf(treatment), localNowOf(getNow())) : null;
   return {
     medication: m,
     patientName: db.patients.find((e) => e.id === m.patientId)?.name ?? 'Paciente',
     treatment,
     activeTreatment: isTreatmentActive(treatment, toDateKey(getNow())),
     scheduleSummary: scheduleSummary(treatment),
+    ...(firstDose ? { firstDose } : {}),
   };
 }
 
-/** Regras do backend repetidas no mock (RN05, RN07, início ≤ fim). */
+const scheduleOf = (t: TreatmentInput): TreatmentSchedule => ({ ...t, times: t.times.map((x) => x.time) });
+
+/** Antecedência mínima do horário de hoje, como na API: 400 VALIDACAO no campo horarios. Na edição, só os novos. */
+function validateAdvance(treatment: TreatmentInput, saved: readonly string[] = []) {
+  const schedule = scheduleOf(treatment);
+  if (tooSoonTimes(schedule, newTimes(schedule.times, saved), localNowOf(getNow())).length) {
+    throw httpError(400, TOO_SOON_MESSAGE, 'VALIDACAO', undefined, { horarios: TOO_SOON_MESSAGE });
+  }
+}
+
+/** Regras do backend repetidas no mock (dados obrigatórios, horários sem repetição, início ≤ fim). */
 function validate(input: MedicationInput) {
   if (!input.name.trim() || !input.dosage.trim() || !input.type) {
     throw httpError(400, 'Nome, dosagem e tipo são obrigatórios.');
@@ -55,7 +69,7 @@ function medicationFields(input: MedicationInput) {
   };
 }
 
-/** Apaga só doses PENDENTES futuras; registradas nunca são tocadas (RN08). */
+/** Apaga só doses PENDENTES futuras; registradas nunca são tocadas. */
 function dropFuturePending(treatmentId: string, now: Date) {
   const nowKey = toDateTimeKey(now);
   mutateDb((db) => {
@@ -76,7 +90,7 @@ export const mockMedicationService: MedicationService = {
     simulate(() =>
       getDb()
         .medications.filter((m) => !m.removedAt && (filter === 'ALL' || m.patientId === filter))
-        .map(toView)
+        .map((m) => toView(m))
         .sort((a, b) => a.patientName.localeCompare(b.patientName) || a.medication.name.localeCompare(b.medication.name)),
     ),
 
@@ -91,6 +105,7 @@ export const mockMedicationService: MedicationService = {
   create: (input) =>
     simulate(() => {
       validate(input);
+      validateAdvance(input.treatment);
       const now = getNow();
       const medication: Medication = {
         id: uid('m'),
@@ -107,7 +122,7 @@ export const mockMedicationService: MedicationService = {
         db.treatments.push(treatment);
       });
       generate(treatment, medication, now);
-      return toView(medication);
+      return toView(medication, true);
     }, 400),
 
   update: (id, input) =>
@@ -119,6 +134,7 @@ export const mockMedicationService: MedicationService = {
       if (index < 0) throw httpError(404, 'Medicamento não encontrado.');
       const medication: Medication = { ...db.medications[index], ...medicationFields(input) };
       const tIndex = db.treatments.findIndex((t) => t.medicationId === id && !t.removedAt);
+      validateAdvance(input.treatment, tIndex >= 0 ? db.treatments[tIndex].times.map((t) => t.time) : []);
       const treatment: Treatment = { id: tIndex >= 0 ? db.treatments[tIndex].id : uid('t'), medicationId: id, ...input.treatment };
       mutateDb((d) => {
         d.medications[index] = medication;
@@ -128,7 +144,7 @@ export const mockMedicationService: MedicationService = {
       // Edição regenera apenas as doses pendentes futuras.
       dropFuturePending(treatment.id, now);
       generate(treatment, medication, now);
-      return toView(medication);
+      return toView(medication, true);
     }, 400),
 
   createTreatment: (medicationId, input) =>
@@ -136,12 +152,13 @@ export const mockMedicationService: MedicationService = {
       const now = getNow();
       const medication = getDb().medications.find((m) => m.id === medicationId && !m.removedAt);
       if (!medication) throw httpError(404, 'Medicamento não encontrado.');
+      validateAdvance(input);
       const treatment: Treatment = { id: uid('t'), medicationId, ...input };
       mutateDb((db) => {
         db.treatments.push(treatment);
       });
       generate(treatment, medication, now);
-      return toView(medication);
+      return toView(medication, true);
     }, 300),
 
   remove: (id, { confirmed }) =>
