@@ -45,6 +45,8 @@ export interface PushService {
   /** Cria (ou atualiza) o canal "Alertas de dose" de importância alta. */
   ensureAlertChannel(): Promise<void>;
   getPermission(): Promise<PushPermission>;
+  /** O Android ainda mostra o pedido de permissão (falso depois de recusas seguidas: só pelas configurações). */
+  canAskAgain(): Promise<boolean>;
   /** Pede a permissão de notificações (Android 13+: POST_NOTIFICATIONS). */
   requestPermission(): Promise<PushPermission>;
   /** Toque numa notificação (app aberto, em segundo plano ou fechado). Devolve a função que cancela. */
@@ -67,6 +69,7 @@ const INERT: PushService = {
   onTokenChange: () => noop,
   ensureAlertChannel: async () => undefined,
   getPermission: async () => 'unavailable',
+  canAskAgain: async () => false,
   requestPermission: async () => 'unavailable',
   onOpen: () => noop,
   getLaunchData: async () => null,
@@ -152,6 +155,8 @@ export function createPushService(env: PushEnvironment, load: () => Notification
       }, undefined),
 
     getPermission: () => safe(async (n) => toPermission((await n.getPermissionsAsync()).status), 'unavailable'),
+
+    canAskAgain: () => safe(async (n) => (await n.getPermissionsAsync()).canAskAgain !== false, false),
 
     requestPermission: () => safe(async (n) => toPermission((await n.requestPermissionsAsync()).status), 'unavailable'),
 

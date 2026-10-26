@@ -24,4 +24,5 @@ export * from './PinPad';
 export * from './AdherenceBars';
 export * from './TimeWheelPicker';
 export * from './AppSwitch';
+export * from './NotificationsOffBanner';
 export type { IconComponent } from './icons';

@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TabScreenProps } from '../../app/navigation/types';
 import { AlertBanner } from '../../components/layout/AlertBanner';
 import { CaregiverScreen } from '../../components/layout/CaregiverScreen';
-import { AppText, Avatar, Button, EmptyState, ErrorState, LoadingSkeleton, RefreshFailedBanner } from '../../components/ui';
+import { AppText, Avatar, Button, EmptyState, ErrorState, LoadingSkeleton, NotificationsOffBanner, RefreshFailedBanner } from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import { firstName, formatLongDate, greeting } from '../../lib/date';
@@ -16,6 +16,7 @@ import { liveAt } from '../../lib/doseLive';
 import { appTodayKey } from '../../lib/serverClock';
 import { summarize } from '../../lib/doseRules';
 import { useQuery } from '../../lib/useQuery';
+import { useNotificationsOff } from '../../lib/useNotificationsOff';
 import { minuteStamp, useNow } from '../../lib/useNow';
 import type { DoseView } from '../../types/views';
 import { spacing, useTheme } from '../../theme';
@@ -33,6 +34,7 @@ export function DashboardScreen({ navigation }: TabScreenProps<'Painel'>) {
   const now = useNow();
   const today = appTodayKey(now);
   const silentKey = minuteStamp(now);
+  const notifications = useNotificationsOff();
 
   const patients = useQuery(['patients'], () => services.patients.list());
   const doses = useQuery(['doses-day', filter, today], () => services.doses.listForDay(filter, today), { silentKey });
@@ -161,6 +163,7 @@ export function DashboardScreen({ navigation }: TabScreenProps<'Painel'>) {
             }}
           />
         ) : null}
+        {notifications.show ? <NotificationsOffBanner onEnable={() => void notifications.enable()} /> : null}
         {visibleAlerts.length > 0 ? (
           <AlertBanner
             alert={visibleAlerts[0]}

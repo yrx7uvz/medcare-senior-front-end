@@ -818,7 +818,7 @@ check('Push só existe no Android fora do Expo Go e do demo; nos outros casos é
 });
 
 /** expo-notifications falso: registra as chamadas e permite disparar eventos. */
-function notificacoesFalsas(opcoes: { token?: unknown; falhaToken?: boolean; permissao?: string } = {}) {
+function notificacoesFalsas(opcoes: { token?: unknown; falhaToken?: boolean; permissao?: string; podePerguntar?: boolean } = {}) {
   const ouvintes: { token: ((t: { data: unknown }) => void)[]; abrir: ((r: unknown) => void)[] } = { token: [], abrir: [] };
   const canais: { id: string; canal: { importance: number; name: string } }[] = [];
   let handler: unknown = null;
@@ -837,7 +837,7 @@ function notificacoesFalsas(opcoes: { token?: unknown; falhaToken?: boolean; per
       canais.push({ id, canal });
       return null;
     },
-    getPermissionsAsync: async () => ({ status: opcoes.permissao ?? 'undetermined' }),
+    getPermissionsAsync: async () => ({ status: opcoes.permissao ?? 'undetermined', canAskAgain: opcoes.podePerguntar }),
     requestPermissionsAsync: async () => ({ status: 'granted' }),
     addNotificationResponseReceivedListener: (cb: (r: unknown) => void) => {
       ouvintes.abrir.push(cb);
@@ -876,6 +876,10 @@ checkAsync('Push suportado: token FCM bruto, troca de token, canal "Alertas de d
 
   assert.equal(await servico.getPermission(), 'undetermined');
   assert.equal(await servico.requestPermission(), 'granted');
+  // Sem o campo (versões antigas) conta como "ainda pergunta"; recusado de vez, só pelas configurações
+  assert.equal(await servico.canAskAgain(), true);
+  const bloqueado = createPushService({ os: 'android', isExpoGo: false, isDemo: false }, () => notificacoesFalsas({ permissao: 'denied', podePerguntar: false }).mod);
+  assert.equal(await bloqueado.canAskAgain(), false);
 
   const abertos: Record<string, unknown>[] = [];
   servico.onOpen((d) => abertos.push(d));
@@ -899,6 +903,7 @@ checkAsync('Push suportado mas com falha: módulo que não carrega ou FCM fora d
   });
   assert.equal(await semModulo.getDeviceToken(), null);
   assert.equal(await semModulo.requestPermission(), 'unavailable');
+  assert.equal(await semModulo.canAskAgain(), false);
   semModulo.onTokenChange(() => undefined)();
   const fcmFora = createPushService({ os: 'android', isExpoGo: false, isDemo: false }, () => notificacoesFalsas({ falhaToken: true }).mod);
   assert.equal(await fcmFora.getDeviceToken(), null);
