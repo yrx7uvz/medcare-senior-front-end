@@ -2,15 +2,26 @@
   "expo": {
     "name": "MedCare Sênior",
     "slug": "medcare-senior",
-    "version": "0.1.0",
+    "version": "1.0.0",
+    "scheme": "medcaresenior",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "platforms": [
       "android",
       "web"
     ],
     "android": {
-      "package": "br.ucb.medcaresenior"
+      "package": "br.ucb.medcaresenior",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon-foreground.png",
+        "backgroundImage": "./assets/adaptive-icon-background.png",
+        "monochromeImage": "./assets/adaptive-icon-monochrome.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-font",
@@ -19,7 +30,9 @@
         "expo-build-properties",
         {
           "android": {
-            "minSdkVersion": 26
+            "minSdkVersion": 26,
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
           }
         }
       ]
