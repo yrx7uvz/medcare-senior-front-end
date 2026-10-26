@@ -12,6 +12,7 @@
     "android:demo": "cross-env EXPO_PUBLIC_DEMO=true expo start --android",
     "web:demo": "cross-env EXPO_PUBLIC_DEMO=true expo start --web",
     "start:dev": "expo start --dev-client",
+    "emulador": "cross-env NODE_OPTIONS=--dns-result-order=ipv4first expo start --dev-client --localhost --android",
     "build:dev": "eas build --profile development --platform android",
     "build:preview": "eas build --profile preview --platform android",
     "build:apk": "eas build --profile apk-final --platform android",
