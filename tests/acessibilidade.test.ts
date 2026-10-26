@@ -2,7 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { checkTheme, contrastRatio, MIN_LARGE_OR_UI, MIN_TEXT, relativeLuminance } from '../src/lib/contrast';
-import { darkColors, elderColors, elderHighContrastColors, lightColors } from '../src/theme/colors';
+import { darkColors, patientColors, patientHighContrastColors, lightColors } from '../src/theme/colors';
 import { hitSlopFor, touch } from '../src/theme/spacing';
 import { CAREGIVER_MIN_BODY, CAREGIVER_MIN_LABEL, textVariants } from '../src/theme/typography';
 
@@ -24,8 +24,8 @@ describe('contraste WCAG', () => {
   it.each([
     ['claro', lightColors],
     ['escuro', darkColors],
-    ['idoso', elderColors],
-    ['idoso alto contraste', elderHighContrastColors],
+    ['paciente', patientColors],
+    ['paciente alto contraste', patientHighContrastColors],
   ])('tema %s: todos os pares de texto ≥ 4,5:1 e bordas/indicadores ≥ 3:1', (_nome, cores) => {
     const reprovados = checkTheme(cores).filter((r) => !r.ok).map((r) => `${r.name}: ${r.ratio.toFixed(2)}`);
     expect(reprovados).toEqual([]);
@@ -39,16 +39,20 @@ describe('contraste WCAG', () => {
 });
 
 describe('tamanho de fonte', () => {
-  it('cuidador: corpo ≥ 16 sp e rótulos ≥ 14 sp; idoso ≥ 20 sp', () => {
+  it('cuidador: corpo ≥ 16 sp e rótulos ≥ 14 sp; paciente ≥ 20 sp', () => {
     expect(CAREGIVER_MIN_BODY).toBe(16);
     expect(CAREGIVER_MIN_LABEL).toBe(14);
     for (const [nome, estilo] of Object.entries(textVariants)) {
-      if (nome.startsWith('elder')) expect(estilo.fontSize).toBeGreaterThanOrEqual(20);
+      if (nome.startsWith('patient')) expect(estilo.fontSize).toBeGreaterThanOrEqual(20);
       else expect(estilo.fontSize).toBeGreaterThanOrEqual(CAREGIVER_MIN_LABEL);
     }
     expect(textVariants.body.fontSize).toBeGreaterThanOrEqual(CAREGIVER_MIN_BODY);
     expect(textVariants.bodyStrong.fontSize).toBeGreaterThanOrEqual(CAREGIVER_MIN_BODY);
-    expect(fonte('app/navigation/CaregiverTabs.tsx')).toMatch(/tabBarLabelStyle: \{ fontFamily: fonts\.bodySemi, fontSize: CAREGIVER_MIN_LABEL \}/);
+    // Rótulo das abas em 14 sp; em tela muito estreita diminui no máximo 15% para caber inteiro (sem "Mensage…")
+    const abas = fonte('app/navigation/CaregiverTabs.tsx');
+    expect(abas).toMatch(/style=\{\{ fontFamily: fonts\.bodySemi, fontSize: CAREGIVER_MIN_LABEL \}\}/);
+    expect(abas).toMatch(/adjustsFontSizeToFit[\s\S]*minimumFontScale=\{0\.85\}/);
+    expect(abas).not.toMatch(/'Config\.'/);
   });
 
   it('o texto respeita a fonte do sistema (sem desligar o ajuste)', () => {
@@ -77,8 +81,14 @@ describe('alvos de toque ≥ 48 dp nos componentes compartilhados', () => {
     expect(fonte('components/ui/PinPad.tsx')).toMatch(/key: \{ width: 84, height: 72/);
     expect(fonte('features/medications/ColorPicker.tsx')).toMatch(/hitSlop=\{hitSlopFor\(SWATCH\)\}/);
     expect(fonte('features/medications/WeekdayChips.tsx')).toMatch(/hitSlop=\{\{ left: hitSlopFor\(DAY_MIN_WIDTH\), right: hitSlopFor\(DAY_MIN_WIDTH\) \}\}/);
-    // A linha inteira da preferência é o interruptor
-    expect(fonte('features/settings/SettingsScreen.tsx')).toMatch(/accessibilityRole="switch"[\s\S]*onPress=\{\(\) => onChange\(!value\)\}/);
+    // A linha inteira da preferência é o interruptor (componente comum AppSwitch, com 56 dp de altura)
+    expect(fonte('components/ui/AppSwitch.tsx')).toMatch(/accessibilityRole="switch"[\s\S]*onPress=\{\(\) => onValueChange\(!value\)\}/);
+    expect(fonte('components/ui/AppSwitch.tsx')).toMatch(/minHeight: 56/);
+    expect(fonte('features/settings/SettingsScreen.tsx')).toMatch(/<AppSwitch /);
+    // Nenhum Switch do sistema (verde e azul do Android): todos usam o AppSwitch com as cores do tema
+    for (const arquivo of ['features/settings/SettingsScreen.tsx', 'components/ui/ThemeToggle.tsx', 'components/layout/ProfileSwitcher.tsx']) {
+      expect(fonte(arquivo)).not.toMatch(/<Switch\b/);
+    }
   });
 
   it('campos, chips e caixas usam a borda com contraste (inputBorder)', () => {

@@ -1,10 +1,18 @@
-import { Bell, ChevronRight, FileText, KeyRound, LogOut, ShieldCheck, SlidersHorizontal, Trash2, UserPlus } from 'lucide-react-native';
+import Bell from 'lucide-react-native/icons/bell';
+import ChevronRight from 'lucide-react-native/icons/chevron-right';
+import FileText from 'lucide-react-native/icons/file-text';
+import KeyRound from 'lucide-react-native/icons/key-round';
+import LogOut from 'lucide-react-native/icons/log-out';
+import ShieldCheck from 'lucide-react-native/icons/shield-check';
+import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal';
+import Trash2 from 'lucide-react-native/icons/trash';
+import UserPlus from 'lucide-react-native/icons/user-plus';
 import { useEffect, useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TabScreenProps } from '../../app/navigation/types';
 import { CaregiverScreen } from '../../components/layout/CaregiverScreen';
-import { AppText, Avatar, Button, Card, ConfirmDialog, ErrorState, LoadingSkeleton, TextField, ThemeToggle, type IconComponent } from '../../components/ui';
+import { AppSwitch, AppText, Avatar, Button, Card, ConfirmDialog, ErrorState, LoadingSkeleton, TextField, ThemeToggle, type IconComponent } from '../../components/ui';
 import { toleranceError } from '../../lib/doseRules';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
@@ -21,7 +29,7 @@ import { ToleranceSelector } from './ToleranceSelector';
 const EXPECTED_REMOVAL_DAYS = IS_DEMO ? 30 : 0;
 const removalWhen = (days: number) => (days === 0 ? 'imediatamente' : `em até ${days} dias`);
 
-/** T08 — Configurações do cuidador. */
+/** Configurações do cuidador. */
 export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -34,7 +42,7 @@ export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
   const showToast = useAppStore((s) => s.showToast);
 
   const tolerance = useQuery(['tolerance'], () => services.doses.getTolerance());
-  const elders = useQuery(['elders'], () => services.elders.list());
+  const patients = useQuery(['patients'], () => services.patients.list());
   const saveTolerance = useMutation(services.doses.setTolerance);
   const deleteAccount = useMutation(services.auth.deleteAccount);
   const [draft, setDraft] = useState<number | null>(null);
@@ -63,7 +71,7 @@ export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
     setSession(null);
     getDemo()?.resetDemoDb();
     resetUi();
-    setFlash(`Conta excluída. Seus dados pessoais e os dos pacientes serão removidos ${removalWhen(r.removalDeadlineDays)}; o histórico de doses fica anonimizado (RN13).`);
+    setFlash(`Conta excluída. Seus dados pessoais e os dos pacientes serão removidos ${removalWhen(r.removalDeadlineDays)}; o histórico de doses fica anonimizado.`);
   }
 
   return (
@@ -102,15 +110,15 @@ export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
 
         <Card style={styles.card}>
           <SectionTitle icon={UserPlus} title="Pacientes" />
-          {(elders.data ?? []).map((e) => (
-            <View key={e.id} style={styles.elderRow}>
+          {(patients.data ?? []).map((e) => (
+            <View key={e.id} style={styles.patientRow}>
               <Avatar name={e.name} color={e.avatarColor} size={36} />
               <AppText variant="bodyStrong" style={styles.flex}>{e.name}</AppText>
               <Button title="Código" icon={KeyRound} size="sm" variant="secondary" accessibilityLabel={`Gerar código de vínculo para ${e.name}`}
-                onPress={() => navigation.navigate('LinkCode', { elderId: e.id })} />
+                onPress={() => navigation.navigate('LinkCode', { patientId: e.id })} />
             </View>
           ))}
-          <Button title="Cadastrar novo paciente" icon={UserPlus} variant="secondary" onPress={() => navigation.navigate('ElderForm')} />
+          <Button title="Cadastrar novo paciente" icon={UserPlus} variant="secondary" onPress={() => navigation.navigate('PatientForm')} />
         </Card>
 
         <Card style={styles.card}>
@@ -138,7 +146,7 @@ export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
         icon={Trash2}
         tone="danger"
         title="Excluir conta e dados?"
-        message={`Seus dados pessoais e os dos pacientes vinculados serão removidos ${removalWhen(EXPECTED_REMOVAL_DAYS)}. O histórico de doses já registradas é mantido de forma anonimizada, sem ligação com nenhuma pessoa (RN13). Esta ação não pode ser desfeita.`}
+        message={`Seus dados pessoais e os dos pacientes vinculados serão removidos ${removalWhen(EXPECTED_REMOVAL_DAYS)}. O histórico de doses já registradas é mantido de forma anonimizada, sem ligação com nenhuma pessoa. Esta ação não pode ser desfeita.`}
         confirmLabel="Continuar"
         onConfirm={() => {
           setConfirmText('');
@@ -175,7 +183,7 @@ function SectionTitle({ icon: Icon, title }: { icon: IconComponent; title: strin
   );
 }
 
-/** FE-26: estado da permissão de notificações neste aparelho, com a ação que cabe. */
+/** estado da permissão de notificações neste aparelho, com a ação que cabe. */
 function PushStatus() {
   const { colors } = useTheme();
   const [permission, setPermission] = useState<PushPermission | null>(null);
@@ -197,7 +205,7 @@ function PushStatus() {
     );
   }
   if (permission === 'granted') {
-    return <AppText variant="caption" color={colors.status.TOMADA.fg}>Avisos ativados neste celular.</AppText>;
+    return <AppText variant="caption" color={colors.status.CONFIRMADA_NO_HORARIO.fg}>Avisos ativados neste celular.</AppText>;
   }
   if (permission === 'denied') {
     return (
@@ -214,36 +222,13 @@ function PushStatus() {
 }
 
 function PrefRow({ label, hint, value, onChange }: { label: string; hint?: string; value: boolean; onChange: (v: boolean) => void }) {
-  const { colors } = useTheme();
-  // A linha inteira é o alvo do toque (o Switch sozinho tem menos de 48 dp de altura)
-  return (
-    <Pressable
-      accessibilityRole="switch"
-      accessibilityLabel={label}
-      accessibilityHint={hint}
-      accessibilityState={{ checked: value }}
-      onPress={() => onChange(!value)}
-      style={({ pressed }) => [styles.prefRow, { opacity: pressed ? 0.85 : 1 }]}
-    >
-      <View style={styles.flex}>
-        <AppText variant="bodyStrong">{label}</AppText>
-        {hint ? <AppText variant="caption" muted>{hint}</AppText> : null}
-      </View>
-      <Switch
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        value={value}
-        onValueChange={onChange}
-        trackColor={{ true: colors.primary, false: colors.inputBorder }}
-      />
-    </Pressable>
-  );
+  return <AppSwitch label={label} description={hint} value={value} onValueChange={onChange} />;
 }
 
 function LinkRow({ icon: Icon, label, onPress }: { icon: IconComponent; label: string; onPress: () => void }) {
   const { colors } = useTheme();
   return (
-    <Pressable accessibilityRole="link" onPress={onPress} style={({ pressed }) => [styles.prefRow, { opacity: pressed ? 0.7 : 1 }]}>
+    <Pressable accessibilityRole="link" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => [styles.prefRow, { opacity: pressed ? 0.7 : 1 }]}>
       <Icon color={colors.textMuted} size={18} />
       <AppText style={styles.flex}>{label}</AppText>
       <ChevronRight color={colors.textMuted} size={18} />
@@ -257,6 +242,6 @@ const styles = StyleSheet.create({
   body: { padding: spacing.lg, gap: spacing.lg },
   card: { gap: spacing.md },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  elderRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  patientRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   prefRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 52 },
 });

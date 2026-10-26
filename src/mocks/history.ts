@@ -33,24 +33,27 @@ export function buildHistory(treatment: Treatment, medication: Medication, today
     if (!treatment.weekdays.includes(day.getDay())) continue;
     for (const t of treatment.times) {
       const scheduled = withTime(day, t.time);
-      let status: DoseStatus = 'TOMADA';
+      let status: DoseStatus = 'CONFIRMADA_NO_HORARIO';
       let confirmed: Date | undefined = addMinutes(scheduled, 2 + ((index * 7) % 12));
       if (pattern.missed.includes(index)) {
         status = 'NAO_TOMADA';
         confirmed = undefined;
       } else if (pattern.late.includes(index)) {
         status = 'CONFIRMADA_COM_ATRASO';
-        confirmed = addMinutes(scheduled, 41 + ((index * 13) % 70));
+        // Depois do aviso (30 min) e antes do encerramento (aviso + 30 min), como o servidor aceita
+        confirmed = addMinutes(scheduled, 31 + ((index * 13) % 29));
       }
       const scheduledAt = toDateTimeKey(scheduled);
       doses.push({
         id: doseId(treatment.id, scheduledAt),
-        elderId: medication.elderId,
+        patientId: medication.patientId,
         medicationId: medication.id,
         treatmentId: treatment.id,
         scheduledAt,
         status,
         confirmedAt: confirmed ? toDateTimeKey(confirmed) : undefined,
+        // Algumas confirmadas pelo cuidador, na tela da dose
+        confirmedBy: confirmed ? (index % 9 === 4 ? 'CUIDADOR' : 'PACIENTE') : undefined,
         timeNote: t.note,
       });
       index += 1;

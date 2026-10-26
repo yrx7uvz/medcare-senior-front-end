@@ -1,10 +1,13 @@
-import { CheckCircle2, Info, XCircle } from 'lucide-react-native';
+import CheckCircle2 from 'lucide-react-native/icons/circle-check';
+import Info from 'lucide-react-native/icons/info';
+import XCircle from 'lucide-react-native/icons/circle-x';
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../../store/appStore';
 import { radius, spacing, useTheme } from '../../theme';
 import { AppText } from '../ui';
+import { palette } from '../../theme/colors';
 
 export function Toast() {
   const { colors } = useTheme();
@@ -20,7 +23,7 @@ export function Toast() {
 
   if (!toast) return null;
   const Icon = toast.tone === 'success' ? CheckCircle2 : toast.tone === 'danger' ? XCircle : Info;
-  const fg = toast.tone === 'success' ? colors.status.TOMADA.fg : toast.tone === 'danger' ? colors.danger : colors.primaryDark;
+  const fg = toast.tone === 'success' ? colors.status.CONFIRMADA_NO_HORARIO.fg : toast.tone === 'danger' ? colors.danger : colors.primaryDark;
   return (
     <View pointerEvents="none" style={[styles.wrap, { top: insets.top + spacing.sm }]}>
       <View
@@ -48,7 +51,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     elevation: 6,
-    shadowColor: '#000',
+    shadowColor: palette.black,
     shadowOpacity: 0.15,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },

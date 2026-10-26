@@ -9,7 +9,7 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
  */
 export async function simulate<T>(fn: () => T, extraMs = 0): Promise<T> {
   const { offline, simulateError, slow } = useDevStore.getState();
-  await sleep((slow ? 1800 : 280) + Math.random() * 160 + extraMs);
+  await sleep((slow ? 1800 : 280) + Math.random() * 160 + extraMs); // NOSONAR: só varia a espera simulada do demo
   if (offline) throw networkError();
   if (simulateError) throw httpError(500, 'Não foi possível carregar os dados.');
   return fn();

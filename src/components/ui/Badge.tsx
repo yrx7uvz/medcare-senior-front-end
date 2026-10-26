@@ -9,7 +9,7 @@ export function Badge({ label, tone = 'neutral', icon: Icon }: { label: string; 
   const { colors } = useTheme();
   const map: Record<Tone, { bg: string; fg: string }> = {
     info: { bg: colors.primarySoft, fg: colors.primaryDark },
-    success: { bg: colors.status.TOMADA.bg, fg: colors.status.TOMADA.fg },
+    success: { bg: colors.status.CONFIRMADA_NO_HORARIO.bg, fg: colors.status.CONFIRMADA_NO_HORARIO.fg },
     warning: { bg: colors.warningSoft, fg: colors.warningText },
     danger: { bg: colors.dangerSoft, fg: colors.danger },
     neutral: { bg: colors.surfaceAlt, fg: colors.textMuted },

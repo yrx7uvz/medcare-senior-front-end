@@ -1,4 +1,4 @@
-import { Send } from 'lucide-react-native';
+import Send from 'lucide-react-native/icons/send';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import type { Message, MessageAuthor } from '../../types/domain';
@@ -81,7 +81,7 @@ export function ChatThread({
         {hasOlder || olderError ? (
           <View style={styles.older}>
             {olderError ? (
-              <AppText variant={large ? 'elderBody' : 'caption'} color={colors.danger} align="center" accessibilityRole="alert">
+              <AppText variant={large ? 'patientBody' : 'caption'} color={colors.danger} align="center" accessibilityRole="alert">
                 {olderError}
               </AppText>
             ) : null}
@@ -96,7 +96,7 @@ export function ChatThread({
           </View>
         ) : null}
         {messages.length === 0 ? (
-          <AppText variant={large ? 'elderBody' : 'body'} muted align="center" style={styles.emptyText}>
+          <AppText variant={large ? 'patientBody' : 'body'} muted align="center" style={styles.emptyText}>
             Nenhuma mensagem ainda. Escreva a primeira.
           </AppText>
         ) : null}
@@ -106,7 +106,7 @@ export function ChatThread({
           return (
             <View key={m.id} style={{ gap: spacing.sm }}>
               {header ? (
-                <AppText variant={large ? 'elderBody' : 'caption'} muted align="center" accessibilityRole="header">
+                <AppText variant={large ? 'patientBody' : 'caption'} muted align="center" accessibilityRole="header">
                   {header}
                 </AppText>
               ) : null}
@@ -153,7 +153,7 @@ export function ChatThread({
           <View style={styles.meta}>
             <View style={styles.flex}>
               {shownError ? (
-                <AppText variant={large ? 'elderBody' : 'caption'} color={colors.danger} accessibilityLiveRegion="polite">
+                <AppText variant={large ? 'patientBody' : 'caption'} color={colors.danger} accessibilityLiveRegion="polite">
                   {shownError}
                 </AppText>
               ) : null}

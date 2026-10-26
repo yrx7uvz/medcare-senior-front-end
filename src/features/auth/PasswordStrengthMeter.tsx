@@ -1,4 +1,5 @@
-import { Check, Circle } from 'lucide-react-native';
+import Check from 'lucide-react-native/icons/check';
+import Circle from 'lucide-react-native/icons/circle';
 import { StyleSheet, View } from 'react-native';
 import { AppText } from '../../components/ui';
 import { passwordChecks, passwordStrength } from '../../lib/password';
@@ -8,7 +9,7 @@ import { radius, useTheme } from '../../theme';
 export function PasswordStrengthMeter({ password }: { password: string }) {
   const { colors } = useTheme();
   const { score, label } = passwordStrength(password);
-  const color = score >= 4 ? colors.status.TOMADA.accent : score === 3 ? colors.primary : score > 0 ? colors.status.PENDENTE.accent : colors.border;
+  const color = score >= 4 ? colors.status.CONFIRMADA_NO_HORARIO.accent : score === 3 ? colors.primary : score > 0 ? colors.status.PENDENTE.accent : colors.border;
   return (
     <View style={styles.wrap} accessible accessibilityLabel={`Força da senha: ${label}`}>
       <View style={styles.bars}>
@@ -19,8 +20,8 @@ export function PasswordStrengthMeter({ password }: { password: string }) {
       <AppText variant="label">Força: {label}</AppText>
       {passwordChecks(password).map((c) => (
         <View key={c.key} style={styles.check}>
-          {c.ok ? <Check color={colors.status.TOMADA.fg} size={16} strokeWidth={3} /> : <Circle color={colors.textMuted} size={14} />}
-          <AppText variant="caption" color={c.ok ? colors.status.TOMADA.fg : colors.textMuted}>
+          {c.ok ? <Check color={colors.status.CONFIRMADA_NO_HORARIO.fg} size={16} strokeWidth={3} /> : <Circle color={colors.textMuted} size={14} />}
+          <AppText variant="caption" color={c.ok ? colors.status.CONFIRMADA_NO_HORARIO.fg : colors.textMuted}>
             {c.label}
           </AppText>
         </View>

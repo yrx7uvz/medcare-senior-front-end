@@ -21,7 +21,7 @@ interface Deps {
 export type RegisterResult = 'REGISTERED' | 'UNSUPPORTED' | 'NO_TOKEN' | 'INVALID_TOKEN' | 'FAILED';
 
 /**
- * Liga o token FCM do aparelho à conta do cuidador (FE-27). Nada aqui lança erro: push é um extra e nunca pode
+ * Liga o token FCM do aparelho à conta do cuidador. Nada aqui lança erro: push é um extra e nunca pode
  * impedir login, saída ou exclusão de conta.
  *
  * - Depois do login/cadastro (e ao abrir o app já logado): registra o token. A API tira o mesmo token de qualquer

@@ -5,9 +5,9 @@ import { addDays, dateBRToKey, parseDateTime, toDateKey } from './date';
 /** Filtros de status do histórico: o status gravado da dose, como a API filtra. */
 export const HISTORY_STATUS_FILTERS: readonly { value: HistoryStatusFilter; label: string }[] = [
   { value: 'ALL', label: 'Todos' },
-  { value: 'TOMADA', label: 'No horário' },
-  { value: 'CONFIRMADA_COM_ATRASO', label: 'Com atraso' },
-  { value: 'NAO_TOMADA', label: 'Não tomadas' },
+  { value: 'CONFIRMADA_NO_HORARIO', label: 'Confirmadas no horário' },
+  { value: 'CONFIRMADA_COM_ATRASO', label: 'Confirmadas com atraso' },
+  { value: 'NAO_TOMADA', label: 'Não confirmadas' },
   { value: 'PENDENTE', label: 'Pendentes' },
 ];
 
@@ -39,13 +39,13 @@ export function historyRange(period: HistoryPeriod, todayKey: DateKey, customFro
   return { from, to, error: null };
 }
 
-/** Caminho de GET /api/historico com só os filtros informados (idoso "Todos" e status "Todos" não vão). */
+/** Caminho de GET /api/historico com só os filtros informados (paciente "Todos" e status "Todos" não vão). */
 export function historyPath(
   base: string,
-  params: { elderApiId?: number; medicationApiId?: number; from: DateKey; to: DateKey; status: HistoryStatusFilter; page: number; size: number },
+  params: { patientApiId?: number; medicationApiId?: number; from: DateKey; to: DateKey; status: HistoryStatusFilter; page: number; size: number },
 ): string {
   const query: [string, string][] = [];
-  if (params.elderApiId !== undefined) query.push(['idosoId', String(params.elderApiId)]);
+  if (params.patientApiId !== undefined) query.push(['pacienteId', String(params.patientApiId)]);
   if (params.medicationApiId !== undefined) query.push(['medicamentoId', String(params.medicationApiId)]);
   query.push(['de', params.from], ['ate', params.to]);
   if (params.status !== 'ALL') query.push(['status', params.status]);

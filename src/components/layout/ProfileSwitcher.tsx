@@ -1,16 +1,18 @@
-import { Wrench, X } from 'lucide-react-native';
+import Wrench from 'lucide-react-native/icons/wrench';
+import X from 'lucide-react-native/icons/x';
 import React, { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../../store/appStore';
 import { useDevStore } from '../../store/devStore';
 import { getDemo } from '../../config/demo';
 import { DEMO_START, useClockStore } from '../../lib/clock';
 import { formatDateBR, formatTime } from '../../lib/date';
-import { elderDeviceStorage } from '../../lib/secureStorage';
+import { patientDeviceStorage } from '../../lib/secureStorage';
 import { useNow } from '../../lib/useNow';
 import { hitSlopFor, radius, spacing, useTheme } from '../../theme';
-import { AppText, Button, Chip } from '../ui';
+import { demoColors } from '../../theme/colors';
+import { AppSwitch, AppText, Button, Chip } from '../ui';
 
 /** Botão do menu do protótipo: 40 dp visíveis, área de toque completada até 48 dp. */
 const FAB = 40;
@@ -19,6 +21,7 @@ const CLOCK_PRESETS: { label: string; h: number; m: number; hint?: string }[] = 
   { label: '07:30', h: 7, m: 30 },
   { label: '13:50', h: 13, m: 50 },
   { label: '14:02', h: 14, m: 2, hint: 'início' },
+  { label: '14:40', h: 14, m: 40, hint: 'aviso do Omeprazol' },
   { label: '15:10', h: 15, m: 10, hint: 'dose não confirmada' },
   { label: '19:30', h: 19, m: 30 },
 ];
@@ -35,7 +38,7 @@ export function ProfileSwitcher() {
   const viewAs = useAppStore((s) => s.viewAs);
   const setViewAs = useAppStore((s) => s.setViewAs);
   const resetUi = useAppStore((s) => s.resetUi);
-  const setElderSession = useAppStore((s) => s.setElderSession);
+  const setPatientSession = useAppStore((s) => s.setPatientSession);
   const showToast = useAppStore((s) => s.showToast);
   const dev = useDevStore();
   const setTime = useClockStore((s) => s.setTime);
@@ -53,12 +56,12 @@ export function ProfileSwitcher() {
         style={[
           styles.fab,
           {
-            backgroundColor: '#263445',
+            backgroundColor: demoColors.fabBg,
             bottom: viewAs === 'CAREGIVER' ? insets.bottom + 78 : insets.bottom + 120,
           },
         ]}
       >
-        <Wrench color="#FFFFFF" size={18} />
+        <Wrench color={demoColors.fabFg} size={18} />
       </Pressable>
 
       <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
@@ -80,7 +83,7 @@ export function ProfileSwitcher() {
               <Section title="Visualizar como">
                 <View style={styles.row}>
                   <Chip label="Cuidador" selected={viewAs === 'CAREGIVER'} onPress={() => setViewAs('CAREGIVER')} />
-                  <Chip label="Idoso" selected={viewAs === 'ELDER'} onPress={() => setViewAs('ELDER')} />
+                  <Chip label="Paciente" selected={viewAs === 'PATIENT'} onPress={() => setViewAs('PATIENT')} />
                 </View>
               </Section>
 
@@ -100,7 +103,7 @@ export function ProfileSwitcher() {
                   ))}
                 </View>
                 <AppText variant="caption" muted>
-                  15:10 faz a Atorvastatina passar a &quot;Não tomada&quot; e, se o Omeprazol não foi confirmado, gera um novo alerta.
+                  Com a tolerância de 30 min, o Omeprazol das 14:00 gera o aviso às 14:30 e ainda pode ser confirmado até 15:00; às 15:10, sem confirmação, passa a &quot;Não confirmada&quot;.
                 </AppText>
               </Section>
 
@@ -115,7 +118,7 @@ export function ProfileSwitcher() {
                   const state = c.used ? 'já usado' : c.expiresAt <= now.getTime() ? 'expirado' : 'válido';
                   return (
                     <AppText key={c.code} variant="body">
-                      {c.code} • {c.elderName} • {state}
+                      {c.code} • {c.patientName} • {state}
                     </AppText>
                   );
                 })}
@@ -128,8 +131,8 @@ export function ProfileSwitcher() {
                   onPress={async () => {
                     getDemo()?.resetDemoData();
                     resetUi();
-                    await elderDeviceStorage.clear().catch(() => undefined);
-                    setElderSession(null);
+                    await patientDeviceStorage.clear().catch(() => undefined);
+                    setPatientSession(null);
                     setTime(DEMO_START);
                     dev.set({ simulateError: false, offline: false, slow: false });
                     showToast('Dados de demonstração restaurados', 'info');
@@ -155,13 +158,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
-  const { colors } = useTheme();
-  return (
-    <View style={styles.toggle}>
-      <AppText style={styles.flex}>{label}</AppText>
-      <Switch accessibilityLabel={label} value={value} onValueChange={onChange} trackColor={{ true: colors.primary, false: colors.border }} />
-    </View>
-  );
+  return <AppSwitch label={label} value={value} onValueChange={onChange} />;
 }
 
 const styles = StyleSheet.create({

@@ -1,4 +1,6 @@
-import { Pill, Plus, Trash2 } from 'lucide-react-native';
+import Pill from 'lucide-react-native/icons/pill';
+import Plus from 'lucide-react-native/icons/plus';
+import Trash2 from 'lucide-react-native/icons/trash';
 import { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,22 +14,23 @@ import { useMutation, useQuery } from '../../lib/useQuery';
 import type { MedicationView } from '../../types/views';
 import { spacing, useTheme } from '../../theme';
 import { MedicationCard } from './MedicationCard';
+import { palette } from '../../theme/colors';
 
-/** T05 — Remédios do paciente filtrado (ou de todos). Remoção lógica com RN06. */
+/** Remédios do paciente filtrado (ou de todos). Remoção lógica com RN06. */
 export function MedicationsScreen({ navigation }: TabScreenProps<'Remedios'>) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const filter = useAppStore((s) => s.selectedElderId);
+  const filter = useAppStore((s) => s.selectedPatientId);
   const showToast = useAppStore((s) => s.showToast);
   const q = useQuery(['meds', filter], () => services.medications.list(filter));
-  const elders = useQuery(['elders'], () => services.elders.list());
+  const patients = useQuery(['patients'], () => services.patients.list());
   const remove = useMutation(services.medications.remove);
   const [target, setTarget] = useState<MedicationView | null>(null);
   // RN06: o servidor recusou com 409 TRATAMENTO_ATIVO; a próxima confirmação força a remoção
   const [mustForce, setMustForce] = useState(false);
   const needsForce = mustForce || !!target?.activeTreatment;
 
-  const elderName = filter === 'ALL' ? null : elders.data?.find((e) => e.id === filter)?.name;
+  const patientName = filter === 'ALL' ? null : patients.data?.find((e) => e.id === filter)?.name;
   const count = q.data?.length ?? 0;
 
   async function confirmRemove() {
@@ -55,8 +58,8 @@ export function MedicationsScreen({ navigation }: TabScreenProps<'Remedios'>) {
   return (
     <CaregiverScreen
       title="Remédios"
-      subtitle={q.data ? `${elderName ?? 'Todos os pacientes'} • ${count} ${count === 1 ? 'cadastrado' : 'cadastrados'}` : undefined}
-      withElderSwitcher
+      subtitle={q.data ? `${patientName ?? 'Todos os pacientes'} • ${count} ${count === 1 ? 'cadastrado' : 'cadastrados'}` : undefined}
+      withPatientSwitcher
     >
       {q.loading ? (
         <View style={styles.pad}><LoadingSkeleton /></View>
@@ -72,7 +75,7 @@ export function MedicationsScreen({ navigation }: TabScreenProps<'Remedios'>) {
           ListHeaderComponent={
             count ? (
               <AppText variant="caption" muted>
-                Toque em um remédio para editar. Nome, dosagem e tipo são obrigatórios (RN05).
+                Toque em um remédio para editar. Nome, dosagem e tipo são obrigatórios.
               </AppText>
             ) : null
           }
@@ -80,7 +83,7 @@ export function MedicationsScreen({ navigation }: TabScreenProps<'Remedios'>) {
             <EmptyState
               icon={Pill}
               title="Nenhum medicamento cadastrado para este paciente"
-              description={elderName ? `Cadastre o primeiro remédio de ${firstName(elderName)}.` : 'Cadastre o primeiro remédio.'}
+              description={patientName ? `Cadastre o primeiro remédio de ${firstName(patientName)}.` : 'Cadastre o primeiro remédio.'}
               actionLabel="Cadastrar remédio"
               onAction={() => navigation.navigate('MedicationForm')}
             />
@@ -88,7 +91,7 @@ export function MedicationsScreen({ navigation }: TabScreenProps<'Remedios'>) {
           renderItem={({ item }) => (
             <MedicationCard
               item={item}
-              showElder={filter === 'ALL'}
+              showPatient={filter === 'ALL'}
               onPress={() => navigation.navigate('MedicationForm', { medicationId: item.medication.id })}
               onRemove={() => {
                 remove.clearError();
@@ -117,7 +120,7 @@ export function MedicationsScreen({ navigation }: TabScreenProps<'Remedios'>) {
         title={`Remover ${target?.medication.name ?? ''}?`}
         message={
           needsForce
-            ? 'Este remédio tem tratamento ativo. Ao remover, as próximas doses deixam de ser lembradas. As doses já registradas continuam no histórico (RN06, RN08).'
+            ? 'Este remédio tem tratamento ativo. Ao remover, as próximas doses deixam de ser lembradas. As doses já registradas continuam no histórico.'
             : 'O remédio sai da lista. As doses já registradas continuam no histórico.'
         }
         confirmLabel={needsForce ? 'Remover mesmo assim' : 'Remover'}
@@ -147,7 +150,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 6,
-    shadowColor: '#0D4F8A',
+    shadowColor: palette.primaryDark,
     shadowOpacity: 0.3,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },

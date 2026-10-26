@@ -1,4 +1,6 @@
-import { AlertTriangle, CheckCircle2, Clock } from 'lucide-react-native';
+import AlertTriangle from 'lucide-react-native/icons/triangle-alert';
+import CheckCircle2 from 'lucide-react-native/icons/circle-check';
+import Clock from 'lucide-react-native/icons/clock';
 import { StyleSheet, View } from 'react-native';
 import { AppText, type IconComponent } from '../../components/ui';
 import type { DoseSummary } from '../../lib/doseRules';
@@ -8,7 +10,7 @@ import { cardShadow, radius, spacing, useTheme } from '../../theme';
 /** Contadores do dia: Confirmadas / Pendentes / Não confirmadas. */
 export function SummaryCards({ summary }: { summary: DoseSummary }) {
   const items: { status: DisplayStatus; label: string; value: number; icon: IconComponent }[] = [
-    { status: 'TOMADA', label: 'Confirmadas', value: summary.confirmed, icon: CheckCircle2 },
+    { status: 'CONFIRMADA_NO_HORARIO', label: 'Confirmadas', value: summary.confirmed, icon: CheckCircle2 },
     { status: 'PENDENTE', label: 'Pendentes', value: summary.pending, icon: Clock },
     { status: 'NAO_TOMADA', label: 'Não confirmadas', value: summary.missed, icon: AlertTriangle },
   ];

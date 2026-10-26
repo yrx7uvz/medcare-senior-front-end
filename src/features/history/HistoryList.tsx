@@ -9,7 +9,7 @@ import { DoseCard } from '../dashboard/DoseCard';
 interface Props {
   doses: DoseView[];
   todayKey: string;
-  showElder: boolean;
+  showPatient: boolean;
   onPress: (d: DoseView) => void;
   header?: React.ReactElement;
   footer?: React.ReactElement;
@@ -18,7 +18,7 @@ interface Props {
 }
 
 /** Histórico agrupado por dia, do mais recente para o mais antigo. */
-export function HistoryList({ doses, todayKey, showElder, onPress, header, footer, empty, bottomInset }: Props) {
+export function HistoryList({ doses, todayKey, showPatient, onPress, header, footer, empty, bottomInset }: Props) {
   const sections: { title: string; data: DoseView[] }[] = [];
   for (const d of doses) {
     const day = d.scheduledAt.slice(0, 10);
@@ -47,7 +47,7 @@ export function HistoryList({ doses, todayKey, showElder, onPress, header, foote
       )}
       renderItem={({ item }) => (
         <View style={styles.item}>
-          <DoseCard dose={item} showElder={showElder} onPress={() => onPress(item)} />
+          <DoseCard dose={item} showPatient={showPatient} onPress={onPress} />
         </View>
       )}
     />

@@ -3,20 +3,20 @@ import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { spacing, useTheme } from '../../theme';
 import { AppText } from '../ui';
-import { ElderSwitcher } from './ElderSwitcher';
+import { PatientSwitcher } from './PatientSwitcher';
 import { OfflineBanner } from './OfflineBanner';
 
 interface Props {
   title: string;
   subtitle?: string;
   right?: React.ReactNode;
-  /** ElderSwitcher fixo no topo (Painel, Remédios, Histórico, Mensagens, PDF). */
-  withElderSwitcher?: boolean;
+  /** PatientSwitcher fixo no topo (Painel, Remédios, Histórico, Mensagens, PDF). */
+  withPatientSwitcher?: boolean;
   children: React.ReactNode;
 }
 
-/** Cabeçalho azul do protótipo + filtro de idosos fixo + conteúdo. */
-export function CaregiverScreen({ title, subtitle, right, withElderSwitcher, children }: Props) {
+/** Cabeçalho azul do protótipo + filtro de pacientes fixo + conteúdo. */
+export function CaregiverScreen({ title, subtitle, right, withPatientSwitcher, children }: Props) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   return (
@@ -36,7 +36,7 @@ export function CaregiverScreen({ title, subtitle, right, withElderSwitcher, chi
           {right}
         </View>
       </View>
-      {withElderSwitcher ? <ElderSwitcher /> : null}
+      {withPatientSwitcher ? <PatientSwitcher /> : null}
       <OfflineBanner />
       <View style={styles.flex}>{children}</View>
     </View>

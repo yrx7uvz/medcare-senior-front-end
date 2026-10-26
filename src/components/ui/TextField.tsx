@@ -1,4 +1,5 @@
-import { Eye, EyeOff } from 'lucide-react-native';
+import Eye from 'lucide-react-native/icons/eye';
+import EyeOff from 'lucide-react-native/icons/eye-off';
 import React, { forwardRef, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import { applyMask, type MaskKind } from '../../lib/masks';
@@ -27,7 +28,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
 
   return (
     <View style={styles.wrap}>
-      <AppText variant={large ? 'elderBody' : 'label'} nativeID={`${label}-label`}>
+      <AppText variant={large ? 'patientBody' : 'label'} nativeID={`${label}-label`}>
         {label}
         {required ? <AppText variant="label" color={colors.danger}> *</AppText> : null}
       </AppText>

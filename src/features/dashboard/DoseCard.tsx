@@ -1,37 +1,38 @@
+import { memo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, DoseStatusBadge, PillVisual, statusLabel } from '../../components/ui';
 import { formatTime } from '../../lib/date';
+import { doseCardDetail } from '../../lib/doseConfirm';
 import { TYPE_LABEL } from '../../lib/medicationMeta';
 import type { DoseView } from '../../types/views';
 import { cardShadow, radius, spacing, useTheme } from '../../theme';
 
 interface Props {
   dose: DoseView;
-  showElder?: boolean;
-  onPress?: () => void;
+  showPatient?: boolean;
+  /** Estável (useCallback) no chamador: o cartão só é redesenhado quando a dose muda. */
+  onPress?: (dose: DoseView) => void;
 }
 
-/** Linha de dose do cuidador: desenho do remédio, nome, horário e status. */
-export function DoseCard({ dose, showElder, onPress }: Props) {
+/**
+ * Linha de dose do cuidador: desenho do remédio, nome, horário, status e quem confirmou. Em tela estreita ou com fonte
+ * ampliada os textos quebram linha em vez de cortar; o status fica embaixo do nome para ter a largura toda.
+ *
+ * Memorizado: o Painel re-renderiza a cada 15 s (relógio) e a cada atualização, e só os cartões cuja dose mudou
+ * (o liveAt devolve o mesmo objeto quando nada muda) são redesenhados.
+ */
+export const DoseCard = memo(function DoseCard({ dose, showPatient, onPress }: Props) {
   const { colors, mode } = useTheme();
   const med = dose.medication;
   const time = formatTime(dose.scheduledAt);
-  const confirmed = dose.confirmedAt ? `Confirmada às ${formatTime(dose.confirmedAt)}` : null;
-  const detail =
-    dose.status === 'ATRASADA'
-      ? `Aviso enviado às ${formatTime(dose.window.alertAt)}`
-      : dose.status === 'PENDENTE'
-        ? 'Aguardando confirmação'
-        : dose.status === 'NAO_TOMADA'
-          ? 'Prazo encerrado sem confirmação'
-          : confirmed;
+  const detail = doseCardDetail(dose);
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${med.name} ${med.dosage}, ${TYPE_LABEL[med.type]}, às ${time}${showElder ? `, ${dose.elderName}` : ''}. ${statusLabel(dose.status)}. ${detail ?? ''}`}
+      accessibilityLabel={`${med.name} ${med.dosage}, ${TYPE_LABEL[med.type]}, às ${time}${showPatient ? `, ${dose.patientName}` : ''}. ${statusLabel(dose.status)}. ${detail ?? ''}`}
       accessibilityHint="Abre os detalhes da dose"
-      onPress={onPress}
+      onPress={onPress ? () => onPress(dose) : undefined}
       style={({ pressed }) => [
         styles.card,
         cardShadow(mode === 'dark'),
@@ -40,36 +41,38 @@ export function DoseCard({ dose, showElder, onPress }: Props) {
     >
       <PillVisual appearance={med} size="sm" />
       <View style={styles.middle}>
-        <AppText variant="heading" numberOfLines={1}>
+        <AppText variant="heading" numberOfLines={2}>
           {med.name} {med.dosage}
         </AppText>
-        <AppText variant="caption" muted numberOfLines={1}>
+        <AppText variant="caption" muted numberOfLines={2}>
           {TYPE_LABEL[med.type]} • {dose.doseQuantity}
           {dose.timeNote ? ` • ${dose.timeNote}` : ''}
         </AppText>
-        {showElder ? (
-          <AppText variant="caption" color={colors.primaryDark} style={styles.elder} numberOfLines={1}>
-            {dose.elderName}
+        {showPatient ? (
+          <AppText variant="caption" color={colors.primaryDark} style={styles.patient} numberOfLines={2}>
+            {dose.patientName}
           </AppText>
         ) : null}
         {detail ? (
-          <AppText variant="caption" muted numberOfLines={1}>
+          <AppText variant="caption" muted>
             {detail}
           </AppText>
         ) : null}
+        <View style={styles.badge}>
+          <DoseStatusBadge status={dose.status} />
+        </View>
       </View>
-      <View style={styles.right}>
-        <AppText variant="title">{time}</AppText>
-        <DoseStatusBadge status={dose.status} />
-      </View>
+      <AppText variant="title" style={styles.time}>
+        {time}
+      </AppText>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing.md,
     padding: spacing.md,
     borderRadius: radius.lg,
@@ -77,7 +80,8 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     minHeight: 76,
   },
-  middle: { flex: 1, gap: 1 },
-  right: { alignItems: 'flex-end', gap: 4 },
-  elder: { fontFamily: 'NunitoSans_700Bold' },
+  middle: { flex: 1, gap: 2, minWidth: 0 },
+  badge: { marginTop: spacing.xs },
+  patient: { fontFamily: 'NunitoSans_700Bold' },
+  time: { flexShrink: 0 },
 });

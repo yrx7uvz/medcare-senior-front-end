@@ -13,17 +13,17 @@ interface Props {
 }
 
 export function EmptyState({ icon: Icon, title, description, actionLabel, onAction }: Props) {
-  const { colors, elder } = useTheme();
+  const { colors, patient } = useTheme();
   return (
     <View style={styles.wrap} accessible={!actionLabel} accessibilityLabel={`${title}. ${description ?? ''}`}>
       <View style={[styles.iconWrap, { backgroundColor: colors.primarySoft }]}>
-        <Icon color={colors.primary} size={elder ? 40 : 30} strokeWidth={2} />
+        <Icon color={colors.primary} size={patient ? 40 : 30} strokeWidth={2} />
       </View>
-      <AppText variant={elder ? 'elderTitle' : 'heading'} align="center">
+      <AppText variant={patient ? 'patientTitle' : 'heading'} align="center">
         {title}
       </AppText>
       {description ? (
-        <AppText variant={elder ? 'elderBody' : 'body'} muted align="center">
+        <AppText variant={patient ? 'patientBody' : 'body'} muted align="center">
           {description}
         </AppText>
       ) : null}

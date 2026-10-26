@@ -25,8 +25,8 @@ export const setTokenProvider = (fn: TokenProvider) => {
   getToken = fn;
 };
 
-/** Quem está usando o aparelho: algumas leituras têm rota diferente para o cuidador e para o idoso. */
-export type Viewer = 'CAREGIVER' | 'ELDER' | null;
+/** Quem está usando o aparelho: algumas leituras têm rota diferente para o cuidador e para o paciente. */
+export type Viewer = 'CAREGIVER' | 'PATIENT' | null;
 let getViewerFn: () => Viewer = () => null;
 export const setViewerProvider = (fn: () => Viewer) => {
   getViewerFn = fn;
@@ -83,6 +83,34 @@ async function send<T>(method: Method, path: string, body: unknown, token: strin
     throw parseApiError(res.status, data, res.headers.get('Retry-After'));
   }
   return data as T;
+}
+
+/**
+ * GET de um arquivo (ex.: o PDF): devolve os bytes. Erros da API (JSON) chegam como AppError, como em request; 401
+ * com token derruba a sessão. Prazo maior que o das leituras comuns (o PDF de 12 meses leva alguns segundos).
+ */
+export async function requestBinary(path: string, accept: string, timeoutMs = 60_000): Promise<Uint8Array> {
+  const token = getToken();
+  const baseUrl = getApiBaseUrl();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let res: Response;
+  try {
+    res = await fetch(`${baseUrl}${path}`, {
+      method: 'GET',
+      headers: { Accept: `${accept}, application/json`, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      signal: controller.signal,
+    });
+    if (res.ok) return new Uint8Array(await res.arrayBuffer());
+    const data = parseJsonBody(await res.text());
+    if (res.status === 401 && token) onUnauthorized?.();
+    throw parseApiError(res.status, data, res.headers.get('Retry-After'));
+  } catch (e) {
+    if (e instanceof AppError) throw e;
+    throw controller.signal.aborted ? timeoutError() : networkError();
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {

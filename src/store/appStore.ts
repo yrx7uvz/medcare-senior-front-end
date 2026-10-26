@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import type { DoseOpenTarget } from '../lib/pushPayload';
-import type { CaregiverSession, ElderFilter } from '../types/views';
+import type { ThemeMode, ThemePrefs } from '../lib/themePrefs';
+import type { CaregiverSession, PatientFilter } from '../types/views';
 
-export type ViewAs = 'CAREGIVER' | 'ELDER';
+export type ViewAs = 'CAREGIVER' | 'PATIENT';
 export type ToastTone = 'success' | 'info' | 'danger';
 
 interface NotificationPrefs {
@@ -26,11 +27,16 @@ interface AppState {
   session: CaregiverSession | null;
   setSession: (s: CaregiverSession | null) => void;
 
-  selectedElderId: ElderFilter;
-  setSelectedElder: (id: ElderFilter) => void;
+  selectedPatientId: PatientFilter;
+  setSelectedPatient: (id: PatientFilter) => void;
 
-  themeMode: 'light' | 'dark';
-  toggleTheme: () => void;
+  /** Tema escolhido nas Configurações; null = seguir o tema do sistema. Guardado no aparelho. */
+  themeChoice: ThemeMode | null;
+  /** Troca o tema a partir do que está na tela (vira escolha explícita). */
+  toggleTheme: (current: ThemeMode) => void;
+  /** As preferências de aparência já foram lidas do aparelho (até lá, só a tela de carregamento da marca). */
+  themeLoaded: boolean;
+  setThemePrefs: (prefs: ThemePrefs) => void;
 
   notificationPrefs: NotificationPrefs;
   setNotificationPref: (key: keyof NotificationPrefs, value: boolean) => void;
@@ -41,16 +47,16 @@ interface AppState {
   pendingDoseOpen: DoseOpenTarget | null;
   setPendingDoseOpen: (target: DoseOpenTarget | null) => void;
 
-  elderHighContrast: boolean;
-  toggleElderHighContrast: () => void;
+  patientHighContrast: boolean;
+  togglePatientHighContrast: () => void;
 
-  /** Sessão do idoso carregada do SecureStore (o token fica em memória para as chamadas à API). */
-  elderSession: { elderId: string; token: string } | null;
-  elderSessionLoaded: boolean;
-  setElderSession: (s: { elderId: string; token: string } | null) => void;
+  /** Sessão do paciente carregada do SecureStore (o token fica em memória para as chamadas à API). */
+  patientSession: { patientId: string; token: string } | null;
+  patientSessionLoaded: boolean;
+  setPatientSession: (s: { patientId: string; token: string } | null) => void;
   /** PIN digitado nesta abertura. */
-  elderUnlocked: boolean;
-  setElderUnlocked: (v: boolean) => void;
+  patientUnlocked: boolean;
+  setPatientUnlocked: (v: boolean) => void;
 
   dismissedAlertIds: string[];
   dismissAlert: (id: string) => void;
@@ -70,18 +76,20 @@ interface AppState {
 
 export const useAppStore = create<AppState>()((set) => ({
   viewAs: null,
-  setViewAs: (viewAs) => set(viewAs === 'ELDER' ? { viewAs, elderUnlocked: false } : { viewAs }),
+  setViewAs: (viewAs) => set(viewAs === 'PATIENT' ? { viewAs, patientUnlocked: false } : { viewAs }),
   profileLoaded: false,
   bootError: null,
 
   session: null,
   setSession: (session) => set({ session }),
 
-  selectedElderId: 'ALL',
-  setSelectedElder: (selectedElderId) => set({ selectedElderId }),
+  selectedPatientId: 'ALL',
+  setSelectedPatient: (selectedPatientId) => set({ selectedPatientId }),
 
-  themeMode: 'light',
-  toggleTheme: () => set((s) => ({ themeMode: s.themeMode === 'light' ? 'dark' : 'light' })),
+  themeChoice: null,
+  toggleTheme: (current) => set({ themeChoice: current === 'light' ? 'dark' : 'light' }),
+  themeLoaded: false,
+  setThemePrefs: (prefs) => set({ themeChoice: prefs.mode, patientHighContrast: prefs.patientHighContrast, themeLoaded: true }),
 
   notificationPrefs: { missedDose: true, messages: true },
   setNotificationPref: (key, value) => set((s) => ({ notificationPrefs: { ...s.notificationPrefs, [key]: value } })),
@@ -90,14 +98,14 @@ export const useAppStore = create<AppState>()((set) => ({
   pendingDoseOpen: null,
   setPendingDoseOpen: (pendingDoseOpen) => set({ pendingDoseOpen }),
 
-  elderHighContrast: false,
-  toggleElderHighContrast: () => set((s) => ({ elderHighContrast: !s.elderHighContrast })),
+  patientHighContrast: false,
+  togglePatientHighContrast: () => set((s) => ({ patientHighContrast: !s.patientHighContrast })),
 
-  elderSession: null,
-  elderSessionLoaded: false,
-  setElderSession: (elderSession) => set({ elderSession, elderSessionLoaded: true }),
-  elderUnlocked: false,
-  setElderUnlocked: (elderUnlocked) => set({ elderUnlocked }),
+  patientSession: null,
+  patientSessionLoaded: false,
+  setPatientSession: (patientSession) => set({ patientSession, patientSessionLoaded: true }),
+  patientUnlocked: false,
+  setPatientUnlocked: (patientUnlocked) => set({ patientUnlocked }),
 
   dismissedAlertIds: [],
   dismissAlert: (id) => set((s) => ({ dismissedAlertIds: [...s.dismissedAlertIds, id] })),
@@ -113,7 +121,7 @@ export const useAppStore = create<AppState>()((set) => ({
 
   resetUi: () =>
     set({
-      selectedElderId: 'ALL',
+      selectedPatientId: 'ALL',
       dismissedAlertIds: [],
       seenAlertIds: [],
     }),
