@@ -1,4 +1,12 @@
-import { Bell, ChevronRight, FileText, KeyRound, LogOut, ShieldCheck, SlidersHorizontal, Trash2, UserPlus } from 'lucide-react-native';
+import Bell from 'lucide-react-native/icons/bell';
+import ChevronRight from 'lucide-react-native/icons/chevron-right';
+import FileText from 'lucide-react-native/icons/file-text';
+import KeyRound from 'lucide-react-native/icons/key-round';
+import LogOut from 'lucide-react-native/icons/log-out';
+import ShieldCheck from 'lucide-react-native/icons/shield-check';
+import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal';
+import Trash2 from 'lucide-react-native/icons/trash';
+import UserPlus from 'lucide-react-native/icons/user-plus';
 import { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -220,7 +228,7 @@ function PrefRow({ label, hint, value, onChange }: { label: string; hint?: strin
 function LinkRow({ icon: Icon, label, onPress }: { icon: IconComponent; label: string; onPress: () => void }) {
   const { colors } = useTheme();
   return (
-    <Pressable accessibilityRole="link" onPress={onPress} style={({ pressed }) => [styles.prefRow, { opacity: pressed ? 0.7 : 1 }]}>
+    <Pressable accessibilityRole="link" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => [styles.prefRow, { opacity: pressed ? 0.7 : 1 }]}>
       <Icon color={colors.textMuted} size={18} />
       <AppText style={styles.flex}>{label}</AppText>
       <ChevronRight color={colors.textMuted} size={18} />

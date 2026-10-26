@@ -33,8 +33,52 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Testes (Jest)
-        run: npm test -- --ci
+      # Com cobertura: falha abaixo do limite mínimo do jest.config.js (o lcov vai para o job de qualidade)
+      - name: Testes (Jest) com cobertura
+        run: npm run test:coverage -- --ci
+
+      - name: Publicar cobertura
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cobertura-jest
+          path: coverage/
+          if-no-files-found: ignore
 
       - name: Verificações do núcleo
         run: npm run check:core
+
+      - name: Contraste dos temas
+        run: npm run check:contrast
+
+      - name: Mocks fora do bundle de produção
+        run: npm run check:mocks
+
+      - name: Rótulos e papéis acessíveis
+        run: npm run check:a11y
+
+  # Análise no SonarQube, OPCIONAL: só roda com a variável SONAR_HOST_URL e o segredo SONAR_TOKEN configurados no
+  # repositório (docs/qualidade.md). Sem eles, o job é pulado; com eles, uma falha na análise não derruba o CI.
+  qualidade:
+    needs: verificar
+    if: vars.SONAR_HOST_URL != ''
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Cobertura do job verificar
+        uses: actions/download-artifact@v7
+        with:
+          name: cobertura-jest
+          path: coverage/
+
+      - name: Análise
+        if: env.SONAR_TOKEN != ''
+        uses: SonarSource/sonarqube-scan-action@v5
