@@ -16,7 +16,8 @@ import { forgetDoseOrigins, httpDoseService, toDoseView } from '../src/adapters/
 import { forgetLinkCodes, httpPatientService, toPatient, toLinkCode } from '../src/adapters/http/HttpPatientService';
 import { clearHttpCache, request, setViewerProvider } from '../src/adapters/http/httpClient';
 import { httpReportService } from '../src/adapters/http/HttpReportService';
-import appConfig, { ANDROID_BLOCKED_PERMISSIONS, ANDROID_PERMISSIONS, withCleartextPolicy } from '../app.config';
+import appConfig, { ANDROID_BLOCKED_PERMISSIONS, ANDROID_PERMISSIONS, CORES_NATIVAS, withCleartextPolicy } from '../app.config';
+import { darkColors, palette } from '../src/theme/colors';
 import { randomBytes } from 'node:crypto';
 import { createPinGuard, createPinRecord, PIN_ITERATIONS, PIN_KEYS } from '../src/lib/pinCore';
 import {
@@ -50,7 +51,7 @@ import { appNowMs, appTodayKey, computeClockOffset, recordServerDate, resetServe
 import { formatWait, messageForApiError } from '../src/services/errorMessages';
 import { AppError, httpError, networkError, TreatmentNotSavedError } from '../src/services/errors';
 
-const toBase64Url = (s: string) => Buffer.from(s, 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const toBase64Url = (s: string) => Buffer.from(s, 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); // NOSONAR: só nos textos curtos que o próprio teste monta
 const jwt = (payload: object) => `${toBase64Url('{"alg":"HS256"}')}.${toBase64Url(JSON.stringify(payload))}.assinatura`;
 
 const NOW_MS = Date.UTC(2026, 9, 17, 12, 0, 0);
@@ -165,10 +166,11 @@ check('parseJsonBody tolera corpo vazio e não JSON', () => {
 
 // --- Endereço da API ------------------------------------------------------------------------------------------------
 check('normalizeApiBaseUrl apara espaços e barras finais e exige http(s)://', () => {
-  assert.equal(normalizeApiBaseUrl('  http://192.168.0.10:8080/  '), 'http://192.168.0.10:8080');
+  // NOSONAR nas linhas com http:// e ftp://: o teste confere justamente que esses endereços são tratados ou recusados
+  assert.equal(normalizeApiBaseUrl('  http://192.168.0.10:8080/  '), 'http://192.168.0.10:8080'); // NOSONAR
   assert.equal(normalizeApiBaseUrl('https://api.exemplo.com.br///'), 'https://api.exemplo.com.br');
-  assert.equal(normalizeApiBaseUrl('http://10.0.2.2:8080'), 'http://10.0.2.2:8080');
-  for (const ruim of ['', '   ', '192.168.0.10:8080', 'ftp://x', 'http://', 'localhost']) {
+  assert.equal(normalizeApiBaseUrl('http://10.0.2.2:8080'), 'http://10.0.2.2:8080'); // NOSONAR
+  for (const ruim of ['', '   ', '192.168.0.10:8080', 'ftp://x', 'http://', 'localhost']) { // NOSONAR
     assert.equal(normalizeApiBaseUrl(ruim), null, ruim);
   }
 });
@@ -205,7 +207,7 @@ check('toApiId converte string numérica e recusa NaN, negativo, fracionário e 
 check('fromApiId devolve string e recusa número inválido', () => {
   assert.equal(fromApiId(42), '42');
   assert.equal(toApiId(fromApiId(123456)), 123456);
-  for (const ruim of [NaN, -1, 1.5, Number.MAX_SAFE_INTEGER + 2]) {
+  for (const ruim of [Number.NaN, -1, 1.5, Number.MAX_SAFE_INTEGER + 2]) {
     assert.throws(() => fromApiId(ruim), AppError, String(ruim));
   }
 });
@@ -686,7 +688,7 @@ check('Formulário de remédio envia só os campos da API (sem quantidade nem ob
     stock: '3',
     times: [{ time: '20:00' }, { time: '08:00' }],
   };
-  assert.deepEqual(Object.keys(valores).sort(), [
+  assert.deepEqual(Object.keys(valores).sort((a, b) => a.localeCompare(b)), [
     'bulaUrl', 'dosage', 'endDate', 'name', 'patientId', 'primaryColor', 'shape', 'startDate', 'stock', 'times', 'type', 'weekdays',
   ]);
   const input = toMedicationInput(valores);
@@ -1117,13 +1119,13 @@ check('Estoque: só o campo opcional do cadastro; sem "Estoque baixo", alerta ne
 check('Endereço da API: http:// recusado no release; aceito em desenvolvimento; https:// aceito; demo não usa', () => {
   const release = { dev: false, demo: false };
   const dev = { dev: true, demo: false };
-  assert.match(apiUrlProblem('http://192.168.0.10:8080', release) ?? '', /https:\/\//);
-  assert.match(apiUrlProblem('HTTP://api.exemplo.com', release) ?? '', /conexão segura/);
+  assert.match(apiUrlProblem('http://192.168.0.10:8080', release) ?? '', /https:\/\//); // NOSONAR
+  assert.match(apiUrlProblem('HTTP://api.exemplo.com', release) ?? '', /conexão segura/); // NOSONAR
   assert.equal(apiUrlProblem('https://api.exemplo.com/', release), null);
-  assert.equal(apiUrlProblem('http://192.168.0.10:8080', dev), null);
+  assert.equal(apiUrlProblem('http://192.168.0.10:8080', dev), null); // NOSONAR
   assert.equal(apiUrlProblem('https://api.exemplo.com', dev), null);
   assert.match(apiUrlProblem('', release) ?? '', /não está configurado/);
-  assert.match(apiUrlProblem('ftp://x', dev) ?? '', /não está configurado/);
+  assert.match(apiUrlProblem('ftp://x', dev) ?? '', /não está configurado/); // NOSONAR
   assert.equal(apiUrlProblem('', { dev: false, demo: true }), null);
 });
 
@@ -1135,7 +1137,14 @@ check('Texto claro só no perfil development; release com usesCleartextTraffic=f
   assert.equal(eas.build.development.env.ANDROID_ALLOW_CLEARTEXT, 'true');
   assert.equal(eas.build.preview.env.ANDROID_ALLOW_CLEARTEXT, undefined);
   assert.equal(eas.build.production.env.ANDROID_ALLOW_CLEARTEXT, undefined);
-  assert.deepEqual([...ANDROID_PERMISSIONS].sort(), [
+  // APK final: release, ambiente production do EAS (de onde vêm EXPO_PUBLIC_API_URL e o google-services), sem texto claro
+  assert.equal(eas.build['apk-final'].env.ANDROID_ALLOW_CLEARTEXT, undefined);
+  assert.equal(eas.build['apk-final'].env.EXPO_PUBLIC_DEMO, 'false');
+  assert.equal(eas.build['apk-final'].env.EXPO_PUBLIC_API_URL, undefined);
+  assert.equal(eas.build['apk-final'].environment, 'production');
+  assert.equal(eas.build['apk-final'].android.buildType, 'apk');
+  assert.equal(eas.build['apk-final'].developmentClient, undefined);
+  assert.deepEqual([...ANDROID_PERMISSIONS].sort((a, b) => a.localeCompare(b)), [
     'android.permission.ACCESS_NETWORK_STATE', 'android.permission.INTERNET', 'android.permission.POST_NOTIFICATIONS',
     'android.permission.VIBRATE', 'android.permission.WAKE_LOCK', 'com.google.android.c2dm.permission.RECEIVE',
   ]);
@@ -1146,6 +1155,12 @@ check('Texto claro só no perfil development; release com usesCleartextTraffic=f
   const config = appConfig({ config: { name: 'MedCare Sênior', slug: 'medcare-senior' } } as Parameters<typeof appConfig>[0]);
   assert.deepEqual(config.android?.permissions, ANDROID_PERMISSIONS);
   assert.deepEqual(config.android?.blockedPermissions, ANDROID_BLOCKED_PERMISSIONS);
+});
+
+check('Cores da splash e do ícone de notificação são as do tema (copiadas no app.config)', () => {
+  assert.equal(CORES_NATIVAS.primaria, palette.primary);
+  assert.equal(CORES_NATIVAS.fundoClaro, palette.background);
+  assert.equal(CORES_NATIVAS.fundoEscuro, darkColors.background);
 });
 
 checkAsync('PIN: só hash com sal, 5 erros bloqueiam (mesmo com o PIN certo) e o PIN antigo em texto é convertido', async () => {

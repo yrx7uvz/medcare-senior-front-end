@@ -5,10 +5,12 @@
  * manifesto do app com as dos manifestos das bibliotecas em node_modules, tira as marcadas com tools:node="remove" e
  * compara com a lista mínima do app.config.ts. Apaga a pasta temporária no fim.
  *
- * Não substitui o manifesto mesclado pelo Gradle (precisa do Android SDK): bibliotecas que vêm só do Maven (Firebase,
- * Play Services) não entram aqui. Para o APK final: `aapt dump permissions app.apk` (ver docs no README).
+ * Não substitui o manifesto mesclado pelo Gradle: bibliotecas que vêm só do Maven (Firebase, Play Services, o
+ * ShortcutBadger do expo-notifications) não entram aqui. Para conferir o APK de verdade, com o aapt do Android SDK,
+ * passe o arquivo: só essas permissões (e a interna do AndroidX, exclusiva do app) podem estar nele.
  *
  * Uso: npm run check:permissions
+ *      npm run check:permissions -- --apk caminho/do/app.apk
  */
 import assert from 'node:assert/strict';
 import { execSync } from 'node:child_process';
@@ -48,13 +50,41 @@ function manifestosDasBibliotecas(nodeModules: string): string[] {
   return achados;
 }
 
+/** aapt da versão mais nova do build-tools do Android SDK (ANDROID_HOME ou o caminho padrão no Windows). */
+function aapt(): string {
+  const sdk = process.env.ANDROID_HOME ?? process.env.ANDROID_SDK_ROOT ?? join(process.env.LOCALAPPDATA ?? '', 'Android', 'Sdk');
+  const versoes = existsSync(join(sdk, 'build-tools')) ? readdirSync(join(sdk, 'build-tools')).sort((a, b) => b.localeCompare(a, undefined, { numeric: true })) : [];
+  for (const versao of versoes) {
+    for (const nome of ['aapt.exe', 'aapt']) {
+      const caminho = join(sdk, 'build-tools', versao, nome);
+      if (existsSync(caminho)) return caminho;
+    }
+  }
+  throw new Error('aapt não encontrado: instale o build-tools do Android SDK ou defina ANDROID_HOME');
+}
+
+/** Permissões do APK final (manifesto mesclado pelo Gradle, com tudo o que veio do Maven). */
+function verificarApk(apk: string) {
+  const saida = execSync(`"${aapt()}" dump permissions "${apk}"`, { encoding: 'utf8' }); // NOSONAR: aapt do Android SDK local
+  const pacote = /^package: (\S+)/m.exec(saida)?.[1] ?? '';
+  const noApk = [...new Set([...saida.matchAll(/name='([^']+)'/g)].map((m) => m[1]))].sort((a, b) => a.localeCompare(b));
+  // Permissão de assinatura que o AndroidX cria só para o próprio app (receptores dinâmicos não exportados)
+  const interna = `${pacote}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`;
+  console.log(`Permissões no APK ${apk}:`);
+  for (const p of noApk) console.log(`  ${p}`);
+  const esperadas = [...ANDROID_PERMISSIONS, interna].sort((a, b) => a.localeCompare(b));
+  assert.deepEqual(noApk, esperadas, 'o APK tem permissões fora da lista mínima (bloqueie em ANDROID_BLOCKED_PERMISSIONS)');
+  console.log(`\nOK: ${noApk.length} permissões no APK, todas da lista mínima`);
+}
+
 function main() {
   const tmp = mkdtempSync(join(tmpdir(), 'medcare-prebuild-'));
   try {
     cpSync(raiz, tmp, { recursive: true, filter: (origem) => !IGNORAR.has(relative(raiz, origem).split(sep)[0]) });
     symlinkSync(join(raiz, 'node_modules'), join(tmp, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir');
     // Sem telemetria: o processo que a envia ficaria rodando com a pasta temporária como diretório atual
-    execSync('npx expo prebuild --platform android --no-install', {
+    // NOSONAR: ferramenta de verificação local, roda o npx do próprio projeto na pasta temporária
+    execSync('npx expo prebuild --platform android --no-install', { // NOSONAR
       cwd: tmp,
       stdio: 'ignore',
       env: { ...process.env, CI: '1', EXPO_NO_TELEMETRY: '1' },
@@ -69,10 +99,10 @@ function main() {
       }
     }
 
-    const lista = [...finais].sort();
+    const lista = [...finais].sort((a, b) => a.localeCompare(b));
     console.log('Permissões finais (manifesto do prebuild + bibliotecas do node_modules):');
     for (const p of lista) console.log(`  ${p}`);
-    assert.deepEqual(lista, [...ANDROID_PERMISSIONS].sort(), 'permissões diferentes da lista mínima do app.config.ts');
+    assert.deepEqual(lista, [...ANDROID_PERMISSIONS].sort((a, b) => a.localeCompare(b)), 'permissões diferentes da lista mínima do app.config.ts');
     for (const bloqueada of ANDROID_BLOCKED_PERMISSIONS) assert.ok(app.removidas.has(bloqueada), `${bloqueada} sem tools:node="remove"`);
     assert.ok(!existsSync(join(raiz, 'android')) && !existsSync(join(raiz, 'ios')), 'android/ ou ios/ no repositório');
     const gitignore = readFileSync(join(raiz, '.gitignore'), 'utf8');
@@ -94,4 +124,6 @@ function main() {
   }
 }
 
-main();
+const indiceApk = process.argv.indexOf('--apk');
+if (indiceApk >= 0) verificarApk(process.argv[indiceApk + 1]);
+else main();

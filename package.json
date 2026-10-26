@@ -1,12 +1,12 @@
 {
   "name": "medcare-senior-mobile",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
     "tunnel": "expo start --tunnel",
-    "android": "expo start --android",
+    "android": "expo run:android",
     "web": "expo start --web",
     "start:demo": "cross-env EXPO_PUBLIC_DEMO=true expo start",
     "android:demo": "cross-env EXPO_PUBLIC_DEMO=true expo start --android",
@@ -14,11 +14,14 @@
     "start:dev": "expo start --dev-client",
     "build:dev": "eas build --profile development --platform android",
     "build:preview": "eas build --profile preview --platform android",
+    "build:apk": "eas build --profile apk-final --platform android",
     "typecheck": "tsc --noEmit",
     "check:mocks": "cross-env EXPO_PUBLIC_DEMO=true tsx scripts/check-mocks.ts",
     "check:core": "tsx scripts/check-core.ts",
     "check:permissions": "tsx scripts/check-android-permissions.ts",
     "check:contrast": "tsx scripts/check-contrast.ts",
+    "check:a11y": "tsx scripts/check-a11y.ts",
+    "plano:testes": "tsx scripts/gerar-plano-de-testes.ts",
     "smoke:api": "tsx scripts/smoke-api.ts",
     "smoke": "tsx scripts/smoke-api.ts",
     "test": "jest",
@@ -26,7 +29,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx}\""
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
+    "gerar:icones": "tsx scripts/gerar-icones.ts"
   },
   "dependencies": {
     "@expo-google-fonts/nunito": "^0.2.3",
@@ -49,6 +53,7 @@
     "expo-notifications": "~57.0.23",
     "expo-secure-store": "~57.0.4",
     "expo-sharing": "~57.0.24",
+    "expo-splash-screen": "~57.0.10",
     "expo-status-bar": "~57.0.1",
     "lucide-react-native": "^1.59.0",
     "react": "19.2.3",
@@ -65,6 +70,7 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@expo/ngrok": "^4.1.3",
+    "@resvg/resvg-wasm": "2.6.2",
     "@types/jest": "29.5.14",
     "@types/react": "~19.2.0",
     "cross-env": "^10.1.0",
