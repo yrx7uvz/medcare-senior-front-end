@@ -1,4 +1,5 @@
-import { Wrench, X } from 'lucide-react-native';
+import Wrench from 'lucide-react-native/icons/wrench';
+import X from 'lucide-react-native/icons/x';
 import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

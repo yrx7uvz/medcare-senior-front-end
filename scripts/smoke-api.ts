@@ -104,7 +104,7 @@ async function main() {
     throw new Error('Faltam menos de 30 minutos para a meia-noite em São Paulo: rode o smoke depois da virada do dia.');
   }
 
-  const email = `smoke-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@teste.com`;
+  const email = `smoke-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@teste.com`; // NOSONAR: só torna o e-mail de teste único
   const senha = 'SenhaForte1';
   let contaExcluida = false;
 
@@ -290,7 +290,7 @@ async function main() {
       });
       assert.equal(editado.medication.dosage, '850mg');
       assert.equal(editado.treatment?.id, atual.treatment.id);
-      assert.deepEqual(editado.treatment?.times.map((x) => x.time), [alvo2.hora, '22:00'].sort());
+      assert.deepEqual(editado.treatment?.times.map((x) => x.time), [alvo2.hora, '22:00'].sort((a, b) => a.localeCompare(b)));
       await expectError(() => httpMedicationService.remove(remedio2.medication.id, { confirmed: false }), 409, 'TRATAMENTO_ATIVO');
       await httpMedicationService.remove(remedio2.medication.id, { confirmed: true });
       assert.ok(!(await httpMedicationService.list(pacienteId)).some((v) => v.medication.id === remedio2.medication.id));
@@ -356,7 +356,7 @@ async function main() {
       assert.equal(pagina.totalPaginas, pagina.totalElementos);
       // Do mais recente para o mais antigo
       const horarios = tudo.conteudo.map((d) => d.horarioProgramado);
-      assert.deepEqual(horarios, [...horarios].sort().reverse());
+      assert.deepEqual(horarios, [...horarios].sort((a, b) => b.localeCompare(a)));
       await expectError(() => request('GET', `/api/historico?de=${hoje.dia}&ate=2000-01-01`), 400, 'VALIDACAO');
       await expectError(() => request('GET', '/api/historico?status=ATRASADA'), 400, 'VALIDACAO');
       await expectError(() => request('GET', '/api/historico?size=101'), 400, 'VALIDACAO');

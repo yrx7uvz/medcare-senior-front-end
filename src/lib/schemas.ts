@@ -5,7 +5,8 @@ import { meetsPasswordPolicy } from './password';
 import { DUPLICATE_TIME_MESSAGE, EMPTY_TIMES_MESSAGE } from './timeList';
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Domínio em partes separadas por ponto, sem ponto vazio: as classes não se sobrepõem (sem retrocesso caro)
+const EMAIL_RE = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
 
 export const loginSchema = z.object({
   email: z.string().trim().min(1, 'Informe seu e-mail').regex(EMAIL_RE, 'E-mail inválido'),

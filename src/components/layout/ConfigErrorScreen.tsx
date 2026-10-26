@@ -1,4 +1,4 @@
-import { ServerCrash } from 'lucide-react-native';
+import ServerCrash from 'lucide-react-native/icons/server-crash';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText } from '../ui';

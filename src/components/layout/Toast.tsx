@@ -1,4 +1,6 @@
-import { CheckCircle2, Info, XCircle } from 'lucide-react-native';
+import CheckCircle2 from 'lucide-react-native/icons/circle-check';
+import Info from 'lucide-react-native/icons/info';
+import XCircle from 'lucide-react-native/icons/circle-x';
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

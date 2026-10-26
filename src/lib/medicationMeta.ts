@@ -113,7 +113,7 @@ export function weekdaySummary(weekdays: number[]): string {
 
 export function scheduleSummary(t?: Treatment): string {
   if (!t) return 'Sem tratamento';
-  const times = t.times.map((x) => x.time).sort();
+  const times = t.times.map((x) => x.time).sort((a, b) => a.localeCompare(b));
   const timesText = times.length > 1 ? `${times.slice(0, -1).join(', ')} e ${times[times.length - 1]}` : times[0] ?? '';
   return `${timesText} • ${weekdaySummary(t.weekdays)}`;
 }

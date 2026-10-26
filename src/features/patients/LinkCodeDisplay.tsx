@@ -1,5 +1,7 @@
 import * as Clipboard from 'expo-clipboard';
-import { Copy, Share2, TimerOff } from 'lucide-react-native';
+import Copy from 'lucide-react-native/icons/copy';
+import Share2 from 'lucide-react-native/icons/share-2';
+import TimerOff from 'lucide-react-native/icons/timer-off';
 import { Share, StyleSheet, View } from 'react-native';
 import { AppText, Button } from '../../components/ui';
 import { useAppStore } from '../../store/appStore';

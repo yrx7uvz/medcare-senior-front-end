@@ -1,5 +1,8 @@
-import { CalendarCheck, CalendarX, ClipboardList, UserPlus } from 'lucide-react-native';
-import React from 'react';
+import CalendarCheck from 'lucide-react-native/icons/calendar-check';
+import CalendarX from 'lucide-react-native/icons/calendar-x';
+import ClipboardList from 'lucide-react-native/icons/clipboard-list';
+import UserPlus from 'lucide-react-native/icons/user-plus';
+import React, { useCallback } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TabScreenProps } from '../../app/navigation/types';
@@ -42,7 +45,7 @@ export function DashboardScreen({ navigation }: TabScreenProps<'Painel'>) {
   const list = (doses.data ?? []).map((d) => liveAt(d, now));
   const summary = summarize(list.map((d) => d.status));
   const selectedPatient = filter === 'ALL' ? null : patients.data?.find((e) => e.id === filter);
-  const openDose = (d: DoseView) => navigation.navigate('DoseDetail', { doseId: d.id });
+  const openDose = useCallback((d: DoseView) => navigation.navigate('DoseDetail', { doseId: d.id }), [navigation]);
 
   let content: React.ReactNode;
   if (doses.loading || patients.loading) {
@@ -122,13 +125,13 @@ export function DashboardScreen({ navigation }: TabScreenProps<'Painel'>) {
                     </AppText>
                   </View>
                 ) : (
-                  group.map((d) => <DoseCard key={d.id} dose={d} onPress={() => openDose(d)} />)
+                  group.map((d) => <DoseCard key={d.id} dose={d} onPress={openDose} />)
                 )}
               </View>
             );
           })
         ) : (
-          list.map((d) => <DoseCard key={d.id} dose={d} onPress={() => openDose(d)} />)
+          list.map((d) => <DoseCard key={d.id} dose={d} onPress={openDose} />)
         )}
       </>
     );

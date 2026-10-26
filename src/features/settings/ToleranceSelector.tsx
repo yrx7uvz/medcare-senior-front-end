@@ -1,4 +1,5 @@
-import { Minus, Plus } from 'lucide-react-native';
+import Minus from 'lucide-react-native/icons/minus';
+import Plus from 'lucide-react-native/icons/plus';
 import { StyleSheet, View } from 'react-native';
 import { AppText, Chip, IconButton } from '../../components/ui';
 import { TOLERANCE_MAX, TOLERANCE_MIN, TOLERANCE_STEP, closesAfterMinutes } from '../../lib/doseRules';

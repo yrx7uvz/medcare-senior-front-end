@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import { ArrowLeft } from 'lucide-react-native';
+import ArrowLeft from 'lucide-react-native/icons/arrow-left';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { spacing, useTheme } from '../../theme';
@@ -14,11 +14,11 @@ export function StackHeader({ title, subtitle, onBack }: { title: string; subtit
     <View style={[styles.header, { backgroundColor: colors.header, paddingTop: insets.top + spacing.sm }]}>
       <IconButton icon={ArrowLeft} color={colors.onHeader} accessibilityLabel="Voltar" onPress={onBack ?? (() => navigation.goBack())} />
       <View style={styles.texts}>
-        <AppText variant="title" color={colors.onHeader} accessibilityRole="header" numberOfLines={1}>
+        <AppText variant="title" color={colors.onHeader} accessibilityRole="header" numberOfLines={2}>
           {title}
         </AppText>
         {subtitle ? (
-          <AppText variant="caption" color={colors.onHeaderMuted} numberOfLines={1}>
+          <AppText variant="caption" color={colors.onHeaderMuted} numberOfLines={2}>
             {subtitle}
           </AppText>
         ) : null}

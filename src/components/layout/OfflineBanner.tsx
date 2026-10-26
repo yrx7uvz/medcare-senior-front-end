@@ -1,4 +1,4 @@
-import { WifiOff } from 'lucide-react-native';
+import WifiOff from 'lucide-react-native/icons/wifi-off';
 import { StyleSheet, View } from 'react-native';
 import { useDevStore } from '../../store/devStore';
 import { spacing, useTheme } from '../../theme';

@@ -12,7 +12,7 @@ import { simulate } from './simulate';
 /** Hash apenas ilustrativo do mock. O backend usa BCrypt (RNF02). */
 function mockHash(value: string): string {
   let h = 5381;
-  for (let i = 0; i < value.length; i += 1) h = ((h << 5) + h + value.charCodeAt(i)) | 0;
+  for (let i = 0; i < value.length; i += 1) h = (Math.imul(h, 33) + value.charCodeAt(i)) >>> 0;
   return `mock$${(h >>> 0).toString(16)}`;
 }
 

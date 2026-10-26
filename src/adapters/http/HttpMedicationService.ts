@@ -84,7 +84,7 @@ export function toTreatment(dto: TratamentoResponse): Treatment {
   const times = dto.horarios
     .map(apiTimeToHHmm)
     .filter((t): t is string => t !== null)
-    .sort()
+    .sort((a, b) => a.localeCompare(b))
     .map((time) => ({ time }));
   const weekdays = dto.diasSemana
     .map(apiWeekdayToIndex)
@@ -101,7 +101,7 @@ export function toTreatment(dto: TratamentoResponse): Treatment {
 }
 
 const schedule = (input: TreatmentInput) => ({
-  horarios: [...new Set(input.times.map((t) => t.time))].sort(),
+  horarios: [...new Set(input.times.map((t) => t.time))].sort((a, b) => a.localeCompare(b)),
   diasSemana: [...input.weekdays].sort((a, b) => a - b).map(indexToApiWeekday),
 });
 

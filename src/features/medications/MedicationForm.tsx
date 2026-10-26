@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Save } from 'lucide-react-native';
+import Save from 'lucide-react-native/icons/save';
 import { useForm } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
 import { AppText, Button, Card, FormTextField } from '../../components/ui';

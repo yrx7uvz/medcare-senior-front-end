@@ -47,7 +47,7 @@ export function HistoryList({ doses, todayKey, showPatient, onPress, header, foo
       )}
       renderItem={({ item }) => (
         <View style={styles.item}>
-          <DoseCard dose={item} showPatient={showPatient} onPress={() => onPress(item)} />
+          <DoseCard dose={item} showPatient={showPatient} onPress={onPress} />
         </View>
       )}
     />

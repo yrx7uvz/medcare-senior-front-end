@@ -1,4 +1,4 @@
-import { Ruler } from 'lucide-react-native';
+import Ruler from 'lucide-react-native/icons/ruler';
 import { StyleSheet, View } from 'react-native';
 import Svg, { Line, Rect, Text as SvgText } from 'react-native-svg';
 import type { MedicationAppearance } from '../../types/domain';

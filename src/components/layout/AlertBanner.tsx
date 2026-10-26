@@ -1,4 +1,5 @@
-import { AlertTriangle, X } from 'lucide-react-native';
+import AlertTriangle from 'lucide-react-native/icons/triangle-alert';
+import X from 'lucide-react-native/icons/x';
 import { StyleSheet, View } from 'react-native';
 import type { AlertView } from '../../types/views';
 import { formatTime } from '../../lib/date';

@@ -1,4 +1,4 @@
-import { Send } from 'lucide-react-native';
+import Send from 'lucide-react-native/icons/send';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import type { Message, MessageAuthor } from '../../types/domain';

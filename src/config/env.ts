@@ -1,3 +1,4 @@
+import { semFinal } from '../lib/text';
 import { configError } from '../services/errors';
 
 /**
@@ -13,7 +14,7 @@ export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? '';
 
 /** Apara espaços e barras finais; devolve null se não for uma URL http(s) utilizável. */
 export function normalizeApiBaseUrl(raw: string): string | null {
-  const url = raw.trim().replace(/\/+$/, '');
+  const url = semFinal(raw.trim(), '/');
   return /^https?:\/\/[^/\s]+/i.test(url) ? url : null;
 }
 

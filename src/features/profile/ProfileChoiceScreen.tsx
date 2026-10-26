@@ -1,4 +1,5 @@
-import { HeartHandshake, UserRound } from 'lucide-react-native';
+import HeartHandshake from 'lucide-react-native/icons/heart-handshake';
+import UserRound from 'lucide-react-native/icons/user-round';
 import { StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { PatientScreen } from '../../components/layout/PatientScreen';

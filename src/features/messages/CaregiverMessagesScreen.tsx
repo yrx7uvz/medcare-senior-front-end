@@ -1,4 +1,4 @@
-import { MessageCircle } from 'lucide-react-native';
+import MessageCircle from 'lucide-react-native/icons/message-circle';
 import { FlatList, KeyboardAvoidingView, Pressable, StyleSheet, View } from 'react-native';
 import type { TabScreenProps } from '../../app/navigation/types';
 import { CaregiverScreen } from '../../components/layout/CaregiverScreen';

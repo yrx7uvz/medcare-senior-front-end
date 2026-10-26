@@ -1,5 +1,8 @@
 import { CommonActions } from '@react-navigation/native';
-import { CheckCircle2, Lock, MessageCircle, SearchX } from 'lucide-react-native';
+import CheckCircle2 from 'lucide-react-native/icons/circle-check';
+import Lock from 'lucide-react-native/icons/lock';
+import MessageCircle from 'lucide-react-native/icons/message-circle';
+import SearchX from 'lucide-react-native/icons/search-x';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

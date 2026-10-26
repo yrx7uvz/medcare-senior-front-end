@@ -1,4 +1,5 @@
-import { AlertCircle, WifiOff } from 'lucide-react-native';
+import AlertCircle from 'lucide-react-native/icons/circle-alert';
+import WifiOff from 'lucide-react-native/icons/wifi-off';
 import { StyleSheet, View } from 'react-native';
 import type { AppError } from '../../services/errors';
 import { spacing, useTheme } from '../../theme';

@@ -1,4 +1,5 @@
-import { Minus, Plus } from 'lucide-react-native';
+import Minus from 'lucide-react-native/icons/minus';
+import Plus from 'lucide-react-native/icons/plus';
 import { useEffect, useRef } from 'react';
 import { FlatList, PixelRatio, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import {

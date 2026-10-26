@@ -1,5 +1,6 @@
 import * as Clipboard from 'expo-clipboard';
-import { ClipboardPaste, Link2 } from 'lucide-react-native';
+import ClipboardPaste from 'lucide-react-native/icons/clipboard-paste';
+import Link2 from 'lucide-react-native/icons/link-2';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';

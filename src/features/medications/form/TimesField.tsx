@@ -1,4 +1,6 @@
-import { Clock, Plus, X } from 'lucide-react-native';
+import Clock from 'lucide-react-native/icons/clock';
+import Plus from 'lucide-react-native/icons/plus';
+import X from 'lucide-react-native/icons/x';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, Button, TimeWheelPicker } from '../../../components/ui';

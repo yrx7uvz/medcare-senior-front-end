@@ -1,4 +1,7 @@
-import { CheckCircle2, KeyRound, RefreshCw, Smartphone } from 'lucide-react-native';
+import CheckCircle2 from 'lucide-react-native/icons/circle-check';
+import KeyRound from 'lucide-react-native/icons/key-round';
+import RefreshCw from 'lucide-react-native/icons/refresh-cw';
+import Smartphone from 'lucide-react-native/icons/smartphone';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -32,7 +35,7 @@ export function LinkCodeScreen({ route, navigation }: RootScreenProps<'LinkCode'
   // tentando gerar código em laço. O efeito deve disparar apenas quando o código ativo termina de carregar.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- newCode é assíncrono e protegido pelas condições acima; regra do React Compiler, que o projeto não usa
-    if (justCreated && active.data === null && !fresh && !generate.loading) newCode();
+    if (justCreated && active.data === null && !fresh && !generate.loading) void newCode();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- ver comentário acima: evita laço de geração em caso de falha
   }, [justCreated, active.data]);
 

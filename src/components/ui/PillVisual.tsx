@@ -20,7 +20,7 @@ interface Props {
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace('#', '');
   const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h.padEnd(6, '0');
-  const n = parseInt(full, 16);
+  const n = Number.parseInt(full, 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 /** amt < 0 escurece, amt > 0 clareia. */

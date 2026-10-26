@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
-import { BellRing } from 'lucide-react-native';
+import BellRing from 'lucide-react-native/icons/bell-ring';
 import { useEffect, useMemo } from 'react';
 import type { RootNavigation } from '../../app/navigation/types';
 import { services } from '../../services';

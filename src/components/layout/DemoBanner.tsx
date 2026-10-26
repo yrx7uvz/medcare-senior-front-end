@@ -1,4 +1,4 @@
-import { FlaskConical } from 'lucide-react-native';
+import FlaskConical from 'lucide-react-native/icons/flask-conical';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context';

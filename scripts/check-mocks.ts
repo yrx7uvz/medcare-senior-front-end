@@ -73,4 +73,4 @@ async function main() {
   try { await services.patients.validateLinkCode('482913'); } catch (e) { console.log('Reuso →', (e as Error).message); }
   process.exit(0);
 }
-main();
+void main();

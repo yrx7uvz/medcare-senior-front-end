@@ -1,5 +1,9 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { History, LayoutDashboard, MessageCircle, Pill, Settings } from 'lucide-react-native';
+import History from 'lucide-react-native/icons/rotate-ccw-clock';
+import LayoutDashboard from 'lucide-react-native/icons/layout-dashboard';
+import MessageCircle from 'lucide-react-native/icons/message-circle';
+import Pill from 'lucide-react-native/icons/pill';
+import Settings from 'lucide-react-native/icons/settings';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AlertWatcher } from '../../components/layout/AlertWatcher';
 import { PushPermissionPrompt } from '../../components/layout/PushPermissionPrompt';

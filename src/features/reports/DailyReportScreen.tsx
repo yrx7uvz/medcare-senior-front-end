@@ -1,5 +1,8 @@
-import { CalendarX, ChevronLeft, ChevronRight, UserPlus } from 'lucide-react-native';
-import { useState } from 'react';
+import CalendarX from 'lucide-react-native/icons/calendar-x';
+import ChevronLeft from 'lucide-react-native/icons/chevron-left';
+import ChevronRight from 'lucide-react-native/icons/chevron-right';
+import UserPlus from 'lucide-react-native/icons/user-plus';
+import { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootScreenProps } from '../../app/navigation/types';
@@ -12,7 +15,7 @@ import { liveAt } from '../../lib/doseLive';
 import { appTodayKey } from '../../lib/serverClock';
 import { useQuery } from '../../lib/useQuery';
 import { minuteStamp, useNow } from '../../lib/useNow';
-import type { DailyReportTotals } from '../../types/views';
+import type { DailyReportTotals, DoseView } from '../../types/views';
 import { radius, spacing, useTheme } from '../../theme';
 import { DoseCard } from '../dashboard/DoseCard';
 
@@ -24,6 +27,7 @@ export function DailyReportScreen({ route, navigation }: RootScreenProps<'DailyR
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const filter = useAppStore((s) => s.selectedPatientId);
+  const openDose = useCallback((d: DoseView) => navigation.navigate('DoseDetail', { doseId: d.id }), [navigation]);
   const now = useNow();
   const today = appTodayKey(now);
   const patients = useQuery(['patients'], () => services.patients.list());
@@ -69,7 +73,7 @@ export function DailyReportScreen({ route, navigation }: RootScreenProps<'DailyR
           // UC-008, fluxo 2a: sem tratamento ativo para o dia
           <EmptyState icon={CalendarX} title="Nenhuma dose programada para este dia" description="Não há remédios agendados para este paciente nesta data." />
         ) : (
-          doses.map((d) => <DoseCard key={d.id} dose={d} onPress={() => navigation.navigate('DoseDetail', { doseId: d.id })} />)
+          doses.map((d) => <DoseCard key={d.id} dose={d} onPress={openDose} />)
         )}
       </>
     );

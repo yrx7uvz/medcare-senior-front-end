@@ -1,5 +1,8 @@
 import * as Haptics from 'expo-haptics';
-import { ArrowLeft, CheckCircle2, Clock, Lock } from 'lucide-react-native';
+import ArrowLeft from 'lucide-react-native/icons/arrow-left';
+import CheckCircle2 from 'lucide-react-native/icons/circle-check';
+import Clock from 'lucide-react-native/icons/clock';
+import Lock from 'lucide-react-native/icons/lock';
 import { StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { PatientScreen } from '../../components/layout/PatientScreen';
