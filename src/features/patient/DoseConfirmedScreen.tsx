@@ -16,7 +16,7 @@ import { useNow } from '../../lib/useNow';
 import { spacing, useTheme } from '../../theme';
 import { pickNextDose } from './nextDose';
 
-/** T12 — Dose confirmada, com feedback tátil e anúncio por voz. */
+/** Dose confirmada, com feedback tátil e anúncio por voz. */
 export function DoseConfirmedScreen({ route, navigation }: RootScreenProps<'PatientDoseConfirmed'>) {
   const { colors } = useTheme();
   const patientId = useAppStore((s) => s.patientSession?.patientId ?? '');

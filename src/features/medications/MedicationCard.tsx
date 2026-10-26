@@ -13,7 +13,7 @@ interface Props {
   onRemove: () => void;
 }
 
-/** T05 — Item da lista de remédios. */
+/** Item da lista de remédios. */
 export function MedicationCard({ item, showPatient, onPress, onRemove }: Props) {
   const { colors, mode } = useTheme();
   const m = item.medication;

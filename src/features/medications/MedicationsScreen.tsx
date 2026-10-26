@@ -16,7 +16,7 @@ import { spacing, useTheme } from '../../theme';
 import { MedicationCard } from './MedicationCard';
 import { palette } from '../../theme/colors';
 
-/** T05 — Remédios do paciente filtrado (ou de todos). Remoção lógica com RN06. */
+/** Remédios do paciente filtrado (ou de todos). Remoção lógica com RN06. */
 export function MedicationsScreen({ navigation }: TabScreenProps<'Remedios'>) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
