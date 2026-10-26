@@ -1,11 +1,10 @@
 /// <reference types="node" />
 /**
  * Teste ponta a ponta REAL contra a API (backend rodando). Cria um cuidador com e-mail aleatório, um paciente, um
- * remédio e um tratamento com dose daqui a ~20 min, pareia o paciente, confirma a dose e por fim exclui a conta (o que
- * apaga tudo o que foi criado). Além das chamadas diretas, faz o fluxo do app pelos ADAPTERS HTTP (pacientes, remédio e
- * tratamento, doses do cuidador e do paciente, confirmação, edição e remoção com a RN06, histórico, mensagens nos dois
- * papéis). Falha em qualquer passo =
- * código de saída != 0 com o passo.
+ * remédio e um tratamento com dose daqui a ~20 min (um horário daqui a 2 min é recusado), pareia o paciente, confirma a
+ * dose e por fim exclui a conta (o que apaga tudo o que foi criado). Além das chamadas diretas, faz o fluxo do app pelos
+ * ADAPTERS HTTP (pacientes, remédio e tratamento, doses do cuidador e do paciente, confirmação, edição e remoção com
+ * confirmação, histórico, mensagens nos dois papéis). Falha em qualquer passo = código de saída != 0 com o passo.
  *
  * Uso: npm run smoke:api  (EXPO_PUBLIC_API_URL; padrão http://localhost:8080)
  */
@@ -67,6 +66,7 @@ async function main() {
   const { AppError } = await import('../src/services/errors');
   const { getApiBaseUrl } = await import('../src/config/env');
   const { doseOpenFailure, resolveDoseOpen } = await import('../src/lib/doseOpen');
+  const { TOO_SOON_MESSAGE } = await import('../src/lib/treatmentTime');
   console.log(`Alvo: ${getApiBaseUrl()}\n`);
 
   let token: string | null = null;
@@ -99,6 +99,9 @@ async function main() {
   const alvo = noFuso(new Date(agora.getTime() + 20 * 60_000));
   // Segundo remédio (cadastrado pelo adapter do app): dose daqui a ~25 min, também dentro da janela de confirmação
   const alvo2 = noFuso(new Date(agora.getTime() + 25 * 60_000));
+  // A API recusa horário de hoje a menos de 5 minutos: os horários válidos do smoke ficam a 6 minutos ou mais
+  const daquiA2 = () => noFuso(new Date(Date.now() + 2 * 60_000));
+  const alvo3 = noFuso(new Date(agora.getTime() + 40 * 60_000));
   const hoje = noFuso(agora);
   if (alvo.dia !== hoje.dia || alvo2.dia !== hoje.dia || alvo.hora === alvo2.hora) {
     throw new Error('Faltam menos de 30 minutos para a meia-noite em São Paulo: rode o smoke depois da virada do dia.');
@@ -134,13 +137,28 @@ async function main() {
     );
     assert.equal(medicamento.tipo, 'COMPRIMIDO');
 
-    await step(`tratamento hoje às ${alvo.hora} (${alvo.diaSemana}) (POST /api/medicamentos/{id}/tratamentos)`, () =>
-      request('POST', `/api/medicamentos/${medicamento.id}/tratamentos`, {
+    await step("horário daqui a 2 minutos é recusado: 400 VALIDACAO com a mensagem no campo horarios", async () => {
+      const perto = daquiA2();
+      const erro = await request('POST', `/api/medicamentos/${medicamento.id}/tratamentos`, {
+        dataInicio: hoje.dia,
+        horarios: [perto.hora],
+        diasSemana: [perto.diaSemana],
+      }).then(() => null, (e: unknown) => e);
+      assert.ok(erro instanceof AppError, `esperava 400, veio ${String(erro)}`);
+      assert.equal(erro.status, 400);
+      assert.equal(erro.code, 'VALIDACAO');
+      assert.equal(erro.message, TOO_SOON_MESSAGE);
+      assert.equal(erro.fieldErrors?.horarios, TOO_SOON_MESSAGE);
+    });
+
+    await step(`tratamento hoje às ${alvo.hora} (${alvo.diaSemana}), primeiraDose hoje (POST /api/medicamentos/{id}/tratamentos)`, async () => {
+      const tratamento = await request<{ primeiraDose: string | null }>('POST', `/api/medicamentos/${medicamento.id}/tratamentos`, {
         dataInicio: hoje.dia,
         horarios: [alvo.hora],
         diasSemana: [alvo.diaSemana],
-      }),
-    );
+      });
+      assert.equal(tratamento.primeiraDose?.slice(0, 16), `${hoje.dia}T${alvo.hora}`);
+    });
 
     const codigo = await step('gerar código de vínculo (POST /api/pacientes/{id}/gerar-codigo)', () =>
       request<{ codigo: string }>('POST', `/api/pacientes/${toApiId(pacienteId)}/gerar-codigo`),
@@ -199,6 +217,7 @@ async function main() {
       }),
     );
     assert.equal(remedio2.treatment?.times[0]?.time, alvo2.hora);
+    assert.deepEqual(remedio2.firstDose, { dateKey: hoje.dia, time: alvo2.hora });
 
     await step('app: remédios do paciente e de "Todos" com o tratamento (httpMedicationService.list)', async () => {
       const doPaciente = await httpMedicationService.list(pacienteId);
@@ -275,9 +294,23 @@ async function main() {
 
     token = sessao.token;
     viewer = 'CAREGIVER';
-    await step('app: editar o tratamento (PUT) e remover com a RN06 (409 TRATAMENTO_ATIVO, depois forçado)', async () => {
+    await step('app: editar o tratamento (PUT; horário novo a 2 minutos recusado) e remover (409 TRATAMENTO_ATIVO, depois forçado)', async () => {
       const atual = await httpMedicationService.get(remedio2.medication.id);
       assert.ok(atual.treatment);
+      const perto = daquiA2();
+      const recusado = await httpMedicationService
+        .update(remedio2.medication.id, {
+          patientId: pacienteId,
+          name: 'Metformina',
+          dosage: '500mg',
+          type: 'CAPSULA',
+          primaryColor: '#3D7DCA',
+          appearanceSource: 'MANUAL',
+          treatment: { startDate: atual.treatment.startDate, weekdays: [0, 1, 2, 3, 4, 5, 6], times: [{ time: alvo2.hora }, { time: perto.hora }] },
+        })
+        .then(() => null, (e: unknown) => e);
+      assert.ok(recusado instanceof AppError && recusado.status === 400, `esperava 400, veio ${String(recusado)}`);
+      assert.equal(recusado.fieldErrors?.horarios, TOO_SOON_MESSAGE);
       const editado = await httpMedicationService.update(remedio2.medication.id, {
         patientId: pacienteId,
         name: 'Metformina',
@@ -286,15 +319,15 @@ async function main() {
         // O formulário do app sempre manda a cor (o PUT substitui o cadastro inteiro)
         primaryColor: '#3D7DCA',
         appearanceSource: 'MANUAL',
-        treatment: { startDate: atual.treatment.startDate, weekdays: [0, 1, 2, 3, 4, 5, 6], times: [{ time: alvo2.hora }, { time: '22:00' }] },
+        treatment: { startDate: atual.treatment.startDate, weekdays: [0, 1, 2, 3, 4, 5, 6], times: [{ time: alvo2.hora }, { time: alvo3.hora }] },
       });
       assert.equal(editado.medication.dosage, '850mg');
       assert.equal(editado.treatment?.id, atual.treatment.id);
-      assert.deepEqual(editado.treatment?.times.map((x) => x.time), [alvo2.hora, '22:00'].sort((a, b) => a.localeCompare(b)));
+      assert.deepEqual(editado.treatment?.times.map((x) => x.time), [alvo2.hora, alvo3.hora].sort((a, b) => a.localeCompare(b)));
       await expectError(() => httpMedicationService.remove(remedio2.medication.id, { confirmed: false }), 409, 'TRATAMENTO_ATIVO');
       await httpMedicationService.remove(remedio2.medication.id, { confirmed: true });
       assert.ok(!(await httpMedicationService.list(pacienteId)).some((v) => v.medication.id === remedio2.medication.id));
-      // O remédio removido sai também do dia (a dose registrada fica no histórico, RN08)
+      // O remédio removido sai também do dia (a dose registrada fica no histórico)
       const doPaciente = await httpDoseService.listForDay(pacienteId, hoje.dia);
       assert.ok(!doPaciente.some((d) => d.id === doseApp.id));
     });
@@ -370,7 +403,7 @@ async function main() {
       const base = { patient: pacienteId, from: hoje.dia, to: hoje.dia };
       const tudo = await httpDoseService.listHistory({ ...base, status: 'ALL' });
       assert.ok(tudo.totalElements >= 2 && tudo.page === 0 && tudo.size === 20);
-      // Remédio removido continua no histórico (RN08), com a cor do cadastro
+      // Remédio removido continua no histórico, com a cor do cadastro
       const daMetformina = tudo.items.find((d) => d.id === doseApp.id);
       assert.equal(daMetformina?.storedStatus, 'CONFIRMADA_NO_HORARIO');
       assert.equal(daMetformina?.medication.primaryColor, '#3D7DCA');
@@ -408,7 +441,7 @@ async function main() {
       assert.equal(((await longo.json()) as { codigo: string }).codigo, 'VALIDACAO');
     });
 
-    // ---- Mensagens (UC-010) pelos adapters, nos dois papéis ----
+    // ---- Mensagens pelos adapters, nos dois papéis ----
     token = sessao.token;
     viewer = 'CAREGIVER';
     await step('app: cuidador envia mensagem; vazia e com 501 caracteres -> 400 VALIDACAO; paciente inexistente -> 404', async () => {
