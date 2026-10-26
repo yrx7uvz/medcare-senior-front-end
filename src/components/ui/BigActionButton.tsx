@@ -15,7 +15,7 @@ interface Props {
   accessibilityHint?: string;
 }
 
-/** Botão do idoso: alvo de toque ≥ 88dp, texto ≥ 24sp, feedback tátil. */
+/** Botão do paciente: alvo de toque ≥ 88dp, texto ≥ 24sp, feedback tátil. */
 export function BigActionButton({ title, subtitle, onPress, icon: Icon, variant = 'success', disabled, loading, accessibilityHint }: Props) {
   const { colors, highContrast } = useTheme();
   const bg = variant === 'success' ? colors.successButton : variant === 'primary' ? colors.primary : 'transparent';
@@ -37,7 +37,7 @@ export function BigActionButton({ title, subtitle, onPress, icon: Icon, variant 
       style={({ pressed }) => [
         styles.base,
         {
-          minHeight: variant === 'outline' ? touch.elder : touch.elderPrimary,
+          minHeight: variant === 'outline' ? touch.patient : touch.patientPrimary,
           backgroundColor: isDisabled ? colors.skeleton : bg,
           borderColor: isDisabled ? colors.skeleton : border,
           borderWidth: highContrast || variant === 'outline' ? 3 : 0,
@@ -52,14 +52,14 @@ export function BigActionButton({ title, subtitle, onPress, icon: Icon, variant 
           {Icon ? <Icon color={isDisabled ? colors.textMuted : fg} size={variant === 'outline' ? 28 : 36} strokeWidth={2.6} /> : null}
           <View style={styles.texts}>
             <AppText
-              variant={variant === 'outline' ? 'elderStrong' : 'elderTitle'}
+              variant={variant === 'outline' ? 'patientStrong' : 'patientTitle'}
               color={isDisabled ? colors.textMuted : fg}
               maxFontSizeMultiplier={1.4}
             >
               {title}
             </AppText>
             {subtitle ? (
-              <AppText variant="elderBody" color={isDisabled ? colors.textMuted : fg} maxFontSizeMultiplier={1.4}>
+              <AppText variant="patientBody" color={isDisabled ? colors.textMuted : fg} maxFontSizeMultiplier={1.4}>
                 {subtitle}
               </AppText>
             ) : null}

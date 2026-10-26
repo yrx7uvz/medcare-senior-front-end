@@ -39,7 +39,7 @@ export function AlertWatcher() {
       visible
       icon={BellRing}
       tone="danger"
-      title={`Dose não confirmada — ${fresh.elderName}`}
+      title={`Dose não confirmada — ${fresh.patientName}`}
       message={
         <>
           <AppText>{alertMessage(fresh)}</AppText>

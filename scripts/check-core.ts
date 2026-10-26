@@ -3,7 +3,7 @@
  * Verificações do núcleo do app (sem React): decodificador de JWT, parse do ErroResponse da API,
  * endereço da API, mapeamento de erros por campo, datas da API no fuso de São Paulo, mensagens de
  * erro por código, relógio do servidor, dose ao vivo, sessões no boot, cache do cliente HTTP e adapters HTTP de
- * idosos, medicamentos, doses e cadastro (com fetch falso, sem rede).
+ * pacientes, medicamentos, doses e cadastro (com fetch falso, sem rede).
  * Uso: npm run check:core — termina com código != 0 na primeira asserção que falhar.
  */
 import './check-core-env';
@@ -13,12 +13,12 @@ import { join } from 'node:path';
 import { parseApiError, parseJsonBody } from '../src/adapters/http/apiError';
 import { httpAuthService } from '../src/adapters/http/HttpAuthService';
 import { forgetDoseOrigins, httpDoseService, toDoseView } from '../src/adapters/http/HttpDoseService';
-import { forgetLinkCodes, httpElderService, toElder, toLinkCode } from '../src/adapters/http/HttpElderService';
+import { forgetLinkCodes, httpPatientService, toPatient, toLinkCode } from '../src/adapters/http/HttpPatientService';
 import { clearHttpCache, request, setViewerProvider } from '../src/adapters/http/httpClient';
 import { httpReportService } from '../src/adapters/http/HttpReportService';
 import appConfig, { ANDROID_BLOCKED_PERMISSIONS, ANDROID_PERMISSIONS, withCleartextPolicy } from '../app.config';
 import { randomBytes } from 'node:crypto';
-import { createPinGuard, createPinRecord, PIN_ITERATIONS } from '../src/lib/pinCore';
+import { createPinGuard, createPinRecord, PIN_ITERATIONS, PIN_KEYS } from '../src/lib/pinCore';
 import {
   httpMedicationService,
   toMedicamentoRequest,
@@ -33,7 +33,7 @@ import { mapFieldErrors } from '../src/lib/formErrors';
 import { decodeJwtPayload, getJwtExp, isJwtExpired } from '../src/lib/jwt';
 import { apiDateTimeToEpochMs, apiTimeToHHmm, apiWeekdayToIndex, indexToApiWeekday, saoPauloDateKey } from '../src/lib/apiTime';
 import { emptyMedicationValues, toMedicationInput } from '../src/features/medications/formValues';
-import { ELDER_EXPIRED_MESSAGE, resolveStoredSessions, SESSION_EXPIRED_MESSAGE } from '../src/lib/bootRules';
+import { PATIENT_EXPIRED_MESSAGE, resolveStoredSessions, SESSION_EXPIRED_MESSAGE } from '../src/lib/bootRules';
 import { dailyTotals } from '../src/lib/dailyReport';
 import { liveDose } from '../src/lib/doseLive';
 import { emptyHistoryNotice, hasMoreHistory, historyPath, historyRange, mergeHistory } from '../src/lib/history';
@@ -249,7 +249,7 @@ check('Códigos de erro da API viram mensagens claras; os demais mantêm a mensa
   const de = (codigo: string, mensagem = 'mensagem técnica da API', retry?: string) =>
     parseApiError(400, { codigo, mensagem, campos: [] }, retry).message;
   assert.match(de('CODIGO_INVALIDO'), /Código inválido, expirado ou já usado/);
-  assert.match(de('IDOSO_DUPLICADO'), /já cadastrou um paciente/);
+  assert.match(de('PACIENTE_DUPLICADO'), /já cadastrou um paciente/);
   assert.match(de('ACESSO_NEGADO'), /não tem permissão/);
   assert.match(de('RECURSO_NAO_ENCONTRADO'), /Não encontramos/);
   assert.match(de('TRATAMENTO_ATIVO'), /tratamento ativo/);
@@ -265,26 +265,26 @@ check('Códigos de erro da API viram mensagens claras; os demais mantêm a mensa
   assert.equal(formatWait(61), '2 minutos');
 });
 
-// --- Mapeamento de idosos, códigos, medicamentos e tratamentos ------------------------------------------------------
-check('IdosoResponse e CodigoVinculoResponse viram Elder e LinkCode (validade em São Paulo)', () => {
-  const elder = toElder({ id: 12, nome: 'José', dataNascimento: '1945-03-12', telefone: null, cuidadorId: 3 });
-  assert.deepEqual(elder, {
-    id: '12', caregiverId: '3', name: 'José', birthDate: '1945-03-12', phone: undefined, avatarColor: elder.avatarColor,
+// --- Mapeamento de pacientes, códigos, medicamentos e tratamentos ------------------------------------------------------
+check('PacienteResponse e CodigoVinculoResponse viram Patient e LinkCode (validade em São Paulo)', () => {
+  const patient = toPatient({ id: 12, nome: 'José', dataNascimento: '1945-03-12', telefone: null, cuidadorId: 3 });
+  assert.deepEqual(patient, {
+    id: '12', caregiverId: '3', name: 'José', birthDate: '1945-03-12', phone: undefined, avatarColor: patient.avatarColor,
   });
-  assert.equal(toElder({ id: 12, nome: 'x', dataNascimento: '1945-03-12', telefone: null, cuidadorId: 3 }).avatarColor, elder.avatarColor);
-  const link = toLinkCode({ codigo: '123456', idosoId: 12, expiraEm: '2026-10-19T12:00:00.654321' });
-  assert.deepEqual(link, { code: '123456', elderId: '12', expiresAt: Date.UTC(2026, 9, 19, 15, 0, 0, 654), used: false });
-  assert.throws(() => toLinkCode({ codigo: '1', idosoId: 1, expiraEm: 'nunca' }), AppError);
+  assert.equal(toPatient({ id: 12, nome: 'x', dataNascimento: '1945-03-12', telefone: null, cuidadorId: 3 }).avatarColor, patient.avatarColor);
+  const link = toLinkCode({ codigo: '123456', pacienteId: 12, expiraEm: '2026-10-19T12:00:00.654321' });
+  assert.deepEqual(link, { code: '123456', patientId: '12', expiresAt: Date.UTC(2026, 9, 19, 15, 0, 0, 654), used: false });
+  assert.throws(() => toLinkCode({ codigo: '1', pacienteId: 1, expiraEm: 'nunca' }), AppError);
 });
 
 check('MedicamentoResponse vira Medication; tipo legado, formato e cor fora do padrão são tolerados', () => {
   const dto = {
     id: 7, nome: 'Losartana', dosagem: '50mg', tipo: 'COMPRIMIDO', formato: 'oval', cor: '#F4D35E',
-    quantidadeEstoque: 30, bulaUrl: null, idosoId: 12,
+    quantidadeEstoque: 30, bulaUrl: null, pacienteId: 12,
   };
   const m = toMedication(dto);
   assert.equal(m.id, '7');
-  assert.equal(m.elderId, '12');
+  assert.equal(m.patientId, '12');
   assert.equal(m.shape, 'OVAL');
   assert.equal(m.primaryColor, '#F4D35E');
   assert.equal(m.stock, 30);
@@ -295,21 +295,21 @@ check('MedicamentoResponse vira Medication; tipo legado, formato e cor fora do p
   assert.equal(legado.stock, undefined);
 });
 
-check('Pedido de medicamento leva só os campos da API, idosoId numérico e o link da bula', () => {
+check('Pedido de medicamento leva só os campos da API, pacienteId numérico e o link da bula', () => {
   const base = {
-    elderId: '12', name: ' Losartana ', dosage: ' 50mg ', type: 'CAPSULA' as const, shape: 'OVAL' as const,
+    patientId: '12', name: ' Losartana ', dosage: ' 50mg ', type: 'CAPSULA' as const, shape: 'OVAL' as const,
     primaryColor: '#3D7DCA', secondaryColor: '#FFFFFF', lengthMm: 10, imprint: 'AB', hasScore: true, stock: 0,
     bulaUrl: '  ', appearanceSource: 'MANUAL' as const,
     treatment: { startDate: '2026-10-18', weekdays: [1], times: [{ time: '08:00' }] },
   };
   assert.deepEqual(toMedicamentoRequest(base), {
     nome: 'Losartana', dosagem: '50mg', tipo: 'CAPSULA', formato: undefined, cor: '#3D7DCA', quantidadeEstoque: 0,
-    bulaUrl: undefined, idosoId: 12,
+    bulaUrl: undefined, pacienteId: 12,
   });
   const comprimido = toMedicamentoRequest({ ...base, type: 'COMPRIMIDO', bulaUrl: ' https://bula.exemplo/x.pdf ' });
   assert.equal(comprimido.formato, 'OVAL');
   assert.equal(comprimido.bulaUrl, 'https://bula.exemplo/x.pdf');
-  assert.throws(() => toMedicamentoRequest({ ...base, elderId: 'e-jose' }), AppError);
+  assert.throws(() => toMedicamentoRequest({ ...base, patientId: 'e-jose' }), AppError);
 });
 
 check('Tratamento: pedido com horários únicos e ordenados e dias em inglês; resposta vira HH:mm', () => {
@@ -360,11 +360,11 @@ function fakeFetch(respostas: Resposta[]): Chamada[] {
 }
 
 const MED_DTO = {
-  id: 501, nome: 'Losartana', dosagem: '50mg', tipo: 'COMPRIMIDO', formato: null, cor: null, quantidadeEstoque: null, bulaUrl: null, idosoId: 12,
+  id: 501, nome: 'Losartana', dosagem: '50mg', tipo: 'COMPRIMIDO', formato: null, cor: null, quantidadeEstoque: null, bulaUrl: null, pacienteId: 12,
 };
 const TRAT_DTO = { id: 900, medicamentoId: 501, dataInicio: '2026-10-18', dataFim: null, horarios: ['08:00:00'], diasSemana: ['MONDAY'] };
 const MED_INPUT = {
-  elderId: '12', name: 'Losartana', dosage: '50mg', type: 'COMPRIMIDO' as const, appearanceSource: 'MANUAL' as const,
+  patientId: '12', name: 'Losartana', dosage: '50mg', type: 'COMPRIMIDO' as const, appearanceSource: 'MANUAL' as const,
   treatment: { startDate: '2026-10-18', weekdays: [1], times: [{ time: '08:00' }] },
 };
 
@@ -383,7 +383,7 @@ checkAsync('Cadastro em duas chamadas: falha no tratamento avisa com o id e não
   assert.equal(erro.code, 'TRATAMENTO_NAO_SALVO');
   assert.match(erro.message, /O remédio foi salvo, mas os horários não\. Há horários repetidos/);
   assert.deepEqual(chamadas.map((c) => `${c.method} ${c.path}`), ['POST /api/medicamentos', 'POST /api/medicamentos/501/tratamentos']);
-  assert.equal((chamadas[0].body as { idosoId: number }).idosoId, 12);
+  assert.equal((chamadas[0].body as { pacienteId: number }).pacienteId, 12);
 
   // Nova tentativa: SÓ o tratamento (nenhum POST /api/medicamentos)
   const retry = fakeFetch([{ status: 200, body: MED_DTO }, { status: 201, body: TRAT_DTO }]);
@@ -393,20 +393,20 @@ checkAsync('Cadastro em duas chamadas: falha no tratamento avisa com o id e não
   assert.equal(view.scheduleSummary, '08:00 • Seg');
 });
 
-checkAsync('Filtro "Todos": busca os idosos e os remédios de cada um, ordenados por paciente e nome', async () => {
+checkAsync('Filtro "Todos": busca os pacientes e os remédios de cada um, ordenados por paciente e nome', async () => {
   const chamadas = fakeFetch([
     { status: 200, body: [{ id: 2, nome: 'Zélia', dataNascimento: '1940-01-01', telefone: null, cuidadorId: 1 }, { id: 1, nome: 'Ana', dataNascimento: '1941-01-01', telefone: null, cuidadorId: 1 }] },
-    { status: 200, body: [{ ...MED_DTO, id: 20, nome: 'B', idosoId: 2 }] },
-    { status: 200, body: [{ ...MED_DTO, id: 10, nome: 'C', idosoId: 1 }, { ...MED_DTO, id: 11, nome: 'A', idosoId: 1 }] },
+    { status: 200, body: [{ ...MED_DTO, id: 20, nome: 'B', pacienteId: 2 }] },
+    { status: 200, body: [{ ...MED_DTO, id: 10, nome: 'C', pacienteId: 1 }, { ...MED_DTO, id: 11, nome: 'A', pacienteId: 1 }] },
     { status: 200, body: [] },
     { status: 200, body: [TRAT_DTO] },
     { status: 200, body: [] },
   ]);
   const lista = await httpMedicationService.list('ALL');
-  assert.deepEqual(lista.map((v) => `${v.elderName}/${v.medication.name}`), ['Ana/A', 'Ana/C', 'Zélia/B']);
-  assert.equal(chamadas[0].path, '/api/idosos');
-  assert.ok(chamadas.some((c) => c.path === '/api/medicamentos?idosoId=1'));
-  assert.ok(chamadas.some((c) => c.path === '/api/medicamentos?idosoId=2'));
+  assert.deepEqual(lista.map((v) => `${v.patientName}/${v.medication.name}`), ['Ana/A', 'Ana/C', 'Zélia/B']);
+  assert.equal(chamadas[0].path, '/api/pacientes');
+  assert.ok(chamadas.some((c) => c.path === '/api/medicamentos?pacienteId=1'));
+  assert.ok(chamadas.some((c) => c.path === '/api/medicamentos?pacienteId=2'));
   assert.equal(chamadas.length, 6);
 });
 
@@ -441,21 +441,21 @@ checkAsync('Edição: PUT do medicamento e do tratamento vigente, sem dataInicio
 
 checkAsync('Vínculo: 429 traz Retry-After; código gerado fica disponível até expirar e some no logout', async () => {
   fakeFetch([{ status: 429, body: { codigo: 'LIMITE_TENTATIVAS', mensagem: 'x', campos: [] }, headers: { 'Retry-After': '90' } }]);
-  const erro = await httpElderService.validateLinkCode('000000').then(() => null, (e: unknown) => e);
+  const erro = await httpPatientService.validateLinkCode('000000').then(() => null, (e: unknown) => e);
   assert.ok(erro instanceof AppError && erro.status === 429 && erro.retryAfterSec === 90);
   assert.match((erro as AppError).message, /Aguarde 2 minutos/);
 
   const daquiAUmDia = new Date(Date.now() + 24 * 3_600_000 - 3 * 3_600_000).toISOString().slice(0, 19);
-  const chamadas = fakeFetch([{ status: 201, body: { codigo: '654321', idosoId: 12, expiraEm: daquiAUmDia } }]);
-  const link = await httpElderService.generateLinkCode('12');
-  assert.equal(chamadas[0].path, '/api/idosos/12/gerar-codigo');
-  assert.deepEqual(await httpElderService.getActiveLinkCode('12'), link);
-  assert.equal(await httpElderService.getActiveLinkCode('13'), null);
+  const chamadas = fakeFetch([{ status: 201, body: { codigo: '654321', pacienteId: 12, expiraEm: daquiAUmDia } }]);
+  const link = await httpPatientService.generateLinkCode('12');
+  assert.equal(chamadas[0].path, '/api/pacientes/12/gerar-codigo');
+  assert.deepEqual(await httpPatientService.getActiveLinkCode('12'), link);
+  assert.equal(await httpPatientService.getActiveLinkCode('13'), null);
   forgetLinkCodes();
-  assert.equal(await httpElderService.getActiveLinkCode('12'), null);
+  assert.equal(await httpPatientService.getActiveLinkCode('12'), null);
 
   fakeFetch([{ status: 200, body: { token: 't', tipo: 'Bearer', id: 12, nome: 'José' } }]);
-  assert.deepEqual(await httpElderService.validateLinkCode(' 123456 '), { elderId: '12', elderName: 'José', token: 't' });
+  assert.deepEqual(await httpPatientService.validateLinkCode(' 123456 '), { patientId: '12', patientName: 'José', token: 't' });
 });
 
 // --- Relógio do servidor e janela da dose -------------------------------------------------------------------
@@ -484,7 +484,7 @@ check('Diferença de relógio pelo header Date: meio do segundo do servidor meno
 });
 
 const DOSE_DTO = {
-  id: 5000, idosoId: 12, idosoNome: 'José', medicamentoId: 501, medicamentoNome: 'Losartana', dosagem: '50mg',
+  id: 5000, pacienteId: 12, pacienteNome: 'José', medicamentoId: 501, medicamentoNome: 'Losartana', dosagem: '50mg',
   tipo: 'COMPRIMIDO', tratamentoId: 900, horarioProgramado: '2026-10-18T08:00:00', horaConfirmacao: null,
   status: 'PENDENTE' as const, statusExibicao: 'PENDENTE' as const, toleranciaMinutos: 30,
   janela: { abreEm: '2026-10-18T07:00:00', avisoEm: '2026-10-18T08:30:00', encerraEm: '2026-10-18T09:00:00' },
@@ -497,7 +497,7 @@ const SP = (hh: number, mm: number, ss = 0) => Date.UTC(2026, 9, 18, hh + 3, mm,
 check('DoseResponseDTO vira DoseView com status, janela e confirmabilidade do servidor', () => {
   const v = toDoseView({ ...DOSE_DTO, horaConfirmacao: '2026-10-18T08:05:12.123456', status: 'CONFIRMADA_NO_HORARIO', statusExibicao: 'CONFIRMADA_NO_HORARIO', confirmabilidade: 'JA_REGISTRADA', confirmadoPor: 'CUIDADOR' });
   assert.equal(v.id, '5000');
-  assert.equal(v.elderId, '12');
+  assert.equal(v.patientId, '12');
   assert.equal(v.medication.id, '501');
   assert.equal(v.treatmentId, '900');
   assert.equal(v.scheduledAt, '2026-10-18T08:00');
@@ -535,25 +535,25 @@ check('Dose ao vivo: só compara agora com a janela do servidor, nos limites exa
 });
 
 // --- Sessões guardadas no boot -----------------------------------------------------------------------------
-check('Boot: token do idoso vencido apaga a conexão e avisa no perfil do idoso; no demo não confere', () => {
-  const valido = { elderId: '12', token: jwt({ sub: '12', exp: nowSec + 3600 }) };
-  const vencido = { elderId: '12', token: jwt({ sub: '12', exp: nowSec - 1 }) };
+check('Boot: token do paciente vencido apaga a conexão e avisa no perfil do paciente; no demo não confere', () => {
+  const valido = { patientId: '12', token: jwt({ sub: '12', exp: nowSec + 3600 }) };
+  const vencido = { patientId: '12', token: jwt({ sub: '12', exp: nowSec - 1 }) };
   const cuidador = { caregiverId: '1', name: 'A', email: 'a@a', token: jwt({ sub: '1', exp: nowSec + 60 }) };
-  const ok = resolveStoredSessions({ profile: 'IDOSO', caregiver: null, elder: valido, isDemo: false, nowMs: NOW_MS });
-  assert.deepEqual(ok, { caregiver: null, elder: valido, clearCaregiver: false, clearElder: false, flash: null });
-  const venceu = resolveStoredSessions({ profile: 'IDOSO', caregiver: cuidador, elder: vencido, isDemo: false, nowMs: NOW_MS });
-  assert.equal(venceu.elder, null);
-  assert.equal(venceu.clearElder, true);
+  const ok = resolveStoredSessions({ profile: 'PACIENTE', caregiver: null, patient: valido, isDemo: false, nowMs: NOW_MS });
+  assert.deepEqual(ok, { caregiver: null, patient: valido, clearCaregiver: false, clearPatient: false, flash: null });
+  const venceu = resolveStoredSessions({ profile: 'PACIENTE', caregiver: cuidador, patient: vencido, isDemo: false, nowMs: NOW_MS });
+  assert.equal(venceu.patient, null);
+  assert.equal(venceu.clearPatient, true);
   assert.equal(venceu.caregiver, cuidador);
-  assert.equal(venceu.flash, ELDER_EXPIRED_MESSAGE);
-  // Aparelho no perfil do cuidador: apaga a conexão do idoso, sem aviso na tela do cuidador
-  assert.equal(resolveStoredSessions({ profile: 'CUIDADOR', caregiver: cuidador, elder: vencido, isDemo: false, nowMs: NOW_MS }).flash, null);
+  assert.equal(venceu.flash, PATIENT_EXPIRED_MESSAGE);
+  // Aparelho no perfil do cuidador: apaga a conexão do paciente, sem aviso na tela do cuidador
+  assert.equal(resolveStoredSessions({ profile: 'CUIDADOR', caregiver: cuidador, patient: vencido, isDemo: false, nowMs: NOW_MS }).flash, null);
   // Demo: token fictício do mock não é JWT e não pode derrubar a sessão
-  const demo = { elderId: 'e-jose', token: 'mock.jwt.idoso.e-jose' };
-  assert.equal(resolveStoredSessions({ profile: 'IDOSO', caregiver: null, elder: demo, isDemo: true, nowMs: NOW_MS }).elder, demo);
+  const demo = { patientId: 'e-jose', token: 'mock.jwt.paciente.e-jose' };
+  assert.equal(resolveStoredSessions({ profile: 'PACIENTE', caregiver: null, patient: demo, isDemo: true, nowMs: NOW_MS }).patient, demo);
   // Cuidador vencido continua indo ao login
   const cuidadorVencido = { ...cuidador, token: jwt({ sub: '1', exp: nowSec - 1 }) };
-  const r = resolveStoredSessions({ profile: 'CUIDADOR', caregiver: cuidadorVencido, elder: null, isDemo: false, nowMs: NOW_MS });
+  const r = resolveStoredSessions({ profile: 'CUIDADOR', caregiver: cuidadorVencido, patient: null, isDemo: false, nowMs: NOW_MS });
   assert.equal(r.caregiver, null);
   assert.equal(r.flash, SESSION_EXPIRED_MESSAGE);
 });
@@ -561,41 +561,41 @@ check('Boot: token do idoso vencido apaga a conexão e avisa no perfil do idoso;
 // --- Cliente HTTP: dedupe, cache curto e invalidação -------------------------------------------------------
 checkAsync('Leituras iguais em voo viram uma chamada; cache curto; escrita limpa o cache e avisa as telas', async () => {
   const chamadas = fakeFetch([{ status: 200, body: [] }, { status: 204 }, { status: 200, body: [] }]);
-  const [a, b] = await Promise.all([request('GET', '/api/idosos'), request('GET', '/api/idosos')]);
+  const [a, b] = await Promise.all([request('GET', '/api/pacientes'), request('GET', '/api/pacientes')]);
   assert.deepEqual(a, []);
   assert.equal(a, b);
-  await request('GET', '/api/idosos');
+  await request('GET', '/api/pacientes');
   assert.equal(chamadas.length, 1);
   const versao = useQueryBus.getState().version;
   await request('DELETE', '/api/cuidadores/me/fcm-token');
   assert.equal(useQueryBus.getState().version, versao + 1);
-  await request('GET', '/api/idosos');
-  assert.deepEqual(chamadas.map((c) => `${c.method} ${c.path}`), ['GET /api/idosos', 'DELETE /api/cuidadores/me/fcm-token', 'GET /api/idosos']);
+  await request('GET', '/api/pacientes');
+  assert.deepEqual(chamadas.map((c) => `${c.method} ${c.path}`), ['GET /api/pacientes', 'DELETE /api/cuidadores/me/fcm-token', 'GET /api/pacientes']);
 });
 
 checkAsync('Leitura que falha não fica guardada: a próxima tenta de novo', async () => {
   const chamadas = fakeFetch([{ status: 503 }, { status: 200, body: [] }]);
-  await request('GET', '/api/idosos').then(() => assert.fail('deveria falhar'), () => undefined);
-  assert.deepEqual(await request('GET', '/api/idosos'), []);
+  await request('GET', '/api/pacientes').then(() => assert.fail('deveria falhar'), () => undefined);
+  assert.deepEqual(await request('GET', '/api/pacientes'), []);
   assert.equal(chamadas.length, 2);
 });
 
 // --- Doses reais -----------------------------------------------------------------------------------
-checkAsync('Doses: o idoso usa /me/doses; o cuidador, a rota do idoso; "Todos" busca os idosos', async () => {
-  setViewerProvider(() => 'ELDER');
+checkAsync('Doses: o paciente usa /me/doses; o cuidador, a rota do paciente; "Todos" busca os pacientes', async () => {
+  setViewerProvider(() => 'PATIENT');
   let chamadas = fakeFetch([{ status: 200, body: [DOSE_DTO] }]);
-  const doIdoso = await httpDoseService.listForDay('12', '2026-10-18');
-  assert.equal(chamadas[0].path, '/api/idosos/me/doses?data=2026-10-18');
-  assert.equal(doIdoso[0].id, '5000');
+  const doPaciente = await httpDoseService.listForDay('12', '2026-10-18');
+  assert.equal(chamadas[0].path, '/api/pacientes/me/doses?data=2026-10-18');
+  assert.equal(doPaciente[0].id, '5000');
 
   setViewerProvider(() => 'CAREGIVER');
   chamadas = fakeFetch([
     { status: 200, body: [{ id: 12, nome: 'José', dataNascimento: '1945-01-01', telefone: null, cuidadorId: 1 }, { id: 13, nome: 'Ana', dataNascimento: '1945-01-01', telefone: null, cuidadorId: 1 }] },
     { status: 200, body: [{ ...DOSE_DTO, horarioProgramado: '2026-10-18T09:00:00' }] },
-    { status: 200, body: [{ ...DOSE_DTO, id: 6000, idosoId: 13, idosoNome: 'Ana' }] },
+    { status: 200, body: [{ ...DOSE_DTO, id: 6000, pacienteId: 13, pacienteNome: 'Ana' }] },
   ]);
   const todos = await httpDoseService.listForDay('ALL', '2026-10-18');
-  assert.deepEqual(chamadas.map((c) => c.path), ['/api/idosos', '/api/idosos/12/doses?data=2026-10-18', '/api/idosos/13/doses?data=2026-10-18']);
+  assert.deepEqual(chamadas.map((c) => c.path), ['/api/pacientes', '/api/pacientes/12/doses?data=2026-10-18', '/api/pacientes/13/doses?data=2026-10-18']);
   assert.deepEqual(todos.map((d) => d.id), ['6000', '5000']);
 });
 
@@ -605,19 +605,19 @@ checkAsync('Detalhe da dose: busca de novo o dia de onde ela veio; sem origem co
   await httpDoseService.listForDay('12', '2026-10-18');
   const chamadas = fakeFetch([{ status: 200, body: [{ ...DOSE_DTO, statusExibicao: 'ATRASADA' }] }]);
   const atual = await httpDoseService.get('5000');
-  assert.equal(chamadas[0].path, '/api/idosos/12/doses?data=2026-10-18');
+  assert.equal(chamadas[0].path, '/api/pacientes/12/doses?data=2026-10-18');
   assert.equal(atual.status, 'ATRASADA');
   // Com a dica (ex.: payload do push), não precisa ter visto a lista
   const comDica = fakeFetch([{ status: 200, body: [{ ...DOSE_DTO, id: 7000, horarioProgramado: '2026-10-17T08:00:00' }] }]);
-  assert.equal((await httpDoseService.get('7000', { elderId: '12', day: '2026-10-17' })).id, '7000');
-  assert.equal(comDica[0].path, '/api/idosos/12/doses?data=2026-10-17');
+  assert.equal((await httpDoseService.get('7000', { patientId: '12', day: '2026-10-17' })).id, '7000');
+  assert.equal(comDica[0].path, '/api/pacientes/12/doses?data=2026-10-17');
   forgetDoseOrigins();
   const erro = await httpDoseService.get('5000').then(() => null, (e: unknown) => e);
   assert.ok(erro instanceof AppError && erro.status === 404);
 });
 
 checkAsync('Confirmar: PUT /api/doses/{id}/confirmar; 409 DOSE_ENCERRADA chega com código e mensagem clara', async () => {
-  setViewerProvider(() => 'ELDER');
+  setViewerProvider(() => 'PATIENT');
   const chamadas = fakeFetch([
     { status: 200, body: { ...DOSE_DTO, status: 'CONFIRMADA_NO_HORARIO', statusExibicao: 'CONFIRMADA_NO_HORARIO', horaConfirmacao: '2026-10-18T08:01:00', confirmabilidade: 'JA_REGISTRADA' } },
     { status: 409, body: { codigo: 'DOSE_ENCERRADA', mensagem: 'x', campos: [] } },
@@ -687,7 +687,7 @@ check('Formulário de remédio envia só os campos da API (sem quantidade nem ob
     times: [{ time: '20:00' }, { time: '08:00' }],
   };
   assert.deepEqual(Object.keys(valores).sort(), [
-    'bulaUrl', 'dosage', 'elderId', 'endDate', 'name', 'primaryColor', 'shape', 'startDate', 'stock', 'times', 'type', 'weekdays',
+    'bulaUrl', 'dosage', 'endDate', 'name', 'patientId', 'primaryColor', 'shape', 'startDate', 'stock', 'times', 'type', 'weekdays',
   ]);
   const input = toMedicationInput(valores);
   assert.equal(input.shape, undefined);
@@ -747,14 +747,14 @@ checkAsync('Tolerância real: GET e PUT /api/configuracoes/tolerancia; 400 VALID
   assert.deepEqual(chamadas[1].body, { toleranciaMinutos: 45 });
 });
 
-checkAsync('Relatório diário real: GET /api/relatorios/diario com idoso e data; totais, aderência e doses abrem o detalhe', async () => {
+checkAsync('Relatório diário real: GET /api/relatorios/diario com paciente e data; totais, aderência e doses abrem o detalhe', async () => {
   setViewerProvider(() => 'CAREGIVER');
   forgetDoseOrigins();
   const chamadas = fakeFetch([
     {
       status: 200,
       body: {
-        idoso: { id: 12, nome: 'José' },
+        paciente: { id: 12, nome: 'José' },
         data: '2026-10-17',
         totais: { total: 2, confirmadasNoHorario: 1, confirmadasComAtraso: 0, naoTomadas: 1, pendentes: 0, aderenciaPercentual: 50.0 },
         doses: [{ ...DOSE_DTO, horarioProgramado: '2026-10-17T08:00:00' }],
@@ -763,13 +763,13 @@ checkAsync('Relatório diário real: GET /api/relatorios/diario com idoso e data
     { status: 200, body: [{ ...DOSE_DTO, horarioProgramado: '2026-10-17T08:00:00' }] },
   ]);
   const r = await httpReportService.getDaily('12', '2026-10-17');
-  assert.equal(chamadas[0].path, '/api/relatorios/diario?idosoId=12&data=2026-10-17');
-  assert.deepEqual(r.elder, { id: '12', name: 'José' });
+  assert.equal(chamadas[0].path, '/api/relatorios/diario?pacienteId=12&data=2026-10-17');
+  assert.deepEqual(r.patient, { id: '12', name: 'José' });
   assert.deepEqual(r.totals, { total: 2, onTime: 1, late: 0, missed: 1, pending: 0, adherencePercent: 50 });
   assert.equal(r.doses[0].id, '5000');
   // O detalhe da dose do relatório é achado no dia dela (17), não no de hoje
   await httpDoseService.get('5000');
-  assert.equal(chamadas[1].path, '/api/idosos/12/doses?data=2026-10-17');
+  assert.equal(chamadas[1].path, '/api/pacientes/12/doses?data=2026-10-17');
 });
 
 // --- Push no app e build Android -------------------------------------------------------------------
@@ -913,13 +913,13 @@ check('Build Android: google-services.json só por variável de ambiente e nunca
 
 // --- Push no app: payload, registro do token e alerta simulado -------------------------------------
 check('Payload do push vira a dose a abrir; qualquer coisa fora do contrato é ignorada', () => {
-  const ok = { tipo: 'DOSE_NAO_CONFIRMADA', doseId: '5000', idosoId: '12', data: '2026-10-18' };
-  assert.deepEqual(parseDosePayload(ok), { doseId: '5000', elderId: '12', day: '2026-10-18' });
-  assert.deepEqual(parseDosePayload({ ...ok, doseId: 5000, idosoId: 12 }), { doseId: '5000', elderId: '12', day: '2026-10-18' });
+  const ok = { tipo: 'DOSE_NAO_CONFIRMADA', doseId: '5000', pacienteId: '12', data: '2026-10-18' };
+  assert.deepEqual(parseDosePayload(ok), { doseId: '5000', patientId: '12', day: '2026-10-18' });
+  assert.deepEqual(parseDosePayload({ ...ok, doseId: 5000, pacienteId: 12 }), { doseId: '5000', patientId: '12', day: '2026-10-18' });
   for (const ruim of [
     null, undefined, 'texto', [], {},
     { ...ok, tipo: 'MENSAGEM' }, { ...ok, tipo: undefined }, { ...ok, doseId: 'abc' }, { ...ok, doseId: '' },
-    { ...ok, idosoId: '-1' }, { ...ok, data: '18/10/2026' }, { ...ok, data: undefined },
+    { ...ok, pacienteId: '-1' }, { ...ok, data: '18/10/2026' }, { ...ok, data: undefined },
   ]) {
     assert.equal(parseDosePayload(ruim), null, JSON.stringify(ruim));
   }
@@ -1066,8 +1066,8 @@ check('Caminho do histórico só com os filtros informados; carregar mais e jun�
   const base = { from: '2026-10-01', to: '2026-10-18', page: 0, size: 20 };
   assert.equal(historyPath('/api/historico', { ...base, status: 'ALL' }), '/api/historico?de=2026-10-01&ate=2026-10-18&page=0&size=20');
   assert.equal(
-    historyPath('/api/historico', { ...base, elderApiId: 12, medicationApiId: 501, status: 'NAO_TOMADA', page: 2 }),
-    '/api/historico?idosoId=12&medicamentoId=501&de=2026-10-01&ate=2026-10-18&status=NAO_TOMADA&page=2&size=20',
+    historyPath('/api/historico', { ...base, patientApiId: 12, medicationApiId: 501, status: 'NAO_TOMADA', page: 2 }),
+    '/api/historico?pacienteId=12&medicamentoId=501&de=2026-10-01&ate=2026-10-18&status=NAO_TOMADA&page=2&size=20',
   );
   assert.equal(hasMoreHistory({ page: 0, totalPages: 2 }), true);
   assert.equal(hasMoreHistory({ page: 1, totalPages: 2 }), false);
@@ -1085,8 +1085,8 @@ checkAsync('Histórico real: GET /api/historico com filtros e página; 400 VALID
   const chamadas = fakeFetch([
     { status: 200, body: { conteudo: [{ ...DOSE_DTO, cor: '#FF0000', status: 'NAO_TOMADA', statusExibicao: 'NAO_TOMADA' }], pagina: 1, tamanho: 20, totalElementos: 21, totalPaginas: 2 } },
   ]);
-  const pagina = await httpDoseService.listHistory({ elder: '12', medicationId: '501', from: '2026-10-01', to: '2026-10-18', status: 'NAO_TOMADA', page: 1 });
-  assert.equal(chamadas[0].path, '/api/historico?idosoId=12&medicamentoId=501&de=2026-10-01&ate=2026-10-18&status=NAO_TOMADA&page=1&size=20');
+  const pagina = await httpDoseService.listHistory({ patient: '12', medicationId: '501', from: '2026-10-01', to: '2026-10-18', status: 'NAO_TOMADA', page: 1 });
+  assert.equal(chamadas[0].path, '/api/historico?pacienteId=12&medicamentoId=501&de=2026-10-01&ate=2026-10-18&status=NAO_TOMADA&page=1&size=20');
   assert.deepEqual({ page: pagina.page, size: pagina.size, total: pagina.totalElements, pages: pagina.totalPages }, { page: 1, size: 20, total: 21, pages: 2 });
   assert.equal(pagina.items[0].status, 'NAO_TOMADA');
   assert.equal(pagina.items[0].medication.primaryColor, '#FF0000');
@@ -1096,7 +1096,7 @@ checkAsync('Histórico real: GET /api/historico com filtros e página; 400 VALID
   const invertido = fakeFetch([
     { status: 400, body: { codigo: 'VALIDACAO', mensagem: 'A data de início não pode ser posterior à data de fim', campos: [{ campo: 'de', mensagem: 'x' }] } },
   ]);
-  const erro = await httpDoseService.listHistory({ elder: 'ALL', from: '2026-10-18', to: '2026-10-01', status: 'ALL' }).then(() => null, (e: unknown) => e);
+  const erro = await httpDoseService.listHistory({ patient: 'ALL', from: '2026-10-18', to: '2026-10-01', status: 'ALL' }).then(() => null, (e: unknown) => e);
   assert.ok(erro instanceof AppError && erro.status === 400 && erro.code === 'VALIDACAO');
   assert.match((erro as AppError).message, /início não pode ser posterior/);
   assert.equal(invertido[0].path, '/api/historico?de=2026-10-18&ate=2026-10-01&page=0&size=20');
@@ -1149,12 +1149,12 @@ check('Texto claro só no perfil development; release com usesCleartextTraffic=f
 });
 
 checkAsync('PIN: só hash com sal, 5 erros bloqueiam (mesmo com o PIN certo) e o PIN antigo em texto é convertido', async () => {
-  const dados = new Map<string, string>([['medcare.elder.pin', '2580']]);
+  const dados = new Map<string, string>([[PIN_KEYS.legacyPlain, '2580']]);
   const store = { get: async (k: string) => dados.get(k) ?? null, set: async (k: string, v: string) => void dados.set(k, v), remove: async (k: string) => void dados.delete(k) };
   const relogio = { agora: 0 };
   const guard = createPinGuard({ store, randomBytes: (n) => new Uint8Array(randomBytes(n)), monotonicNow: () => relogio.agora, iterations: 10 });
   assert.deepEqual(await guard.verify('2580'), { result: 'OK' });
-  assert.equal(dados.has('medcare.elder.pin'), false);
+  assert.equal(dados.has(PIN_KEYS.legacyPlain), false);
   assert.ok(![...dados.values()].some((v) => v.includes('2580')));
   for (let i = 0; i < 4; i += 1) await guard.verify('0000');
   assert.deepEqual(await guard.verify('0000'), { result: 'LOCKED', remainingMs: 30_000 });
@@ -1165,34 +1165,34 @@ checkAsync('PIN: só hash com sal, 5 erros bloqueiam (mesmo com o PIN certo) e o
 });
 
 // --- Mensagens (UC-010) ----------------------------------------------------------------------------------------------
-const MSG = (id: number, remetente: 'CUIDADOR' | 'IDOSO', criadaEm: string, lidaEm: string | null = null) => ({ id, remetente, conteudo: `m${id}`, criadaEm, lidaEm });
+const MSG = (id: number, remetente: 'CUIDADOR' | 'PACIENTE', criadaEm: string, lidaEm: string | null = null) => ({ id, remetente, conteudo: `m${id}`, criadaEm, lidaEm });
 
 checkAsync('Mensagens pelo cliente HTTP: conversas, conversa paginada, envio, leitura e contador', async () => {
   setViewerProvider(() => 'CAREGIVER');
   const chamadas = fakeFetch([
-    { status: 200, body: [{ idosoId: 12, idosoNome: 'Maria', ultimaMensagem: { conteudo: 'Oi', remetente: 'IDOSO', criadaEm: '2026-10-20T08:00:00' }, naoLidas: 3 }] },
-    { status: 200, body: { conteudo: [MSG(2, 'IDOSO', '2026-10-20T08:01:00'), MSG(1, 'CUIDADOR', '2026-10-20T08:00:00', '2026-10-20T08:02:00')], pagina: 0, tamanho: 20, totalElementos: 22, totalPaginas: 2 } },
+    { status: 200, body: [{ pacienteId: 12, pacienteNome: 'Maria', ultimaMensagem: { conteudo: 'Oi', remetente: 'PACIENTE', criadaEm: '2026-10-20T08:00:00' }, naoLidas: 3 }] },
+    { status: 200, body: { conteudo: [MSG(2, 'PACIENTE', '2026-10-20T08:01:00'), MSG(1, 'CUIDADOR', '2026-10-20T08:00:00', '2026-10-20T08:02:00')], pagina: 0, tamanho: 20, totalElementos: 22, totalPaginas: 2 } },
     { status: 201, body: MSG(3, 'CUIDADOR', '2026-10-20T08:03:00') },
     { status: 200, body: { marcadas: 1 } },
     { status: 200, body: { naoLidas: 4 } },
   ]);
   const conversas = await httpMessageService.listConversations();
-  assert.deepEqual([conversas[0].elder.id, conversas[0].unread, conversas[0].lastMessage?.text], ['12', 3, 'Oi']);
+  assert.deepEqual([conversas[0].patient.id, conversas[0].unread, conversas[0].lastMessage?.text], ['12', 3, 'Oi']);
   const pagina = await httpMessageService.listThread('12');
-  assert.deepEqual(pagina.items.map((m) => [m.id, m.from, m.read]), [['2', 'IDOSO', false], ['1', 'CUIDADOR', true]]);
+  assert.deepEqual(pagina.items.map((m) => [m.id, m.from, m.read]), [['2', 'PACIENTE', false], ['1', 'CUIDADOR', true]]);
   assert.equal(pagina.totalPages, 2);
   const enviada = await httpMessageService.send('12', 'CUIDADOR', 'Bom dia');
-  assert.deepEqual([enviada.id, enviada.elderId, enviada.from], ['3', '12', 'CUIDADOR']);
+  assert.deepEqual([enviada.id, enviada.patientId, enviada.from], ['3', '12', 'CUIDADOR']);
   assert.equal(await httpMessageService.markRead('12', 'CUIDADOR'), 1);
   assert.equal(await httpMessageService.unreadCount('ALL', 'CUIDADOR'), 4);
   assert.deepEqual(chamadas.map((c) => `${c.method} ${c.path}`), [
     'GET /api/mensagens/conversas',
-    'GET /api/mensagens?idosoId=12&page=0&size=20',
+    'GET /api/mensagens?pacienteId=12&page=0&size=20',
     'POST /api/mensagens',
-    'PUT /api/mensagens/lidas?idosoId=12',
+    'PUT /api/mensagens/lidas?pacienteId=12',
     'GET /api/mensagens/nao-lidas',
   ]);
-  assert.deepEqual(chamadas[2].body, { idosoId: 12, conteudo: 'Bom dia' });
+  assert.deepEqual(chamadas[2].body, { pacienteId: 12, conteudo: 'Bom dia' });
   setViewerProvider(() => null);
 });
 
@@ -1205,7 +1205,7 @@ checkAsync('Mensagens: erros da API chegam com o código (VALIDACAO no campo, AC
   ];
   for (const [status, codigo, extra] of casos) {
     fakeFetch([{ status, body: { codigo, mensagem: 'x', campos: [], ...extra } }]);
-    const erro = await httpMessageService.send('12', 'IDOSO', 'Oi').then(() => null, (e: unknown) => e);
+    const erro = await httpMessageService.send('12', 'PACIENTE', 'Oi').then(() => null, (e: unknown) => e);
     assert.ok(erro instanceof AppError && erro.status === status && erro.code === codigo, codigo);
     if (codigo === 'VALIDACAO') assert.equal(messageSendError(erro), 'A mensagem não pode ser vazia');
   }
@@ -1218,7 +1218,7 @@ check('Mensagens: atualização automática só na tela de mensagens; contadores
   const abas = ler('app/navigation/CaregiverTabs.tsx');
   assert.match(abas, /useRefreshOnAppActive\(unread\.refresh\)/);
   assert.doesNotMatch(abas, /silentKey/);
-  assert.match(ler('features/elder/ElderHomeScreen.tsx'), /useRefreshOnFocus\(unread\.refresh\)/);
+  assert.match(ler('features/patient/PatientHomeScreen.tsx'), /useRefreshOnFocus\(unread\.refresh\)/);
   assert.match(ler('adapters/http/index.ts'), /messages: httpMessageService/);
   assert.match(ler('adapters/mock/demo.ts'), /messages: mockMessageService/);
   assert.equal(MESSAGE_POLL_MS, 10_000);

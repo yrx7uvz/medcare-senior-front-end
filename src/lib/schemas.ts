@@ -25,7 +25,7 @@ export const signUpSchema = z
   .refine((v) => v.password === v.confirmPassword, { path: ['confirmPassword'], message: 'As senhas não conferem' });
 export type SignUpValues = z.infer<typeof signUpSchema>;
 
-export const elderSchema = z.object({
+export const patientSchema = z.object({
   name: z.string().trim().min(3, 'Informe o nome completo'),
   birthDate: z
     .string()
@@ -36,7 +36,7 @@ export const elderSchema = z.object({
     }, 'Confira o ano de nascimento'),
   phone: z.string().refine((v) => v === '' || v.replace(/\D/g, '').length >= 10, 'Telefone incompleto'),
 });
-export type ElderValues = z.infer<typeof elderSchema>;
+export type PatientValues = z.infer<typeof patientSchema>;
 
 /**
  * Formulário de remédio + tratamento: só os campos que a API guarda (MedicamentoRequestDTO e TratamentoRequestDTO),
@@ -44,7 +44,7 @@ export type ElderValues = z.infer<typeof elderSchema>;
  */
 export const medicationFormSchema = z
   .object({
-    elderId: z.string().min(1, 'Escolha o paciente'),
+    patientId: z.string().min(1, 'Escolha o paciente'),
     name: z.string().trim().min(1, 'Informe o nome do remédio').max(255, 'Até 255 caracteres'),
     dosage: z.string().trim().min(1, 'Informe a dosagem').max(100, 'Até 100 caracteres'),
     type: z.enum(MEDICATION_TYPE_VALUES, { errorMap: () => ({ message: 'Escolha o tipo' }) }),

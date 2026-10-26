@@ -19,7 +19,7 @@ interface Props {
  * A linha inteira é o alvo do toque (mínimo de 48 dp) e o leitor de tela anuncia como "chave".
  */
 export function AppSwitch({ label, value, onValueChange, description, icon, disabled }: Props) {
-  const { colors, elder } = useTheme();
+  const { colors, patient } = useTheme();
   const s = colors.switch;
   const state = value ? 'Ligado' : 'Desligado';
   return (
@@ -34,7 +34,7 @@ export function AppSwitch({ label, value, onValueChange, description, icon, disa
     >
       {icon}
       <View style={styles.texts}>
-        <AppText variant={elder ? 'elderBody' : 'bodyStrong'}>{label}</AppText>
+        <AppText variant={patient ? 'patientBody' : 'bodyStrong'}>{label}</AppText>
         {description ? (
           <AppText variant="caption" muted>
             {description}

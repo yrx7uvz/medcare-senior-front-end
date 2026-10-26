@@ -1,20 +1,24 @@
 import { describe, expect, it } from '@jest/globals';
 import { checkTheme, contrastRatio } from '../src/lib/contrast';
 import { DEFAULT_THEME_PREFS, parseThemePrefs, resolveThemeMode, serializeThemePrefs } from '../src/lib/themePrefs';
-import { darkColors, elderColors, elderDarkColors, elderHighContrastColors, lightColors, type ThemeColors } from '../src/theme/colors';
+import { darkColors, patientColors, patientDarkColors, patientHighContrastColors, lightColors, type ThemeColors } from '../src/theme/colors';
 
 describe('preferências de aparência guardadas', () => {
   it('ida e volta do que fica no aparelho', () => {
-    const prefs = { mode: 'dark' as const, elderHighContrast: true };
+    const prefs = { mode: 'dark' as const, patientHighContrast: true };
     expect(parseThemePrefs(serializeThemePrefs(prefs))).toEqual(prefs);
-    expect(parseThemePrefs(serializeThemePrefs({ mode: null, elderHighContrast: false }))).toEqual(DEFAULT_THEME_PREFS);
+    expect(parseThemePrefs(serializeThemePrefs({ mode: null, patientHighContrast: false }))).toEqual(DEFAULT_THEME_PREFS);
   });
 
   it('sem nada guardado, ilegível ou com valores estranhos: o padrão (tema do sistema, sem alto contraste)', () => {
     expect(parseThemePrefs(null)).toEqual(DEFAULT_THEME_PREFS);
     expect(parseThemePrefs('{quebrado')).toEqual(DEFAULT_THEME_PREFS);
     expect(parseThemePrefs('"texto"')).toEqual(DEFAULT_THEME_PREFS);
-    expect(parseThemePrefs(JSON.stringify({ mode: 'roxo', elderHighContrast: 'sim' }))).toEqual(DEFAULT_THEME_PREFS);
+    expect(parseThemePrefs(JSON.stringify({ mode: 'roxo', patientHighContrast: 'sim' }))).toEqual(DEFAULT_THEME_PREFS);
+  });
+
+  it('lê o alto contraste gravado com o nome antigo (elderHighContrast) por versões anteriores', () => {
+    expect(parseThemePrefs(JSON.stringify({ mode: 'light', elderHighContrast: true }))).toEqual({ mode: 'light', patientHighContrast: true });
   });
 
   it('a escolha vale sobre o sistema; sem escolha, segue o sistema', () => {
@@ -30,9 +34,9 @@ describe('paleta e seletores', () => {
   it.each([
     ['claro', lightColors, false],
     ['escuro', darkColors, false],
-    ['idoso claro', elderColors, false],
-    ['idoso escuro', elderDarkColors, false],
-    ['idoso alto contraste', elderHighContrastColors, true],
+    ['paciente claro', patientColors, false],
+    ['paciente escuro', patientDarkColors, false],
+    ['paciente alto contraste', patientHighContrastColors, true],
   ] as [string, ThemeColors, boolean][])('tema %s: todos os pares no mínimo', (_nome, cores, alto) => {
     expect(checkTheme(cores, alto).filter((r) => !r.ok)).toEqual([]);
   });
@@ -47,9 +51,9 @@ describe('paleta e seletores', () => {
   });
 
   it('alto contraste sem o amarelo antigo na cor primária e com 7:1 nos textos principais', () => {
-    expect(elderHighContrastColors.primary).not.toBe('#FFE14D');
-    expect(contrastRatio(elderHighContrastColors.text, elderHighContrastColors.background)).toBeGreaterThanOrEqual(7);
-    expect(contrastRatio(elderHighContrastColors.primary, elderHighContrastColors.background)).toBeGreaterThanOrEqual(7);
-    expect(contrastRatio(elderHighContrastColors.onPrimary, elderHighContrastColors.primary)).toBeGreaterThanOrEqual(7);
+    expect(patientHighContrastColors.primary).not.toBe('#FFE14D');
+    expect(contrastRatio(patientHighContrastColors.text, patientHighContrastColors.background)).toBeGreaterThanOrEqual(7);
+    expect(contrastRatio(patientHighContrastColors.primary, patientHighContrastColors.background)).toBeGreaterThanOrEqual(7);
+    expect(contrastRatio(patientHighContrastColors.onPrimary, patientHighContrastColors.primary)).toBeGreaterThanOrEqual(7);
   });
 });

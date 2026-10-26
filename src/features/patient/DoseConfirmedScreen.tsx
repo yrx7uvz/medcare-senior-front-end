@@ -3,7 +3,7 @@ import { AlarmClockCheck, CheckCircle2, Home } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Animated, StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
-import { ElderScreen } from '../../components/layout/ElderScreen';
+import { PatientScreen } from '../../components/layout/PatientScreen';
 import { AppText, BigActionButton, Card, ErrorState, LoadingSkeleton, PillVisual } from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
@@ -15,15 +15,15 @@ import { spacing, useTheme } from '../../theme';
 import { pickNextDose } from './nextDose';
 
 /** T12 — Dose confirmada, com feedback tátil e anúncio por voz. */
-export function DoseConfirmedScreen({ route, navigation }: RootScreenProps<'ElderDoseConfirmed'>) {
+export function DoseConfirmedScreen({ route, navigation }: RootScreenProps<'PatientDoseConfirmed'>) {
   const { colors } = useTheme();
-  const elderId = useAppStore((s) => s.elderSession?.elderId ?? '');
+  const patientId = useAppStore((s) => s.patientSession?.patientId ?? '');
   const now = useNow(60_000);
   const { doseId } = route.params;
   const dose = useQuery(['dose', doseId], () => services.doses.get(doseId));
   const today = appTodayKey(now);
-  const day = useQuery(['elder-day', elderId, today], () => services.doses.listForDay(elderId, today));
-  const profile = useQuery(['elder-profile', elderId], () => services.elders.getProfile(elderId));
+  const day = useQuery(['patient-day', patientId, today], () => services.doses.listForDay(patientId, today));
+  const profile = useQuery(['patient-profile', patientId], () => services.patients.getProfile(patientId));
   const [scale] = useState(() => new Animated.Value(0.6));
   const d = dose.data;
   const late = d?.status === 'CONFIRMADA_COM_ATRASO';
@@ -42,16 +42,16 @@ export function DoseConfirmedScreen({ route, navigation }: RootScreenProps<'Elde
 
   if (dose.loading) {
     return (
-      <ElderScreen>
-        <LoadingSkeleton variant="elder" rows={1} />
-      </ElderScreen>
+      <PatientScreen>
+        <LoadingSkeleton variant="patient" rows={1} />
+      </PatientScreen>
     );
   }
   if (dose.error || !d) {
     return (
-      <ElderScreen>
+      <PatientScreen>
         <ErrorState error={dose.error} onRetry={dose.reload} />
-      </ElderScreen>
+      </PatientScreen>
     );
   }
 
@@ -60,42 +60,42 @@ export function DoseConfirmedScreen({ route, navigation }: RootScreenProps<'Elde
   const Icon = late ? AlarmClockCheck : CheckCircle2;
 
   return (
-    <ElderScreen
+    <PatientScreen
       footer={<BigActionButton title="Voltar à tela inicial" icon={Home} variant="primary" onPress={() => navigation.popToTop()} />}
     >
       <View style={styles.center}>
         <Animated.View style={[styles.circle, { backgroundColor: accent.bg, borderColor: accent.accent, transform: [{ scale }] }]}>
           <Icon color={accent.fg} size={88} strokeWidth={2.4} />
         </Animated.View>
-        <AppText variant="elderDisplay" align="center" accessibilityRole="header">
+        <AppText variant="patientDisplay" align="center" accessibilityRole="header">
           {late ? 'Confirmado com atraso' : 'Remédio confirmado!'}
         </AppText>
-        <AppText variant="elderStrong" align="center">
+        <AppText variant="patientStrong" align="center">
           {d.medication.name} {d.medication.dosage} confirmado às {d.confirmedAt ? formatTime(d.confirmedAt) : '--:--'}.
         </AppText>
-        <AppText variant="elderBody" align="center" muted>
+        <AppText variant="patientBody" align="center" muted>
           {caregiver} já recebeu a confirmação.
         </AppText>
       </View>
 
       {next ? (
         <Card style={styles.next}>
-          <AppText variant="elderStrong" muted>Próxima dose hoje</AppText>
+          <AppText variant="patientStrong" muted>Próxima dose hoje</AppText>
           <View style={styles.row}>
             <PillVisual appearance={next.medication} size="lg" name={next.medication.name} />
             <View style={styles.flex}>
-              <AppText variant="elderTitle">{next.medication.name}</AppText>
-              <AppText variant="elderBody">{next.medication.dosage} • {next.doseQuantity}</AppText>
-              <AppText variant="elderDisplay">{formatTime(next.scheduledAt)}</AppText>
+              <AppText variant="patientTitle">{next.medication.name}</AppText>
+              <AppText variant="patientBody">{next.medication.dosage} • {next.doseQuantity}</AppText>
+              <AppText variant="patientDisplay">{formatTime(next.scheduledAt)}</AppText>
             </View>
           </View>
         </Card>
       ) : (
         <Card style={styles.next}>
-          <AppText variant="elderStrong" align="center">Você não tem mais remédios hoje.</AppText>
+          <AppText variant="patientStrong" align="center">Você não tem mais remédios hoje.</AppText>
         </Card>
       )}
-    </ElderScreen>
+    </PatientScreen>
   );
 }
 

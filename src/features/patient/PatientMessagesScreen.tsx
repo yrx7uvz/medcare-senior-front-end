@@ -1,6 +1,6 @@
 import { KeyboardAvoidingView, StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
-import { ElderScreen } from '../../components/layout/ElderScreen';
+import { PatientScreen } from '../../components/layout/PatientScreen';
 import { AppText, ChatThread, ErrorState, LoadingSkeleton } from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
@@ -13,23 +13,23 @@ import { spacing } from '../../theme';
 const QUICK_REPLIES = ['Já tomei, agradeço', 'Estou bem', 'Pode me ligar?'];
 
 /**
- * T13 — Mensagens do idoso (UC-010): só a conversa dele, bolhas e letra grandes, botão de enviar de 64 dp e respostas
+ * T13 — Mensagens do paciente (UC-010): só a conversa dele, bolhas e letra grandes, botão de enviar de 64 dp e respostas
  * rápidas. Atualiza sozinha só enquanto esta tela está visível.
  */
-export function ElderMessagesScreen(_: RootScreenProps<'ElderMessages'>) {
-  const elderId = useAppStore((s) => s.elderSession?.elderId ?? '');
+export function PatientMessagesScreen(_: RootScreenProps<'PatientMessages'>) {
+  const patientId = useAppStore((s) => s.patientSession?.patientId ?? '');
   const now = useNow();
-  const profile = useQuery(['elder-profile', elderId], () => services.elders.getProfile(elderId));
-  const thread = useMessageThread(elderId, 'IDOSO');
+  const profile = useQuery(['patient-profile', patientId], () => services.patients.getProfile(patientId));
+  const thread = useMessageThread(patientId, 'PACIENTE');
   const caregiver = profile.data?.caregiverFirstName ?? 'Cuidador';
 
   return (
-    <ElderScreen back scroll={false}>
+    <PatientScreen back scroll={false}>
       <View style={styles.head}>
-        <AppText variant="elderDisplay" accessibilityRole="header">Mensagens de {caregiver}</AppText>
+        <AppText variant="patientDisplay" accessibilityRole="header">Mensagens de {caregiver}</AppText>
       </View>
       {thread.loading ? (
-        <View style={styles.pad}><LoadingSkeleton variant="elder" rows={2} /></View>
+        <View style={styles.pad}><LoadingSkeleton variant="patient" rows={2} /></View>
       ) : thread.error ? (
         <ErrorState error={thread.error} onRetry={thread.reload} />
       ) : (
@@ -37,7 +37,7 @@ export function ElderMessagesScreen(_: RootScreenProps<'ElderMessages'>) {
           <ChatThread
             large
             messages={thread.messages}
-            viewer="IDOSO"
+            viewer="PACIENTE"
             otherName={caregiver}
             todayKey={appTodayKey(now)}
             sending={thread.sending}
@@ -51,7 +51,7 @@ export function ElderMessagesScreen(_: RootScreenProps<'ElderMessages'>) {
           />
         </KeyboardAvoidingView>
       )}
-    </ElderScreen>
+    </PatientScreen>
   );
 }
 

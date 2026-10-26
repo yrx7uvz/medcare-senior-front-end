@@ -8,7 +8,7 @@ function Block({ width, height, round }: { width: number | `${number}%`; height:
 }
 
 /** Skeleton com pulso suave (desligado se o sistema pedir menos movimento). */
-export function LoadingSkeleton({ variant = 'list', rows = 4 }: { variant?: 'list' | 'dashboard' | 'elder'; rows?: number }) {
+export function LoadingSkeleton({ variant = 'list', rows = 4 }: { variant?: 'list' | 'dashboard' | 'patient'; rows?: number }) {
   const { colors } = useTheme();
   const [opacity] = useState(() => new Animated.Value(1));
 
@@ -40,11 +40,11 @@ export function LoadingSkeleton({ variant = 'list', rows = 4 }: { variant?: 'lis
         </View>
       ) : null}
       {Array.from({ length: rows }, (_, i) => (
-        <View key={i} style={[styles.row, { backgroundColor: colors.surface, minHeight: variant === 'elder' ? 96 : 76 }]}>
-          <Block width={variant === 'elder' ? 64 : 44} height={variant === 'elder' ? 64 : 44} />
+        <View key={i} style={[styles.row, { backgroundColor: colors.surface, minHeight: variant === 'patient' ? 96 : 76 }]}>
+          <Block width={variant === 'patient' ? 64 : 44} height={variant === 'patient' ? 64 : 44} />
           <View style={styles.lines}>
-            <Block width="60%" height={variant === 'elder' ? 20 : 14} />
-            <Block width="40%" height={variant === 'elder' ? 16 : 10} />
+            <Block width="60%" height={variant === 'patient' ? 20 : 14} />
+            <Block width="40%" height={variant === 'patient' ? 16 : 10} />
           </View>
           <Block width={64} height={22} round />
         </View>

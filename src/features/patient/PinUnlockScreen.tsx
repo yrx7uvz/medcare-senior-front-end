@@ -2,23 +2,23 @@ import { HelpCircle, Lock } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
-import { ElderScreen } from '../../components/layout/ElderScreen';
+import { PatientScreen } from '../../components/layout/PatientScreen';
 import { AppText, BigActionButton, ConfirmDialog, DigitBoxes, PinPad } from '../../components/ui';
 import { useAppStore } from '../../store/appStore';
 import { formatLockRemaining } from '../../lib/pinCore';
-import { elderDeviceStorage } from '../../lib/secureStorage';
+import { patientDeviceStorage } from '../../lib/secureStorage';
 import { radius, spacing, useTheme } from '../../theme';
 
 const monotonicNow = () => globalThis.performance.now();
 
 /**
- * PIN pedido a cada abertura do app do idoso. Depois de 5 erros seguidos o teclado fica bloqueado por um tempo
+ * PIN pedido a cada abertura do app do paciente. Depois de 5 erros seguidos o teclado fica bloqueado por um tempo
  * crescente (30 s, 2 min, 10 min), com a contagem na tela; o bloqueio continua se o app for fechado.
  */
-export function PinUnlockScreen(_: RootScreenProps<'ElderPinUnlock'>) {
+export function PinUnlockScreen(_: RootScreenProps<'PatientPinUnlock'>) {
   const { colors } = useTheme();
-  const setUnlocked = useAppStore((s) => s.setElderUnlocked);
-  const setElderSession = useAppStore((s) => s.setElderSession);
+  const setUnlocked = useAppStore((s) => s.setPatientUnlocked);
+  const setPatientSession = useAppStore((s) => s.setPatientSession);
   const [pin, setPin] = useState('');
   const [wrong, setWrong] = useState<number | null>(null);
   const [checking, setChecking] = useState(false);
@@ -35,7 +35,7 @@ export function PinUnlockScreen(_: RootScreenProps<'ElderPinUnlock'>) {
   };
 
   useEffect(() => {
-    elderDeviceStorage
+    patientDeviceStorage
       .pinLockRemainingMs()
       .then((ms) => {
         if (ms > 0) startLock(ms);
@@ -43,11 +43,11 @@ export function PinUnlockScreen(_: RootScreenProps<'ElderPinUnlock'>) {
       .catch(() => setStorageError('Não foi possível verificar o PIN neste celular.'));
     // Guarda quanto falta do bloqueio ao ir para o segundo plano e ao sair da tela
     const sub = AppState.addEventListener('change', (state) => {
-      if (state !== 'active') void elderDeviceStorage.persistPinAttempts().catch(() => undefined);
+      if (state !== 'active') void patientDeviceStorage.persistPinAttempts().catch(() => undefined);
     });
     return () => {
       sub.remove();
-      void elderDeviceStorage.persistPinAttempts().catch(() => undefined);
+      void patientDeviceStorage.persistPinAttempts().catch(() => undefined);
     };
   }, []);
 
@@ -68,7 +68,7 @@ export function PinUnlockScreen(_: RootScreenProps<'ElderPinUnlock'>) {
     if (pin.length !== 4) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- conferência do PIN dirigida pela digitação (sistema externo: SecureStore); regra do React Compiler, que o projeto não usa
     setChecking(true);
-    elderDeviceStorage
+    patientDeviceStorage
       .checkPin(pin)
       .then((r) => {
         if (r.result === 'OK') setUnlocked(true);
@@ -88,18 +88,18 @@ export function PinUnlockScreen(_: RootScreenProps<'ElderPinUnlock'>) {
   const locked = lockedUntil !== null;
 
   return (
-    <ElderScreen>
+    <PatientScreen>
       <View style={styles.head}>
-        <AppText variant="elderDisplay" accessibilityRole="header">Digite seu PIN</AppText>
-        <AppText variant="elderBody" muted>Os 4 números que você criou.</AppText>
+        <AppText variant="patientDisplay" accessibilityRole="header">Digite seu PIN</AppText>
+        <AppText variant="patientBody" muted>Os 4 números que você criou.</AppText>
       </View>
       <DigitBoxes value={pin} length={4} masked error={wrong !== null} />
       {checking ? (
-        <AppText variant="elderBody" muted align="center" accessibilityLiveRegion="polite">Conferindo...</AppText>
+        <AppText variant="patientBody" muted align="center" accessibilityLiveRegion="polite">Conferindo...</AppText>
       ) : null}
       {wrong !== null && !locked ? (
         <View style={[styles.box, { backgroundColor: colors.dangerSoft }]} accessibilityRole="alert">
-          <AppText variant="elderBody" color={colors.danger} align="center">
+          <AppText variant="patientBody" color={colors.danger} align="center">
             PIN incorreto. {wrong === 1 ? 'Mais 1 tentativa' : `Mais ${wrong} tentativas`} antes de o teclado ficar bloqueado por um tempo.
           </AppText>
         </View>
@@ -107,14 +107,14 @@ export function PinUnlockScreen(_: RootScreenProps<'ElderPinUnlock'>) {
       {locked ? (
         <View style={[styles.box, styles.row, { backgroundColor: colors.dangerSoft }]} accessibilityRole="alert" accessibilityLiveRegion="polite">
           <Lock color={colors.danger} size={28} />
-          <AppText variant="elderBody" color={colors.danger} style={styles.flex}>
+          <AppText variant="patientBody" color={colors.danger} style={styles.flex}>
             Muitas tentativas erradas. Tente de novo em {formatLockRemaining(remainingMs)}.
           </AppText>
         </View>
       ) : null}
       {storageError ? (
         <View style={[styles.box, { backgroundColor: colors.dangerSoft }]} accessibilityRole="alert">
-          <AppText variant="elderBody" color={colors.danger} align="center">{storageError}</AppText>
+          <AppText variant="patientBody" color={colors.danger} align="center">{storageError}</AppText>
         </View>
       ) : null}
       {storageError ? <BigActionButton title="Tentar novamente" variant="primary" onPress={() => setStorageError(null)} /> : null}
@@ -135,17 +135,17 @@ export function PinUnlockScreen(_: RootScreenProps<'ElderPinUnlock'>) {
         onCancel={() => setForgot(false)}
         onConfirm={async () => {
           try {
-            await elderDeviceStorage.clear();
+            await patientDeviceStorage.clear();
           } catch {
             setForgot(false);
             setStorageError('Não foi possível desconectar este celular.');
             return;
           }
           setForgot(false);
-          setElderSession(null);
+          setPatientSession(null);
         }}
       />
-    </ElderScreen>
+    </PatientScreen>
   );
 }
 

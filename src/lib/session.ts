@@ -1,18 +1,18 @@
 import { forgetDoseOrigins } from '../adapters/http/HttpDoseService';
-import { forgetLinkCodes } from '../adapters/http/HttpElderService';
+import { forgetLinkCodes } from '../adapters/http/HttpPatientService';
 import { clearHttpCache, setTokenProvider, setUnauthorizedHandler, setViewerProvider } from '../adapters/http/httpClient';
 import { IS_DEMO } from '../config/env';
 import { useAppStore, type ViewAs } from '../store/appStore';
 import { resolveStoredSessions, SESSION_EXPIRED_MESSAGE } from './bootRules';
 import { invalidateQueries } from './queryBus';
 import { pushRegistration } from './pushSession';
-import { caregiverSessionStorage, elderDeviceStorage, notificationPrefsStorage, profileStorage, type DeviceProfile } from './secureStorage';
+import { caregiverSessionStorage, patientDeviceStorage, notificationPrefsStorage, profileStorage, type DeviceProfile } from './secureStorage';
 
-export { ELDER_EXPIRED_MESSAGE, SESSION_EXPIRED_MESSAGE } from './bootRules';
-export const ELDER_DISCONNECTED_MESSAGE = 'Este aparelho precisa ser conectado de novo. Peça um novo código a quem cuida de você.';
+export { PATIENT_EXPIRED_MESSAGE, SESSION_EXPIRED_MESSAGE } from './bootRules';
+export const PATIENT_DISCONNECTED_MESSAGE = 'Este aparelho precisa ser conectado de novo. Peça um novo código a quem cuida de você.';
 
-const toViewAs = (p: DeviceProfile | null): ViewAs | null => (p === 'CUIDADOR' ? 'CAREGIVER' : p === 'IDOSO' ? 'ELDER' : null);
-const toProfile = (v: ViewAs): DeviceProfile => (v === 'CAREGIVER' ? 'CUIDADOR' : 'IDOSO');
+const toViewAs = (p: DeviceProfile | null): ViewAs | null => (p === 'CUIDADOR' ? 'CAREGIVER' : p === 'PACIENTE' ? 'PATIENT' : null);
+const toProfile = (v: ViewAs): DeviceProfile => (v === 'CAREGIVER' ? 'CUIDADOR' : 'PACIENTE');
 
 async function safely<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
   try {
@@ -33,28 +33,28 @@ function clearDataCaches() {
 }
 
 /**
- * Restaura perfil e sessões do SecureStore. Token do cuidador ou do idoso expirado (ou ilegível)
+ * Restaura perfil e sessões do SecureStore. Token do cuidador ou do paciente expirado (ou ilegível)
  * é descartado e a tela mostra o aviso (login ou pareamento). Falha de leitura não trava: vira bootError,
  * e a tela de carregamento oferece "Tentar novamente" (que chama bootSession de novo).
  */
 export async function bootSession() {
   useAppStore.setState({ bootError: null });
   let profile: DeviceProfile | null;
-  let elder: Awaited<ReturnType<typeof elderDeviceStorage.loadSession>>;
+  let patient: Awaited<ReturnType<typeof patientDeviceStorage.loadSession>>;
   let caregiver: Awaited<ReturnType<typeof caregiverSessionStorage.load>>;
   try {
     profile = await profileStorage.load();
-    elder = await elderDeviceStorage.loadSession();
+    patient = await patientDeviceStorage.loadSession();
     // No demo os dados vivem só em memória: uma sessão de cuidador salva apontaria para dados que já não existem
     caregiver = IS_DEMO ? null : await caregiverSessionStorage.load();
   } catch {
     useAppStore.setState({ bootError: 'Não foi possível ler os dados guardados neste celular.' });
     return;
   }
-  // Token vencido: o do cuidador vai ao login; o do idoso (180 dias) apaga sessão e PIN e volta ao pareamento
-  const resolved = resolveStoredSessions({ profile, caregiver, elder, isDemo: IS_DEMO });
+  // Token vencido: o do cuidador vai ao login; o do paciente (180 dias) apaga sessão e PIN e volta ao pareamento
+  const resolved = resolveStoredSessions({ profile, caregiver, patient, isDemo: IS_DEMO });
   if (resolved.clearCaregiver) await safely(() => caregiverSessionStorage.clear(), undefined);
-  if (resolved.clearElder) await safely(() => elderDeviceStorage.clear(), undefined);
+  if (resolved.clearPatient) await safely(() => patientDeviceStorage.clear(), undefined);
   const flash = resolved.flash;
   // Preferências de notificação do aparelho (sem elas, ficam as padrão)
   const prefs = await safely(() => notificationPrefsStorage.load(), null);
@@ -62,8 +62,8 @@ export async function bootSession() {
   useAppStore.setState({
     viewAs: toViewAs(profile),
     session: resolved.caregiver,
-    elderSession: resolved.elder,
-    elderSessionLoaded: true,
+    patientSession: resolved.patient,
+    patientSessionLoaded: true,
     profileLoaded: true,
     ...(flash ? { flash } : {}),
   });
@@ -75,7 +75,7 @@ export async function chooseProfile(viewAs: ViewAs) {
   useAppStore.getState().setViewAs(viewAs);
 }
 
-/** "Não é você? Trocar perfil": limpa SÓ o perfil (a sessão do idoso já pareada fica no aparelho). */
+/** "Não é você? Trocar perfil": limpa SÓ o perfil (a sessão do paciente já pareada fica no aparelho). */
 export async function switchProfile() {
   // Aparelho deixa de ser do cuidador: para de receber os avisos dele (melhor esforço, antes de sair do perfil)
   const s = useAppStore.getState();
@@ -94,10 +94,10 @@ export async function logoutCaregiver(flash: string | null = null) {
   clearDataCaches();
 }
 
-/** Aparelho do idoso desconectado pela API: apaga sessão e PIN e volta ao pareamento. */
-async function disconnectElder() {
-  useAppStore.setState({ elderSession: null, elderUnlocked: false, flash: ELDER_DISCONNECTED_MESSAGE });
-  await safely(() => elderDeviceStorage.clear(), undefined);
+/** Aparelho do paciente desconectado pela API: apaga sessão e PIN e volta ao pareamento. */
+async function disconnectPatient() {
+  useAppStore.setState({ patientSession: null, patientUnlocked: false, flash: PATIENT_DISCONNECTED_MESSAGE });
+  await safely(() => patientDeviceStorage.clear(), undefined);
   clearDataCaches();
 }
 
@@ -110,14 +110,14 @@ export function registerSessionHandlers() {
   setTokenProvider(() => {
     const s = useAppStore.getState();
     if (s.viewAs === 'CAREGIVER') return s.session?.token ?? null;
-    if (s.viewAs === 'ELDER') return s.elderSession?.token ?? null;
+    if (s.viewAs === 'PATIENT') return s.patientSession?.token ?? null;
     return null;
   });
 
   setUnauthorizedHandler(() => {
     const s = useAppStore.getState();
     if (s.viewAs === 'CAREGIVER' && s.session) void logoutCaregiver(SESSION_EXPIRED_MESSAGE);
-    else if (s.viewAs === 'ELDER' && s.elderSession) void disconnectElder();
+    else if (s.viewAs === 'PATIENT' && s.patientSession) void disconnectPatient();
   });
 
   // Toda troca de sessão do cuidador (login, cadastro, saída, exclusão de conta) é refletida no SecureStore

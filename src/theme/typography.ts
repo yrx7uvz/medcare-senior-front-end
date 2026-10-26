@@ -8,12 +8,12 @@ export const fonts = {
   bodyBold: 'NunitoSans_700Bold',
 } as const;
 
-/** Mínimos do cuidador (sp): corpo 16, rótulos e textos secundários 14. O idoso usa as variantes "elder*" (≥ 20). */
+/** Mínimos do cuidador (sp): corpo 16, rótulos e textos secundários 14. O paciente usa as variantes "patient*" (≥ 20). */
 export const CAREGIVER_MIN_BODY = 16;
 export const CAREGIVER_MIN_LABEL = 14;
 
 /**
- * Escala tipográfica. Variantes "elder*" têm no mínimo 20sp (RNF01) e todas
+ * Escala tipográfica. Variantes "patient*" têm no mínimo 20sp (RNF01) e todas
  * respeitam o tamanho de fonte do sistema (allowFontScaling padrão).
  */
 export const textVariants = {
@@ -25,11 +25,11 @@ export const textVariants = {
   label: { fontFamily: fonts.bodySemi, fontSize: CAREGIVER_MIN_LABEL, lineHeight: 19 },
   caption: { fontFamily: fonts.body, fontSize: CAREGIVER_MIN_LABEL, lineHeight: 19 },
   number: { fontFamily: fonts.title, fontSize: 28, lineHeight: 32 },
-  elderBody: { fontFamily: fonts.bodySemi, fontSize: 20, lineHeight: 28 },
-  elderStrong: { fontFamily: fonts.bodyBold, fontSize: 22, lineHeight: 30 },
-  elderTitle: { fontFamily: fonts.title, fontSize: 26, lineHeight: 33 },
-  elderDisplay: { fontFamily: fonts.title, fontSize: 32, lineHeight: 40 },
-  elderHuge: { fontFamily: fonts.title, fontSize: 52, lineHeight: 60 },
+  patientBody: { fontFamily: fonts.bodySemi, fontSize: 20, lineHeight: 28 },
+  patientStrong: { fontFamily: fonts.bodyBold, fontSize: 22, lineHeight: 30 },
+  patientTitle: { fontFamily: fonts.title, fontSize: 26, lineHeight: 33 },
+  patientDisplay: { fontFamily: fonts.title, fontSize: 32, lineHeight: 40 },
+  patientHuge: { fontFamily: fonts.title, fontSize: 52, lineHeight: 60 },
 } satisfies Record<string, TextStyle>;
 
 export type TextVariant = keyof typeof textVariants;

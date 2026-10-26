@@ -4,7 +4,7 @@ import type {
   DateTimeKey,
   DisplayStatus,
   DoseStatus,
-  Elder,
+  Patient,
   ID,
   Medication,
   Message,
@@ -14,8 +14,8 @@ import type {
   Treatment,
 } from './domain';
 
-/** 'ALL' = opção "Todos" do ElderSwitcher. */
-export type ElderFilter = ID | 'ALL';
+/** 'ALL' = opção "Todos" do PatientSwitcher. */
+export type PatientFilter = ID | 'ALL';
 
 export type Confirmability = 'OK' | 'JA_REGISTRADA' | 'MUITO_CEDO' | 'ENCERRADA';
 
@@ -30,8 +30,8 @@ export interface DoseWindow {
 
 export interface DoseView {
   id: ID;
-  elderId: ID;
-  elderName: string;
+  patientId: ID;
+  patientName: string;
   medication: Medication;
   treatmentId: ID | null;
   scheduledAt: DateTimeKey;
@@ -52,7 +52,7 @@ export interface DoseView {
 
 export interface MedicationView {
   medication: Medication;
-  elderName: string;
+  patientName: string;
   treatment?: Treatment;
   activeTreatment: boolean;
   scheduleSummary: string;
@@ -60,8 +60,8 @@ export interface MedicationView {
 
 export interface AlertView {
   doseId: ID;
-  elderId: ID;
-  elderName: string;
+  patientId: ID;
+  patientName: string;
   medicationName: string;
   dosage: string;
   scheduledAt: DateTimeKey;
@@ -77,8 +77,8 @@ export interface MessagePage {
 }
 
 export interface ConversationView {
-  elder: Elder;
-  lastMessage?: { text: string; sentAt: DateTimeKey; from: 'CUIDADOR' | 'IDOSO' };
+  patient: Patient;
+  lastMessage?: { text: string; sentAt: DateTimeKey; from: 'CUIDADOR' | 'PACIENTE' };
   unread: number;
 }
 
@@ -94,7 +94,7 @@ export interface AdherenceItem {
 }
 
 export interface AdherenceReport {
-  elder: Elder;
+  patient: Patient;
   from: DateKey;
   to: DateKey;
   items: AdherenceItem[];
@@ -113,9 +113,9 @@ export interface DailyReportTotals {
   adherencePercent: number | null;
 }
 
-/** GET /api/relatorios/diario?idosoId=&data= (UC-008 / HU06). */
+/** GET /api/relatorios/diario?pacienteId=&data= (UC-008 / HU06). */
 export interface DailyReport {
-  elder: { id: ID; name: string };
+  patient: { id: ID; name: string };
   day: DateKey;
   totals: DailyReportTotals;
   /** Doses do dia, por horário. */
@@ -137,14 +137,14 @@ export interface CaregiverSession {
   token: string;
 }
 
-export interface ElderPairing {
-  elderId: ID;
-  elderName: string;
+export interface PatientPairing {
+  patientId: ID;
+  patientName: string;
   token: string;
 }
 
-export interface ElderProfile {
-  elder: Elder;
+export interface PatientProfile {
+  patient: Patient;
   caregiverFirstName: string;
 }
 
@@ -172,7 +172,7 @@ export interface TreatmentInput {
 }
 
 export interface MedicationInput {
-  elderId: ID;
+  patientId: ID;
   name: string;
   dosage: string;
   type: MedicationType;
@@ -190,7 +190,7 @@ export interface MedicationInput {
   treatment: TreatmentInput;
 }
 
-export interface ElderInput {
+export interface PatientInput {
   name: string;
   birthDate: DateKey;
   phone?: string;
@@ -208,8 +208,8 @@ export interface SignUpInput {
 export type HistoryStatusFilter = 'ALL' | DoseStatus;
 
 export interface HistoryQuery {
-  elder: ElderFilter;
-  /** Só um remédio (precisa de um idoso escolhido). */
+  patient: PatientFilter;
+  /** Só um remédio (precisa de um paciente escolhido). */
   medicationId?: ID;
   from: DateKey;
   to: DateKey;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { pickNextDose } from '../src/features/elder/nextDose';
+import { pickNextDose } from '../src/features/patient/nextDose';
 import { liveDose } from '../src/lib/doseLive';
 import {
   CONFIRM_OPENS_BEFORE_MIN,
@@ -63,8 +63,8 @@ describe('janela e confirmabilidade', () => {
     expect(getConfirmability('CONFIRMADA_NO_HORARIO', HORARIO, minutos(0), tol)).toBe('JA_REGISTRADA');
   });
 
-  it('quem confirmou: o primeiro nome do idoso, "você" para o cuidador, ou só a hora', () => {
-    expect(confirmedByText('IDOSO', 'José', '08:05')).toBe('Confirmada por José às 08:05');
+  it('quem confirmou: o primeiro nome do paciente, "você" para o cuidador, ou só a hora', () => {
+    expect(confirmedByText('PACIENTE', 'José', '08:05')).toBe('Confirmada por José às 08:05');
     expect(confirmedByText('CUIDADOR', 'José', '08:05')).toBe('Confirmada por você às 08:05');
     expect(confirmedByText(undefined, 'José', '08:05')).toBe('Confirmada às 08:05');
   });
@@ -101,9 +101,9 @@ describe('alertas e resumo do painel', () => {
 
 const view = (over: Partial<DoseView> = {}): DoseView => ({
   id: '1',
-  elderId: '12',
-  elderName: 'José',
-  medication: { id: '501', elderId: '12', name: 'Losartana', dosage: '50mg', type: 'COMPRIMIDO', appearanceSource: 'MANUAL', createdAt: '' },
+  patientId: '12',
+  patientName: 'José',
+  medication: { id: '501', patientId: '12', name: 'Losartana', dosage: '50mg', type: 'COMPRIMIDO', appearanceSource: 'MANUAL', createdAt: '' },
   treatmentId: '900',
   scheduledAt: '2026-10-18T08:00',
   storedStatus: 'PENDENTE',
@@ -141,7 +141,7 @@ describe('dose ao vivo (janela do servidor)', () => {
   });
 });
 
-describe('próxima dose do idoso', () => {
+describe('próxima dose do paciente', () => {
   it('atrasada confirmável primeiro, depois a do horário; sem liberada, a próxima ainda cedo', () => {
     const noHorario = view({ id: 'a', scheduledAt: '2026-10-18T08:00' });
     const atrasada = view({ id: 'b', scheduledAt: '2026-10-18T07:30', status: 'ATRASADA' });

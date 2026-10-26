@@ -2,17 +2,17 @@ import React, { createContext, useContext, useMemo } from 'react';
 import { useColorScheme } from 'react-native';
 import { resolveThemeMode, type ThemeMode } from '../lib/themePrefs';
 import { useAppStore } from '../store/appStore';
-import { darkColors, elderColors, elderDarkColors, elderHighContrastColors, lightColors, type ThemeColors } from './colors';
+import { darkColors, patientColors, patientDarkColors, patientHighContrastColors, lightColors, type ThemeColors } from './colors';
 
 export interface Theme {
   mode: ThemeMode;
   colors: ThemeColors;
-  /** true nas telas do idoso (fontes ≥ 20sp, toques maiores). */
-  elder: boolean;
+  /** true nas telas do paciente (fontes ≥ 20sp, toques maiores). */
+  patient: boolean;
   highContrast: boolean;
 }
 
-const ThemeContext = createContext<Theme>({ mode: 'light', colors: lightColors, elder: false, highContrast: false });
+const ThemeContext = createContext<Theme>({ mode: 'light', colors: lightColors, patient: false, highContrast: false });
 
 /** Tema em uso: o escolhido nas Configurações ou, sem escolha, o do sistema. */
 export function useThemeMode(): ThemeMode {
@@ -21,29 +21,29 @@ export function useThemeMode(): ThemeMode {
   return resolveThemeMode(choice, system);
 }
 
-/** Cores do idoso para um tema: alto contraste, ou a versão clara/escura da mesma família. */
-export const elderColorsFor = (mode: ThemeMode, highContrast: boolean): ThemeColors =>
-  highContrast ? elderHighContrastColors : mode === 'dark' ? elderDarkColors : elderColors;
+/** Cores do paciente para um tema: alto contraste, ou a versão clara/escura da mesma família. */
+export const patientColorsFor = (mode: ThemeMode, highContrast: boolean): ThemeColors =>
+  highContrast ? patientHighContrastColors : mode === 'dark' ? patientDarkColors : patientColors;
 
 /** Tema do cuidador: claro/escuro (escolhido ou do sistema). */
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const mode = useThemeMode();
   const value = useMemo<Theme>(
-    () => ({ mode, colors: mode === 'dark' ? darkColors : lightColors, elder: false, highContrast: false }),
+    () => ({ mode, colors: mode === 'dark' ? darkColors : lightColors, patient: false, highContrast: false }),
     [mode],
   );
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
-/** Tema do idoso: claro, escuro ou alto contraste dedicado. */
-export function ElderThemeProvider({ children }: { children: React.ReactNode }) {
-  const highContrast = useAppStore((s) => s.elderHighContrast);
+/** Tema do paciente: claro, escuro ou alto contraste dedicado. */
+export function PatientThemeProvider({ children }: { children: React.ReactNode }) {
+  const highContrast = useAppStore((s) => s.patientHighContrast);
   const mode = useThemeMode();
   const value = useMemo<Theme>(
     () => ({
       mode: highContrast ? 'dark' : mode,
-      colors: elderColorsFor(mode, highContrast),
-      elder: true,
+      colors: patientColorsFor(mode, highContrast),
+      patient: true,
       highContrast,
     }),
     [highContrast, mode],
@@ -51,15 +51,15 @@ export function ElderThemeProvider({ children }: { children: React.ReactNode }) 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
-export function withElderTheme<P extends object>(Component: React.ComponentType<P>) {
+export function withPatientTheme<P extends object>(Component: React.ComponentType<P>) {
   function Wrapped(props: P) {
     return (
-      <ElderThemeProvider>
+      <PatientThemeProvider>
         <Component {...props} />
-      </ElderThemeProvider>
+      </PatientThemeProvider>
     );
   }
-  Wrapped.displayName = `withElderTheme(${Component.displayName ?? Component.name ?? 'Screen'})`;
+  Wrapped.displayName = `withPatientTheme(${Component.displayName ?? Component.name ?? 'Screen'})`;
   return Wrapped;
 }
 

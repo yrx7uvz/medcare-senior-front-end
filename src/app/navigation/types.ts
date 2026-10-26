@@ -19,25 +19,25 @@ export type RootStackParamList = {
   SignUp: undefined;
   // Cuidador (com sessão)
   CaregiverTabs: NavigatorScreenParams<CaregiverTabParamList> | undefined;
-  ElderForm: undefined;
-  LinkCode: { elderId: string; justCreated?: boolean };
+  PatientForm: undefined;
+  LinkCode: { patientId: string; justCreated?: boolean };
   MedicationForm: { medicationId?: string } | undefined;
   ExportPdf: undefined;
-  // elderId e day (opcionais) dizem onde achar a dose; vêm do push ou do relatório. fromPush: aberta por um aviso
-  DoseDetail: { doseId: string; elderId?: string; day?: string; fromPush?: boolean };
-  // UC-008: relatório diário de um idoso (idoso e dia opcionais)
-  DailyReport: { elderId?: string; day?: string } | undefined;
+  // patientId e day (opcionais) dizem onde achar a dose; vêm do push ou do relatório. fromPush: aberta por um aviso
+  DoseDetail: { doseId: string; patientId?: string; day?: string; fromPush?: boolean };
+  // UC-008: relatório diário de um paciente (paciente e dia opcionais)
+  DailyReport: { patientId?: string; day?: string } | undefined;
   // Comum
   Legal: { doc: 'termos' | 'lgpd' };
-  // Idoso
-  ElderLoading: undefined;
-  ElderPairing: undefined;
-  ElderCreatePin: { elderId: string; elderName: string; token: string };
-  ElderPinUnlock: undefined;
-  ElderHome: undefined;
-  ElderConfirmDose: { doseId: string };
-  ElderDoseConfirmed: { doseId: string };
-  ElderMessages: undefined;
+  // Paciente
+  PatientLoading: undefined;
+  PatientPairing: undefined;
+  PatientCreatePin: { patientId: string; patientName: string; token: string };
+  PatientPinUnlock: undefined;
+  PatientHome: undefined;
+  PatientConfirmDose: { doseId: string };
+  PatientDoseConfirmed: { doseId: string };
+  PatientMessages: undefined;
 };
 
 export type RootScreenProps<T extends keyof RootStackParamList> = NativeStackScreenProps<RootStackParamList, T>;

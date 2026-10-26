@@ -1,16 +1,16 @@
 import { apiDateTimeToEpochMs } from '../../lib/apiTime';
 import { firstName } from '../../lib/date';
 import { AppError } from '../../services/errors';
-import type { ElderService } from '../../services/types';
-import type { Elder, LinkCode } from '../../types/domain';
-import type { ElderInput, ElderPairing, ElderProfile } from '../../types/views';
+import type { PatientService } from '../../services/types';
+import type { Patient, LinkCode } from '../../types/domain';
+import type { PatientInput, PatientPairing, PatientProfile } from '../../types/views';
 import { endpoints } from './endpoints';
 import { request } from './httpClient';
 import { fromApiId, toApiId } from './ids';
 import { avatarColors } from '../../theme/colors';
 
-/** GET/POST /api/idosos (IdosoResponseDTO). */
-export interface IdosoResponse {
+/** GET/POST /api/pacientes (PacienteResponseDTO). */
+export interface PacienteResponse {
   id: number;
   nome: string;
   dataNascimento: string;
@@ -18,10 +18,10 @@ export interface IdosoResponse {
   cuidadorId: number;
 }
 
-/** POST /api/idosos/{id}/gerar-codigo (CodigoVinculoResponseDTO). expiraEm é LocalDateTime de São Paulo, sem fuso. */
+/** POST /api/pacientes/{id}/gerar-codigo (CodigoVinculoResponseDTO). expiraEm é LocalDateTime de São Paulo, sem fuso. */
 export interface CodigoVinculoResponse {
   codigo: string;
-  idosoId: number;
+  pacienteId: number;
   expiraEm: string;
 }
 
@@ -33,8 +33,8 @@ interface AuthResponse {
   nome: string;
 }
 
-/** GET /api/idosos/me (IdosoAutenticadoResponseDTO). */
-interface IdosoAutenticadoResponse {
+/** GET /api/pacientes/me (PacienteAutenticadoResponseDTO). */
+interface PacienteAutenticadoResponse {
   id: number;
   nome: string;
   cuidadorNome: string;
@@ -44,7 +44,7 @@ interface IdosoAutenticadoResponse {
 const AVATAR_COLORS = avatarColors;
 export const avatarColorFor = (apiId: number) => AVATAR_COLORS[Math.abs(apiId) % AVATAR_COLORS.length];
 
-export function toElder(dto: IdosoResponse): Elder {
+export function toPatient(dto: PacienteResponse): Patient {
   return {
     id: fromApiId(dto.id),
     caregiverId: fromApiId(dto.cuidadorId),
@@ -58,7 +58,7 @@ export function toElder(dto: IdosoResponse): Elder {
 export function toLinkCode(dto: CodigoVinculoResponse): LinkCode {
   const expiresAt = apiDateTimeToEpochMs(dto.expiraEm);
   if (expiresAt === null) throw new AppError('HTTP', 500, 'O servidor devolveu um código de vínculo com validade inválida.');
-  return { code: dto.codigo, elderId: fromApiId(dto.idosoId), expiresAt, used: false };
+  return { code: dto.codigo, patientId: fromApiId(dto.pacienteId), expiresAt, used: false };
 }
 
 /** Telefone só com dígitos (a máscara é da tela; a API guarda até 20 caracteres). */
@@ -72,52 +72,52 @@ const digitsOnly = (phone?: string) => phone?.replace(/\D/g, '') || undefined;
 const lastCodes = new Map<string, LinkCode>();
 export const forgetLinkCodes = () => lastCodes.clear();
 
-export const httpElderService: ElderService = {
+export const httpPatientService: PatientService = {
   async list() {
-    const dtos = await request<IdosoResponse[]>('GET', endpoints.elders);
-    return dtos.map(toElder);
+    const dtos = await request<PacienteResponse[]>('GET', endpoints.patients);
+    return dtos.map(toPatient);
   },
 
   async get(id) {
-    return toElder(await request<IdosoResponse>('GET', endpoints.elder(String(toApiId(id)))));
+    return toPatient(await request<PacienteResponse>('GET', endpoints.patient(String(toApiId(id)))));
   },
 
-  async create(input: ElderInput) {
-    const dto = await request<IdosoResponse>('POST', endpoints.elders, {
+  async create(input: PatientInput) {
+    const dto = await request<PacienteResponse>('POST', endpoints.patients, {
       nome: input.name.trim().replace(/\s+/g, ' '),
       dataNascimento: input.birthDate,
       telefone: digitsOnly(input.phone),
     });
-    return toElder(dto);
+    return toPatient(dto);
   },
 
-  async generateLinkCode(elderId) {
-    const link = toLinkCode(await request<CodigoVinculoResponse>('POST', endpoints.generateLinkCode(String(toApiId(elderId)))));
-    lastCodes.set(link.elderId, link);
+  async generateLinkCode(patientId) {
+    const link = toLinkCode(await request<CodigoVinculoResponse>('POST', endpoints.generateLinkCode(String(toApiId(patientId)))));
+    lastCodes.set(link.patientId, link);
     return link;
   },
 
-  async getActiveLinkCode(elderId) {
-    const link = lastCodes.get(elderId);
+  async getActiveLinkCode(patientId) {
+    const link = lastCodes.get(patientId);
     if (link && link.expiresAt > Date.now()) return link;
-    lastCodes.delete(elderId);
+    lastCodes.delete(patientId);
     return null;
   },
 
-  /** Lado do idoso. 400 CODIGO_INVALIDO e 429 LIMITE_TENTATIVAS (Retry-After) chegam como AppError. */
-  async validateLinkCode(code): Promise<ElderPairing> {
+  /** Lado do paciente. 400 CODIGO_INVALIDO e 429 LIMITE_TENTATIVAS (Retry-After) chegam como AppError. */
+  async validateLinkCode(code): Promise<PatientPairing> {
     const res = await request<AuthResponse>('POST', endpoints.validateLinkCode, { codigo: code.trim() });
-    return { elderId: fromApiId(res.id), elderName: res.nome, token: res.token };
+    return { patientId: fromApiId(res.id), patientName: res.nome, token: res.token };
   },
 
-  /** Lado do idoso (token do idoso): o elderId vem do token na API; o parâmetro só confere a sessão. */
-  async getProfile(elderId): Promise<ElderProfile> {
-    const res = await request<IdosoAutenticadoResponse>('GET', endpoints.elderMe);
+  /** Lado do paciente (token do paciente): o patientId vem do token na API; o parâmetro só confere a sessão. */
+  async getProfile(patientId): Promise<PatientProfile> {
+    const res = await request<PacienteAutenticadoResponse>('GET', endpoints.patientMe);
     const id = fromApiId(res.id);
-    if (id !== elderId) throw new AppError('HTTP', 401, 'Sessão inválida. Conecte este aparelho de novo.', 'SESSAO_INVALIDA');
+    if (id !== patientId) throw new AppError('HTTP', 401, 'Sessão inválida. Conecte este aparelho de novo.', 'SESSAO_INVALIDA');
     return {
-      // A rota do idoso não devolve nascimento nem cuidadorId: as telas do idoso só usam nome e cor
-      elder: { id, caregiverId: '', name: res.nome, birthDate: '', avatarColor: avatarColorFor(res.id) },
+      // A rota do paciente não devolve nascimento nem cuidadorId: as telas do paciente só usam nome e cor
+      patient: { id, caregiverId: '', name: res.nome, birthDate: '', avatarColor: avatarColorFor(res.id) },
       caregiverFirstName: firstName(res.cuidadorNome),
     };
   },

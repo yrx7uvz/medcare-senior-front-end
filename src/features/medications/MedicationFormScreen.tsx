@@ -18,12 +18,12 @@ export function MedicationFormScreen({ route, navigation }: RootScreenProps<'Med
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const now = useNow(60_000);
-  const filter = useAppStore((s) => s.selectedElderId);
+  const filter = useAppStore((s) => s.selectedPatientId);
   const showToast = useAppStore((s) => s.showToast);
   const medicationId = route.params?.medicationId;
   const isEdit = !!medicationId;
 
-  const elders = useQuery(['elders'], () => services.elders.list());
+  const patients = useQuery(['patients'], () => services.patients.list());
   const existing = useQuery(['med', medicationId], () => services.medications.get(medicationId!), { enabled: isEdit });
   // Cadastro em que o medicamento foi salvo e o tratamento não: o próximo envio tenta SÓ o tratamento
   const [orphanId, setOrphanId] = useState<string | null>(null);
@@ -34,10 +34,10 @@ export function MedicationFormScreen({ route, navigation }: RootScreenProps<'Med
     return services.medications.create(input);
   });
 
-  const loading = elders.loading || (isEdit && existing.loading);
-  const error = elders.error ?? existing.error;
-  const defaultElder = filter !== 'ALL' ? filter : elders.data?.length === 1 ? elders.data[0].id : '';
-  const elderName = (id: string) => elders.data?.find((e) => e.id === id)?.name;
+  const loading = patients.loading || (isEdit && existing.loading);
+  const error = patients.error ?? existing.error;
+  const defaultPatient = filter !== 'ALL' ? filter : patients.data?.length === 1 ? patients.data[0].id : '';
+  const patientName = (id: string) => patients.data?.find((e) => e.id === id)?.name;
 
   async function onSubmit(v: MedicationFormValues) {
     const result = await save.run(v);
@@ -53,14 +53,14 @@ export function MedicationFormScreen({ route, navigation }: RootScreenProps<'Med
     <KeyboardAvoidingView style={[styles.flex, { backgroundColor: colors.background }]}>
       <StackHeader
         title={isEdit ? 'Editar remédio' : 'Novo remédio'}
-        subtitle={isEdit ? elderName(existing.data?.medication.elderId ?? '') : defaultElder ? `Para: ${elderName(defaultElder) ?? ''}` : 'Escolha o paciente'}
+        subtitle={isEdit ? patientName(existing.data?.medication.patientId ?? '') : defaultPatient ? `Para: ${patientName(defaultPatient) ?? ''}` : 'Escolha o paciente'}
       />
       {loading ? (
         <View style={styles.body}><LoadingSkeleton rows={3} /></View>
       ) : error ? (
-        <ErrorState error={error} onRetry={() => { elders.reload(); if (isEdit) existing.reload(); }} />
-      ) : !elders.data?.length ? (
-        <EmptyState icon={UserPlus} title="Cadastre um paciente primeiro" actionLabel="Cadastrar paciente" onAction={() => navigation.replace('ElderForm')} />
+        <ErrorState error={error} onRetry={() => { patients.reload(); if (isEdit) existing.reload(); }} />
+      ) : !patients.data?.length ? (
+        <EmptyState icon={UserPlus} title="Cadastre um paciente primeiro" actionLabel="Cadastrar paciente" onAction={() => navigation.replace('PatientForm')} />
       ) : (
         <ScrollView contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + spacing.xxl }]} keyboardShouldPersistTaps="handled">
           <MedicationForm
@@ -68,10 +68,10 @@ export function MedicationFormScreen({ route, navigation }: RootScreenProps<'Med
             defaultValues={
               isEdit && existing.data
                 ? valuesFromMedication(existing.data.medication, existing.data.treatment, now)
-                : emptyMedicationValues(defaultElder, now)
+                : emptyMedicationValues(defaultPatient, now)
             }
-            elders={elders.data}
-            lockElder={isEdit || filter !== 'ALL'}
+            patients={patients.data}
+            lockPatient={isEdit || filter !== 'ALL'}
             isEdit={isEdit}
             submitting={save.loading}
             submitError={save.error}

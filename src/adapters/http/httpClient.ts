@@ -25,8 +25,8 @@ export const setTokenProvider = (fn: TokenProvider) => {
   getToken = fn;
 };
 
-/** Quem está usando o aparelho: algumas leituras têm rota diferente para o cuidador e para o idoso. */
-export type Viewer = 'CAREGIVER' | 'ELDER' | null;
+/** Quem está usando o aparelho: algumas leituras têm rota diferente para o cuidador e para o paciente. */
+export type Viewer = 'CAREGIVER' | 'PATIENT' | null;
 let getViewerFn: () => Viewer = () => null;
 export const setViewerProvider = (fn: () => Viewer) => {
   getViewerFn = fn;

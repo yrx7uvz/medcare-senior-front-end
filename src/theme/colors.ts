@@ -158,24 +158,24 @@ export const darkColors: ThemeColors = {
   },
 };
 
-/** Interface do idoso, clara: mesma identidade, texto secundário mais escuro (fonte grande, leitura fácil). */
-export const elderColors: ThemeColors = {
+/** Interface do paciente, clara: mesma identidade, texto secundário mais escuro (fonte grande, leitura fácil). */
+export const patientColors: ThemeColors = {
   ...lightColors,
   textMuted: '#3E4D5C',
 };
 
-/** Interface do idoso, escura: a paleta escura comum, com o texto secundário mais claro. */
-export const elderDarkColors: ThemeColors = {
+/** Interface do paciente, escura: a paleta escura comum, com o texto secundário mais claro. */
+export const patientDarkColors: ThemeColors = {
   ...darkColors,
   textMuted: '#C9D0D7',
 };
 
 /**
- * Alto contraste do idoso (função de acessibilidade): fundo preto, texto branco e o azul da marca bem claro, com
+ * Alto contraste do paciente (função de acessibilidade): fundo preto, texto branco e o azul da marca bem claro, com
  * contraste de pelo menos 7:1 nos textos principais. Os status mantêm as cores de sentido (verde, laranja, vermelho e
  * âmbar), sempre com ícone e texto.
  */
-export const elderHighContrastColors: ThemeColors = {
+export const patientHighContrastColors: ThemeColors = {
   background: palette.black,
   surface: palette.black,
   surfaceAlt: '#111418',

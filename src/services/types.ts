@@ -1,4 +1,4 @@
-import type { DateKey, Dose, Elder, ID, LinkCode, Message, MessageAuthor, Treatment, Medication } from '../types/domain';
+import type { DateKey, Dose, Patient, ID, LinkCode, Message, MessageAuthor, Treatment, Medication } from '../types/domain';
 import type {
   AdherenceReport,
   AlertView,
@@ -6,10 +6,10 @@ import type {
   DailyReport,
   ConversationView,
   DoseView,
-  ElderFilter,
-  ElderInput,
-  ElderPairing,
-  ElderProfile,
+  PatientFilter,
+  PatientInput,
+  PatientPairing,
+  PatientProfile,
   HistoryPage,
   HistoryQuery,
   MedicationInfo,
@@ -36,20 +36,20 @@ export interface AuthService {
   deleteAccount(): Promise<{ removalDeadlineDays: number }>;
 }
 
-/** POST /api/idosos, POST /api/idosos/{id}/gerar-codigo, POST /api/vinculo/validar */
-export interface ElderService {
-  list(): Promise<Elder[]>;
-  get(id: ID): Promise<Elder>;
-  create(input: ElderInput): Promise<Elder>;
-  generateLinkCode(elderId: ID): Promise<LinkCode>;
-  getActiveLinkCode(elderId: ID): Promise<LinkCode | null>;
-  validateLinkCode(code: string): Promise<ElderPairing>;
-  getProfile(elderId: ID): Promise<ElderProfile>;
+/** POST /api/pacientes, POST /api/pacientes/{id}/gerar-codigo, POST /api/vinculo/validar */
+export interface PatientService {
+  list(): Promise<Patient[]>;
+  get(id: ID): Promise<Patient>;
+  create(input: PatientInput): Promise<Patient>;
+  generateLinkCode(patientId: ID): Promise<LinkCode>;
+  getActiveLinkCode(patientId: ID): Promise<LinkCode | null>;
+  validateLinkCode(code: string): Promise<PatientPairing>;
+  getProfile(patientId: ID): Promise<PatientProfile>;
 }
 
 /** /api/medicamentos e /api/medicamentos/{id}/tratamentos */
 export interface MedicationService {
-  list(filter: ElderFilter): Promise<MedicationView[]>;
+  list(filter: PatientFilter): Promise<MedicationView[]>;
   get(id: ID): Promise<{ medication: Medication; treatment?: Treatment }>;
   create(input: MedicationInput): Promise<MedicationView>;
   update(id: ID, input: MedicationInput): Promise<MedicationView>;
@@ -61,9 +61,9 @@ export interface MedicationService {
 
 /** Doses do dia, PUT /api/doses/{id}/confirmar, GET /api/historico e /api/configuracoes/tolerancia */
 export interface DoseService {
-  listForDay(filter: ElderFilter, day: string): Promise<DoseView[]>;
-  /** A API não tem GET de uma dose: `hint` (idoso e dia) diz onde procurar; sem ele, vale a última lista vista. */
-  get(id: ID, hint?: { elderId: ID; day: DateKey }): Promise<DoseView>;
+  listForDay(filter: PatientFilter, day: string): Promise<DoseView[]>;
+  /** A API não tem GET de uma dose: `hint` (paciente e dia) diz onde procurar; sem ele, vale a última lista vista. */
+  get(id: ID, hint?: { patientId: ID; day: DateKey }): Promise<DoseView>;
   confirm(id: ID): Promise<DoseView>;
   /** Histórico paginado (UC-011). Período invertido: 400 VALIDACAO; período sem registros: página vazia (RN-011). */
   listHistory(query: HistoryQuery): Promise<HistoryPage>;
@@ -76,29 +76,29 @@ export interface DoseService {
  * /api/mensagens (UC-010). Na API, quem escreve e quem lê vem do token: `from`/`reader` só servem ao demo.
  */
 export interface MessageService {
-  /** Cuidador: uma por idoso (inclusive sem mensagens); idoso: a sua única conversa. */
+  /** Cuidador: uma por paciente (inclusive sem mensagens); paciente: a sua única conversa. */
   listConversations(): Promise<ConversationView[]>;
   /** Página da conversa (0 = as mais recentes; as seguintes são mais antigas). */
-  listThread(elderId: ID, page?: number): Promise<MessagePage>;
+  listThread(patientId: ID, page?: number): Promise<MessagePage>;
   /** 1 a 500 caracteres; vazio ou maior: 400 VALIDACAO. */
-  send(elderId: ID, from: MessageAuthor, text: string): Promise<Message>;
+  send(patientId: ID, from: MessageAuthor, text: string): Promise<Message>;
   /** Marca como lidas as mensagens que `reader` recebeu na conversa; devolve quantas mudaram. */
-  markRead(elderId: ID, reader: MessageAuthor): Promise<number>;
-  /** Total recebido e não lido por quem chama (cuidador: todos os idosos; idoso: a conversa dele). */
-  unreadCount(elderId: ID | 'ALL', reader: MessageAuthor): Promise<number>;
+  markRead(patientId: ID, reader: MessageAuthor): Promise<number>;
+  /** Total recebido e não lido por quem chama (cuidador: todos os pacientes; paciente: a conversa dele). */
+  unreadCount(patientId: ID | 'ALL', reader: MessageAuthor): Promise<number>;
 }
 
 /** GET /api/relatorios/diario e GET /api/relatorios/pdf */
 export interface ReportService {
-  /** Relatório diário de uso dos medicamentos de um idoso (UC-008). */
-  getDaily(elderId: ID, day: DateKey): Promise<DailyReport>;
+  /** Relatório diário de uso dos medicamentos de um paciente (UC-008). */
+  getDaily(patientId: ID, day: DateKey): Promise<DailyReport>;
   /** Só o modo demonstração (a API não tem esta consulta; o PDF traz a adesão). */
-  getAdherence(elderId: ID, from: string, to: string): Promise<AdherenceReport>;
+  getAdherence(patientId: ID, from: string, to: string): Promise<AdherenceReport>;
   /**
    * PDF do histórico de adesão (período de até 12 meses). 400 VALIDACAO (período inválido ou longo demais),
    * 404 (paciente de outra conta) e 422 PERIODO_SEM_REGISTROS chegam como AppError com o código.
    */
-  downloadPdf(elderId: ID, from: DateKey, to: DateKey): Promise<PdfFile>;
+  downloadPdf(patientId: ID, from: DateKey, to: DateKey): Promise<PdfFile>;
 }
 
 /**
@@ -111,7 +111,7 @@ export interface MedicationInfoService {
 
 export interface Services {
   auth: AuthService;
-  elders: ElderService;
+  patients: PatientService;
   medications: MedicationService;
   doses: DoseService;
   messages: MessageService;

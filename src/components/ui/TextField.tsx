@@ -27,7 +27,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
 
   return (
     <View style={styles.wrap}>
-      <AppText variant={large ? 'elderBody' : 'label'} nativeID={`${label}-label`}>
+      <AppText variant={large ? 'patientBody' : 'label'} nativeID={`${label}-label`}>
         {label}
         {required ? <AppText variant="label" color={colors.danger}> *</AppText> : null}
       </AppText>

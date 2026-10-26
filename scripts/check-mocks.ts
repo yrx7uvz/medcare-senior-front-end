@@ -56,21 +56,21 @@ async function main() {
   assert.equal(omeprazol?.window.closesAt, `${day}T15:00`);
   assert.equal(jose.find((d) => d.medication.name === 'Atorvastatina')?.status, 'NAO_TOMADA');
   const alerts = await services.doses.listAlerts();
-  console.log('Alertas      :', alerts.map((a) => `${a.elderName} • ${a.medicationName} ${a.scheduledAt.slice(11)} ${a.status}`));
-  for (const elder of ['e-jose', 'e-helena']) {
-    const r = await services.reports.getAdherence(elder, '2026-05-07', day);
-    console.log(`PDF ${r.elder.name} (geral ${r.overallRate}%):`, r.items.map((i) => `${i.medication.name} ${i.rate}% (${i.confirmed}/${i.confirmed + i.missed}, abertas ${i.open})`));
-    const hist = await services.doses.listHistory({ elder: elder, from: '2026-05-07', to: day, status: 'NAO_TOMADA' });
+  console.log('Alertas      :', alerts.map((a) => `${a.patientName} • ${a.medicationName} ${a.scheduledAt.slice(11)} ${a.status}`));
+  for (const patient of ['e-jose', 'e-helena']) {
+    const r = await services.reports.getAdherence(patient, '2026-05-07', day);
+    console.log(`PDF ${r.patient.name} (geral ${r.overallRate}%):`, r.items.map((i) => `${i.medication.name} ${i.rate}% (${i.confirmed}/${i.confirmed + i.missed}, abertas ${i.open})`));
+    const hist = await services.doses.listHistory({ patient: patient, from: '2026-05-07', to: day, status: 'NAO_TOMADA' });
     console.log('  histórico não tomadas:', hist.totalElements);
   }
-  const atrasoHelena = await services.doses.listHistory({ elder: 'e-helena', from: '2026-05-07', to: day, status: 'CONFIRMADA_COM_ATRASO' });
+  const atrasoHelena = await services.doses.listHistory({ patient: 'e-helena', from: '2026-05-07', to: day, status: 'CONFIRMADA_COM_ATRASO' });
   console.log('Helena com atraso:', atrasoHelena.totalElements);
   const info = await services.medicationInfo.lookup('omeprazol');
   console.log('Lookup omeprazol:', info?.type, info?.primaryColor);
-  try { await services.elders.validateLinkCode('111111'); } catch (e) { console.log('Código expirado →', (e as Error).message); }
-  const ok = await services.elders.validateLinkCode('482913');
-  console.log('Código válido →', ok.elderName);
-  try { await services.elders.validateLinkCode('482913'); } catch (e) { console.log('Reuso →', (e as Error).message); }
+  try { await services.patients.validateLinkCode('111111'); } catch (e) { console.log('Código expirado →', (e as Error).message); }
+  const ok = await services.patients.validateLinkCode('482913');
+  console.log('Código válido →', ok.patientName);
+  try { await services.patients.validateLinkCode('482913'); } catch (e) { console.log('Reuso →', (e as Error).message); }
   process.exit(0);
 }
 main();

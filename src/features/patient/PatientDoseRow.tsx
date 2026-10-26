@@ -5,7 +5,7 @@ import type { DoseView } from '../../types/views';
 import { radius, spacing, useTheme } from '../../theme';
 
 /** Linha grande da lista "Seu dia de hoje" (toque ≥ 96dp). */
-export function ElderDoseRow({ dose, onPress }: { dose: DoseView; onPress: () => void }) {
+export function PatientDoseRow({ dose, onPress }: { dose: DoseView; onPress: () => void }) {
   const { colors, highContrast } = useTheme();
   const m = dose.medication;
   const time = formatTime(dose.scheduledAt);
@@ -28,13 +28,13 @@ export function ElderDoseRow({ dose, onPress }: { dose: DoseView; onPress: () =>
     >
       <PillVisual appearance={m} size="md" />
       <View style={styles.texts}>
-        <AppText variant="elderStrong" numberOfLines={2}>
+        <AppText variant="patientStrong" numberOfLines={2}>
           {m.name} {m.dosage}
         </AppText>
-        <AppText variant="elderBody" muted>
+        <AppText variant="patientBody" muted>
           {time} • {dose.doseQuantity}
         </AppText>
-        <DoseStatusBadge status={dose.status} size="elder" />
+        <DoseStatusBadge status={dose.status} size="patient" />
       </View>
     </Pressable>
   );

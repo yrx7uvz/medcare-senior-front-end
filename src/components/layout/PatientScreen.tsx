@@ -16,12 +16,12 @@ interface Props {
   footer?: React.ReactNode;
 }
 
-/** Moldura das telas do idoso: sem menus, voltar grande e alto contraste. */
-export function ElderScreen({ children, back, scroll = true, footer }: Props) {
+/** Moldura das telas do paciente: sem menus, voltar grande e alto contraste. */
+export function PatientScreen({ children, back, scroll = true, footer }: Props) {
   const { colors, highContrast } = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const toggleContrast = useAppStore((s) => s.toggleElderHighContrast);
+  const toggleContrast = useAppStore((s) => s.togglePatientHighContrast);
 
   const header = (
     <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
@@ -33,7 +33,7 @@ export function ElderScreen({ children, back, scroll = true, footer }: Props) {
           style={({ pressed }) => [styles.headerBtn, { borderColor: colors.border, backgroundColor: colors.surface, opacity: pressed ? 0.7 : 1 }]}
         >
           <ArrowLeft color={colors.text} size={28} strokeWidth={2.6} />
-          <AppText variant="elderStrong">Voltar</AppText>
+          <AppText variant="patientStrong">Voltar</AppText>
         </Pressable>
       ) : (
         <View />
@@ -78,8 +78,8 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
   headerBtn: {
-    minHeight: touch.elder,
-    minWidth: touch.elder,
+    minHeight: touch.patient,
+    minWidth: touch.patient,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

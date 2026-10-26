@@ -16,7 +16,7 @@ import {
 import { AppError } from '../src/services/errors';
 import type { Message } from '../src/types/domain';
 
-const msg = (id: string, sentAt: string, over: Partial<Message> = {}): Message => ({ id, elderId: '12', from: 'CUIDADOR', text: id, sentAt, read: false, ...over });
+const msg = (id: string, sentAt: string, over: Partial<Message> = {}): Message => ({ id, patientId: '12', from: 'CUIDADOR', text: id, sentAt, read: false, ...over });
 
 describe('validação antes de enviar (mesma regra da API)', () => {
   it('vazio ou só espaços não envia; até 500 caracteres envia; 501 não', () => {
@@ -64,8 +64,8 @@ describe('contador de não lidas e conversa', () => {
   });
 
   it('marca como lida só se há mensagem do outro lado não lida', () => {
-    const lista = [msg('1', '2026-10-20T08:00', { from: 'IDOSO', read: true }), msg('2', '2026-10-20T08:01', { from: 'CUIDADOR' })];
-    expect(hasUnreadFrom(lista, 'IDOSO')).toBe(false);
+    const lista = [msg('1', '2026-10-20T08:00', { from: 'PACIENTE', read: true }), msg('2', '2026-10-20T08:01', { from: 'CUIDADOR' })];
+    expect(hasUnreadFrom(lista, 'PACIENTE')).toBe(false);
     expect(hasUnreadFrom(lista, 'CUIDADOR')).toBe(true);
   });
 });
@@ -105,9 +105,9 @@ describe('envio único no toque duplo', () => {
 });
 
 describe('mapeadores das mensagens', () => {
-  it('MensagemResponse vira Message no idoso da conversa, lida pelo lidaEm', () => {
-    expect(toMessage({ id: 301, remetente: 'IDOSO', conteudo: 'Já tomei', criadaEm: '2026-10-20T08:05:12.123', lidaEm: null }, '12')).toEqual({
-      id: '301', elderId: '12', from: 'IDOSO', text: 'Já tomei', sentAt: '2026-10-20T08:05', read: false,
+  it('MensagemResponse vira Message no paciente da conversa, lida pelo lidaEm', () => {
+    expect(toMessage({ id: 301, remetente: 'PACIENTE', conteudo: 'Já tomei', criadaEm: '2026-10-20T08:05:12.123', lidaEm: null }, '12')).toEqual({
+      id: '301', patientId: '12', from: 'PACIENTE', text: 'Já tomei', sentAt: '2026-10-20T08:05', read: false,
     });
     expect(toMessage({ id: 302, remetente: 'CUIDADOR', conteudo: 'Ok', criadaEm: '2026-10-20T08:06:00', lidaEm: '2026-10-20T08:07:00' }, '12').read).toBe(true);
   });
@@ -115,10 +115,10 @@ describe('mapeadores das mensagens', () => {
   it('página da conversa e conversa da lista (com e sem mensagem)', () => {
     const pagina = toMessagePage({ conteudo: [{ id: 1, remetente: 'CUIDADOR', conteudo: 'a', criadaEm: '2026-10-20T08:00:00', lidaEm: null }], pagina: 1, tamanho: 20, totalElementos: 21, totalPaginas: 2 }, '12');
     expect(pagina).toMatchObject({ page: 1, totalPages: 2, totalElements: 21 });
-    expect(pagina.items[0].elderId).toBe('12');
-    const comMensagem = toConversation({ idosoId: 12, idosoNome: 'Maria', ultimaMensagem: { conteudo: 'Oi', remetente: 'IDOSO', criadaEm: '2026-10-20T09:00:00' }, naoLidas: 2 });
-    expect(comMensagem).toMatchObject({ elder: { id: '12', name: 'Maria' }, lastMessage: { text: 'Oi', from: 'IDOSO', sentAt: '2026-10-20T09:00' }, unread: 2 });
-    expect(comMensagem.elder.avatarColor).toMatch(/^#/);
-    expect(toConversation({ idosoId: 13, idosoNome: 'João', ultimaMensagem: null, naoLidas: 0 }).lastMessage).toBeUndefined();
+    expect(pagina.items[0].patientId).toBe('12');
+    const comMensagem = toConversation({ pacienteId: 12, pacienteNome: 'Maria', ultimaMensagem: { conteudo: 'Oi', remetente: 'PACIENTE', criadaEm: '2026-10-20T09:00:00' }, naoLidas: 2 });
+    expect(comMensagem).toMatchObject({ patient: { id: '12', name: 'Maria' }, lastMessage: { text: 'Oi', from: 'PACIENTE', sentAt: '2026-10-20T09:00' }, unread: 2 });
+    expect(comMensagem.patient.avatarColor).toMatch(/^#/);
+    expect(toConversation({ pacienteId: 13, pacienteNome: 'João', ultimaMensagem: null, naoLidas: 0 }).lastMessage).toBeUndefined();
   });
 });

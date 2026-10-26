@@ -1,4 +1,4 @@
-import type { Dose, Elder, LinkCode, Medication, Message, Treatment } from '../types/domain';
+import type { Dose, Patient, LinkCode, Medication, Message, Treatment } from '../types/domain';
 import { DEMO_START, DEMO_TODAY_KEY } from '../lib/clock';
 import { parseDateTime } from '../lib/date';
 import { DEFAULT_TOLERANCE_MIN } from '../lib/doseRules';
@@ -20,7 +20,7 @@ export interface CaregiverAccount {
 export interface MockDb {
   accounts: CaregiverAccount[];
   activeCaregiverId: string;
-  elders: Elder[];
+  patients: Patient[];
   medications: Medication[];
   treatments: Treatment[];
   doses: Dose[];
@@ -34,52 +34,52 @@ const H = 3_600_000;
 
 /** Status de hoje (05/06/2026) até 14:02. As demais doses de hoje ficam pendentes. */
 const TODAY_REGISTERED: Record<string, Pick<Dose, 'status' | 'confirmedAt' | 'confirmedBy'>> = {
-  [doseId('t-metformina', `${DEMO_TODAY_KEY}T08:00`)]: { status: 'CONFIRMADA_NO_HORARIO', confirmedAt: `${DEMO_TODAY_KEY}T08:04`, confirmedBy: 'IDOSO' },
+  [doseId('t-metformina', `${DEMO_TODAY_KEY}T08:00`)]: { status: 'CONFIRMADA_NO_HORARIO', confirmedAt: `${DEMO_TODAY_KEY}T08:04`, confirmedBy: 'PACIENTE' },
   [doseId('t-losartana', `${DEMO_TODAY_KEY}T08:00`)]: { status: 'CONFIRMADA_NO_HORARIO', confirmedAt: `${DEMO_TODAY_KEY}T08:05`, confirmedBy: 'CUIDADOR' },
-  [doseId('t-levotiroxina', `${DEMO_TODAY_KEY}T06:00`)]: { status: 'CONFIRMADA_COM_ATRASO', confirmedAt: `${DEMO_TODAY_KEY}T06:48`, confirmedBy: 'IDOSO' },
+  [doseId('t-levotiroxina', `${DEMO_TODAY_KEY}T06:00`)]: { status: 'CONFIRMADA_COM_ATRASO', confirmedAt: `${DEMO_TODAY_KEY}T06:48`, confirmedBy: 'PACIENTE' },
 };
 
 export function createSeedDb(): MockDb {
-  const elders: Elder[] = [
+  const patients: Patient[] = [
     { id: 'e-jose', caregiverId: 'c-maria', name: 'José Ferreira', birthDate: '1948-03-12', phone: '(61) 98765-1020', avatarColor: avatarColors[0] },
     { id: 'e-helena', caregiverId: 'c-maria', name: 'Helena Souza', birthDate: '1951-08-22', avatarColor: avatarColors[1] },
   ];
 
   const medications: Medication[] = [
     {
-      id: 'm-metformina', elderId: 'e-jose', name: 'Metformina', dosage: '850mg', type: 'COMPRIMIDO', shape: 'OVAL',
+      id: 'm-metformina', patientId: 'e-jose', name: 'Metformina', dosage: '850mg', type: 'COMPRIMIDO', shape: 'OVAL',
       primaryColor: pillColors.branco, lengthMm: 19, widthMm: 9, hasScore: true, imprint: '850', stock: 28,
       leaflet: 'Tomar junto com as refeições. Evitar bebida alcoólica.', appearanceSource: 'EXTERNA', createdAt: '2026-05-11T09:00',
     },
     {
-      id: 'm-losartana', elderId: 'e-jose', name: 'Losartana', dosage: '50mg', type: 'COMPRIMIDO', shape: 'REDONDO',
+      id: 'm-losartana', patientId: 'e-jose', name: 'Losartana', dosage: '50mg', type: 'COMPRIMIDO', shape: 'REDONDO',
       primaryColor: pillColors.branco, lengthMm: 9, widthMm: 9, hasScore: true, imprint: 'L50', stock: 30,
       // Foto inexistente de propósito: demonstra o fallback para o desenho SVG.
       photoUrl: 'https://fotos.medcare.invalid/losartana-50mg.jpg',
       appearanceSource: 'MANUAL', createdAt: '2026-05-11T09:05',
     },
     {
-      id: 'm-atorvastatina', elderId: 'e-jose', name: 'Atorvastatina', dosage: '20mg', type: 'COMPRIMIDO', shape: 'OVAL',
+      id: 'm-atorvastatina', patientId: 'e-jose', name: 'Atorvastatina', dosage: '20mg', type: 'COMPRIMIDO', shape: 'OVAL',
       primaryColor: pillColors.branco, lengthMm: 11, widthMm: 6, imprint: '20', stock: 4,
       appearanceSource: 'EXTERNA', createdAt: '2026-05-16T10:00',
     },
     {
-      id: 'm-omeprazol', elderId: 'e-jose', name: 'Omeprazol', dosage: '20mg', type: 'CAPSULA',
+      id: 'm-omeprazol', patientId: 'e-jose', name: 'Omeprazol', dosage: '20mg', type: 'CAPSULA',
       primaryColor: pillColors.roxo, secondaryColor: pillColors.rosa, lengthMm: 17, widthMm: 6, stock: 14,
       leaflet: 'Engolir a cápsula inteira, com um copo de água.', appearanceSource: 'MANUAL', createdAt: '2026-05-26T08:00',
     },
     {
-      id: 'm-levotiroxina', elderId: 'e-helena', name: 'Levotiroxina', dosage: '50mcg', type: 'COMPRIMIDO', shape: 'REDONDO',
+      id: 'm-levotiroxina', patientId: 'e-helena', name: 'Levotiroxina', dosage: '50mcg', type: 'COMPRIMIDO', shape: 'REDONDO',
       primaryColor: pillColors.branco, lengthMm: 7, widthMm: 7, hasScore: true, imprint: '50', stock: 40,
       leaflet: 'Tomar em jejum, 30 minutos antes do café.', appearanceSource: 'EXTERNA', createdAt: '2026-05-11T09:30',
     },
     {
       // Sem tamanho informado: demonstra a legenda "Tamanho não informado".
-      id: 'm-lactulose', elderId: 'e-helena', name: 'Lactulose', dosage: '667mg/mL', type: 'XAROPE',
+      id: 'm-lactulose', patientId: 'e-helena', name: 'Lactulose', dosage: '667mg/mL', type: 'XAROPE',
       primaryColor: pillColors.ambar, secondaryColor: pillColors.branco, stock: 2, appearanceSource: 'MANUAL', createdAt: '2026-05-21T18:00',
     },
     {
-      id: 'm-vitaminad', elderId: 'e-helena', name: 'Vitamina D', dosage: '200 UI/gota', type: 'GOTAS',
+      id: 'm-vitaminad', patientId: 'e-helena', name: 'Vitamina D', dosage: '200 UI/gota', type: 'GOTAS',
       primaryColor: pillColors.ambar, secondaryColor: pillColors.laranja, stock: 2, appearanceSource: 'MANUAL', createdAt: '2026-05-08T09:00',
     },
   ];
@@ -113,19 +113,19 @@ export function createSeedDb(): MockDb {
   }
 
   const messages: Message[] = [
-    { id: 'msg-1', elderId: 'e-jose', from: 'CUIDADOR', text: 'Bom dia, seu José! Lembre do remédio do almoço, tá?', sentAt: '2026-06-05T07:40', read: true },
-    { id: 'msg-2', elderId: 'e-jose', from: 'IDOSO', text: 'Bom dia, Maria. Pode deixar.', sentAt: '2026-06-05T08:06', read: true },
-    { id: 'msg-3', elderId: 'e-jose', from: 'CUIDADOR', text: 'O remédio das 12:00 ainda não foi confirmado. Está tudo bem?', sentAt: '2026-06-05T12:40', read: false },
-    { id: 'msg-4', elderId: 'e-helena', from: 'CUIDADOR', text: 'Dona Helena, comprei mais Lactulose. Levo amanhã cedo.', sentAt: '2026-06-04T19:02', read: true },
-    { id: 'msg-5', elderId: 'e-helena', from: 'IDOSO', text: 'Obrigada, minha filha!', sentAt: '2026-06-04T19:20', read: false },
+    { id: 'msg-1', patientId: 'e-jose', from: 'CUIDADOR', text: 'Bom dia, seu José! Lembre do remédio do almoço, tá?', sentAt: '2026-06-05T07:40', read: true },
+    { id: 'msg-2', patientId: 'e-jose', from: 'PACIENTE', text: 'Bom dia, Maria. Pode deixar.', sentAt: '2026-06-05T08:06', read: true },
+    { id: 'msg-3', patientId: 'e-jose', from: 'CUIDADOR', text: 'O remédio das 12:00 ainda não foi confirmado. Está tudo bem?', sentAt: '2026-06-05T12:40', read: false },
+    { id: 'msg-4', patientId: 'e-helena', from: 'CUIDADOR', text: 'Dona Helena, comprei mais Lactulose. Levo amanhã cedo.', sentAt: '2026-06-04T19:02', read: true },
+    { id: 'msg-5', patientId: 'e-helena', from: 'PACIENTE', text: 'Obrigada, minha filha!', sentAt: '2026-06-04T19:20', read: false },
   ];
 
   const base = DEMO_START.getTime();
   const linkCodes: LinkCode[] = [
-    { code: '482913', elderId: 'e-jose', expiresAt: base + 20 * H, used: false },
-    { code: '305718', elderId: 'e-helena', expiresAt: base + 9 * H, used: false },
-    { code: '111111', elderId: 'e-jose', expiresAt: base - 2 * H, used: false }, // expirado
-    { code: '222222', elderId: 'e-helena', expiresAt: base + 12 * H, used: true }, // já usado
+    { code: '482913', patientId: 'e-jose', expiresAt: base + 20 * H, used: false },
+    { code: '305718', patientId: 'e-helena', expiresAt: base + 9 * H, used: false },
+    { code: '111111', patientId: 'e-jose', expiresAt: base - 2 * H, used: false }, // expirado
+    { code: '222222', patientId: 'e-helena', expiresAt: base + 12 * H, used: true }, // já usado
   ];
 
   return {
@@ -134,7 +134,7 @@ export function createSeedDb(): MockDb {
         createdAt: '2026-04-20T10:12', lgpdConsentAt: '2026-04-20T10:12', passwordHash: null },
     ],
     activeCaregiverId: 'c-maria',
-    elders,
+    patients,
     medications,
     treatments,
     doses,

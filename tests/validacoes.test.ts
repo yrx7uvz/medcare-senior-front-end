@@ -2,7 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 import { emptyMedicationValues } from '../src/features/medications/formValues';
 import { mapFieldErrors } from '../src/lib/formErrors';
 import { meetsPasswordPolicy, passwordChecks, passwordStrength } from '../src/lib/password';
-import { elderSchema, loginSchema, medicationFormSchema, signUpSchema } from '../src/lib/schemas';
+import { patientSchema, loginSchema, medicationFormSchema, signUpSchema } from '../src/lib/schemas';
 import { AppError } from '../src/services/errors';
 
 const campos = (r: { success: boolean; error?: { issues: { path: (string | number)[] }[] } }) =>
@@ -33,11 +33,11 @@ describe('login e cadastro do cuidador', () => {
   });
 });
 
-describe('cadastro do idoso', () => {
+describe('cadastro do paciente', () => {
   it('nome com 3+ letras, nascimento válido a partir de 1900 e telefone opcional', () => {
-    expect(elderSchema.safeParse({ name: 'José', birthDate: '12/03/1945', phone: '' }).success).toBe(true);
-    expect(campos(elderSchema.safeParse({ name: 'Jo', birthDate: '31/02/1945', phone: '' }))).toEqual(['name', 'birthDate']);
-    expect(campos(elderSchema.safeParse({ name: 'José', birthDate: '01/01/1899', phone: '' }))).toEqual(['birthDate']);
+    expect(patientSchema.safeParse({ name: 'José', birthDate: '12/03/1945', phone: '' }).success).toBe(true);
+    expect(campos(patientSchema.safeParse({ name: 'Jo', birthDate: '31/02/1945', phone: '' }))).toEqual(['name', 'birthDate']);
+    expect(campos(patientSchema.safeParse({ name: 'José', birthDate: '01/01/1899', phone: '' }))).toEqual(['birthDate']);
   });
 });
 

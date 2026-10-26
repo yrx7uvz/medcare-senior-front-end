@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootScreenProps } from '../../app/navigation/types';
-import { ElderSwitcher } from '../../components/layout/ElderSwitcher';
+import { PatientSwitcher } from '../../components/layout/PatientSwitcher';
 import { StackHeader } from '../../components/layout/StackHeader';
 import { AppText, Avatar, Button, Card, Chip, EmptyState, TextField } from '../../components/ui';
 import { services } from '../../services';
@@ -30,14 +30,14 @@ const CONTENTS = [
 export function ExportPdfScreen({ navigation }: RootScreenProps<'ExportPdf'>) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const filter = useAppStore((s) => s.selectedElderId);
-  const setSelected = useAppStore((s) => s.setSelectedElder);
+  const filter = useAppStore((s) => s.selectedPatientId);
+  const setSelected = useAppStore((s) => s.setSelectedPatient);
   const showToast = useAppStore((s) => s.showToast);
   const now = useNow(60_000);
   const [from, setFrom] = useState(formatDateBR(addDays(now, -29)));
   const [to, setTo] = useState(formatDateBR(now));
   const [failure, setFailure] = useState<string | null>(null);
-  const elders = useQuery(['elders'], () => services.elders.list());
+  const patients = useQuery(['patients'], () => services.patients.list());
   const download = useMutation(services.reports.downloadPdf);
   const [sharing, setSharing] = useState(false);
 
@@ -47,13 +47,13 @@ export function ExportPdfScreen({ navigation }: RootScreenProps<'ExportPdf'>) {
   }, []);
 
   const period = pdfPeriod(from, to);
-  const elderId = filter === 'ALL' ? null : filter;
+  const patientId = filter === 'ALL' ? null : filter;
   const busy = download.loading || sharing;
 
   async function generate() {
-    if (!elderId || period.error !== null || busy) return;
+    if (!patientId || period.error !== null || busy) return;
     setFailure(null);
-    const result = await download.run(elderId, period.from, period.to);
+    const result = await download.run(patientId, period.from, period.to);
     if (!result.ok) {
       setFailure(pdfDownloadFailure(result.error));
       return;
@@ -72,13 +72,13 @@ export function ExportPdfScreen({ navigation }: RootScreenProps<'ExportPdf'>) {
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       <StackHeader title="Relatório em PDF" subtitle="Histórico de adesão para a consulta" />
-      <ElderSwitcher />
+      <PatientSwitcher />
       <ScrollView contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + spacing.xxl }]}>
-        {!elderId ? (
+        {!patientId ? (
           <Card style={styles.card}>
             <EmptyState icon={Users} title="Escolha o paciente" description="O relatório em PDF é feito para um paciente por vez." />
             <View style={styles.chips}>
-              {(elders.data ?? []).map((e) => (
+              {(patients.data ?? []).map((e) => (
                 <Chip key={e.id} label={e.name} onPress={() => setSelected(e.id)} leading={<Avatar name={e.name} color={e.avatarColor} size={24} />} />
               ))}
             </View>

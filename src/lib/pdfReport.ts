@@ -32,7 +32,7 @@ export function pdfPeriod(fromBR: string, toBR: string): { from: DateKey; to: Da
 }
 
 /** Nome do arquivo sem dado pessoal: só o número do paciente e o período (como o servidor). */
-export const pdfFileName = (elderApiId: string | number, from: DateKey, to: DateKey) => `historico-adesao-${elderApiId}-${from}-a-${to}.pdf`;
+export const pdfFileName = (patientApiId: string | number, from: DateKey, to: DateKey) => `historico-adesao-${patientApiId}-${from}-a-${to}.pdf`;
 
 /** Mensagem para cada falha ao baixar o PDF (sessão expirada também leva ao login, pelo cliente HTTP). */
 export function pdfDownloadFailure(error: { kind?: string; status?: number; code?: string; message?: string }): string {

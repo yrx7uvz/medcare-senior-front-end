@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { ArrowLeft, CheckCircle2, Clock, Lock } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
-import { ElderScreen } from '../../components/layout/ElderScreen';
+import { PatientScreen } from '../../components/layout/PatientScreen';
 import { AppText, BigActionButton, Card, DoseStatusBadge, ErrorState, LoadingSkeleton, PillSizeLegend, PillVisual } from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
@@ -12,14 +12,14 @@ import { useMutation, useQuery } from '../../lib/useQuery';
 import { minuteStamp, useNow } from '../../lib/useNow';
 import { radius, spacing, useTheme } from '../../theme';
 
-/** Confirmação da dose pelo idoso: liberada de 60 min antes do horário até o limite de confirmação vindo do servidor. */
-export function ConfirmDoseScreen({ route, navigation }: RootScreenProps<'ElderConfirmDose'>) {
+/** Confirmação da dose pelo paciente: liberada de 60 min antes do horário até o limite de confirmação vindo do servidor. */
+export function ConfirmDoseScreen({ route, navigation }: RootScreenProps<'PatientConfirmDose'>) {
   const { colors } = useTheme();
-  const elderId = useAppStore((s) => s.elderSession?.elderId ?? '');
+  const patientId = useAppStore((s) => s.patientSession?.patientId ?? '');
   const now = useNow(10_000);
   const { doseId } = route.params;
   const dose = useQuery(['dose', doseId], () => services.doses.get(doseId), { silentKey: minuteStamp(now) });
-  const profile = useQuery(['elder-profile', elderId], () => services.elders.getProfile(elderId));
+  const profile = useQuery(['patient-profile', patientId], () => services.patients.getProfile(patientId));
   const confirm = useMutation(services.doses.confirm);
   const caregiver = profile.data?.caregiverFirstName ?? 'quem cuida de você';
   // Confirmabilidade entre as atualizações: só compara agora com a janela que veio do servidor
@@ -28,7 +28,7 @@ export function ConfirmDoseScreen({ route, navigation }: RootScreenProps<'ElderC
   async function onConfirm() {
     const result = await confirm.mutate(doseId);
     if (result) {
-      navigation.replace('ElderDoseConfirmed', { doseId });
+      navigation.replace('PatientDoseConfirmed', { doseId });
       return;
     }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => undefined);
@@ -38,16 +38,16 @@ export function ConfirmDoseScreen({ route, navigation }: RootScreenProps<'ElderC
 
   if (dose.loading) {
     return (
-      <ElderScreen back>
-        <LoadingSkeleton variant="elder" rows={1} />
-      </ElderScreen>
+      <PatientScreen back>
+        <LoadingSkeleton variant="patient" rows={1} />
+      </PatientScreen>
     );
   }
   if (dose.error || !d) {
     return (
-      <ElderScreen back>
+      <PatientScreen back>
         <ErrorState error={dose.error} onRetry={dose.reload} />
-      </ElderScreen>
+      </PatientScreen>
     );
   }
 
@@ -86,12 +86,12 @@ export function ConfirmDoseScreen({ route, navigation }: RootScreenProps<'ElderC
         : { bg: colors.infoSoft, fg: colors.text };
 
   return (
-    <ElderScreen
+    <PatientScreen
       back
       footer={
         <>
           {confirm.error ? (
-            <AppText variant="elderBody" color={colors.danger} align="center" accessibilityRole="alert">
+            <AppText variant="patientBody" color={colors.danger} align="center" accessibilityRole="alert">
               {confirm.error.message}
             </AppText>
           ) : null}
@@ -116,30 +116,30 @@ export function ConfirmDoseScreen({ route, navigation }: RootScreenProps<'ElderC
     >
       <View style={styles.center}>
         <PillVisual appearance={m} size="xl" name={m.name} />
-        <PillSizeLegend appearance={m} doseQuantity={d.doseQuantity} elder />
+        <PillSizeLegend appearance={m} doseQuantity={d.doseQuantity} patient />
       </View>
       <View style={styles.center}>
-        <AppText variant="elderDisplay" align="center">{m.name}</AppText>
-        <AppText variant="elderTitle" align="center">{m.dosage}</AppText>
-        <AppText variant="elderBody" muted align="center">
+        <AppText variant="patientDisplay" align="center">{m.name}</AppText>
+        <AppText variant="patientTitle" align="center">{m.dosage}</AppText>
+        <AppText variant="patientBody" muted align="center">
           Tome {d.doseQuantity} • {d.route}
         </AppText>
       </View>
       <Card style={styles.timeCard}>
         <View style={styles.flex}>
-          <AppText variant="elderBody" muted>Horário</AppText>
-          <AppText variant="elderHuge">{formatTime(d.scheduledAt)}</AppText>
+          <AppText variant="patientBody" muted>Horário</AppText>
+          <AppText variant="patientHuge">{formatTime(d.scheduledAt)}</AppText>
         </View>
-        <DoseStatusBadge status={d.status} size="elder" />
+        <DoseStatusBadge status={d.status} size="patient" />
       </Card>
-      {d.timeNote ? <AppText variant="elderStrong" align="center">{d.timeNote}</AppText> : null}
+      {d.timeNote ? <AppText variant="patientStrong" align="center">{d.timeNote}</AppText> : null}
       <View style={[styles.message, { backgroundColor: msgColors.bg }]} accessibilityLiveRegion="polite">
         <MsgIcon color={msgColors.fg} size={28} />
-        <AppText variant="elderBody" color={msgColors.fg} style={styles.flex}>
+        <AppText variant="patientBody" color={msgColors.fg} style={styles.flex}>
           {message.text}
         </AppText>
       </View>
-    </ElderScreen>
+    </PatientScreen>
   );
 }
 

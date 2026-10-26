@@ -50,7 +50,7 @@ export function themeContrastPairs(c: ThemeColors): ContrastPair[] {
     add(`danger (erro) / ${bgName}`, c.danger, bg, 'text');
   }
   add('text / inputBackground', c.text, c.inputBackground, 'text');
-  add('primaryDark (nome do idoso) / surface', c.primaryDark, c.surface, 'text');
+  add('primaryDark (nome do paciente) / surface', c.primaryDark, c.surface, 'text');
   add('onHeader (título do cabeçalho) / header', c.onHeader, c.header, 'text');
   add('onHeaderMuted (subtítulo do cabeçalho) / header', c.onHeaderMuted, c.header, 'text');
   add('onPrimary (botão principal, chip escolhido) / primary', c.onPrimary, c.primary, 'main');

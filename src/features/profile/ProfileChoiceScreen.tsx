@@ -1,23 +1,23 @@
 import { HeartHandshake, UserRound } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
-import { ElderScreen } from '../../components/layout/ElderScreen';
+import { PatientScreen } from '../../components/layout/PatientScreen';
 import { AppText, BigActionButton } from '../../components/ui';
 import { chooseProfile } from '../../lib/session';
 import { spacing } from '../../theme';
 
 /**
- * Primeira tela do aparelho: quem vai usar este celular. Tema do idoso na tela
+ * Primeira tela do aparelho: quem vai usar este celular. Tema do paciente na tela
  * inteira (texto ≥ 20sp, botões ≥ 88dp). A escolha fica gravada no SecureStore.
  */
 export function ProfileChoiceScreen(_: RootScreenProps<'ProfileChoice'>) {
   return (
-    <ElderScreen>
+    <PatientScreen>
       <View style={styles.head}>
-        <AppText variant="elderDisplay" accessibilityRole="header">
+        <AppText variant="patientDisplay" accessibilityRole="header">
           Quem vai usar este celular?
         </AppText>
-        <AppText variant="elderBody" muted>
+        <AppText variant="patientBody" muted>
           Escolha uma opção. Dá para trocar depois.
         </AppText>
       </View>
@@ -33,9 +33,9 @@ export function ProfileChoiceScreen(_: RootScreenProps<'ProfileChoice'>) {
         subtitle="Quero ver e confirmar meus remédios"
         icon={UserRound}
         variant="success"
-        onPress={() => void chooseProfile('ELDER')}
+        onPress={() => void chooseProfile('PATIENT')}
       />
-    </ElderScreen>
+    </PatientScreen>
   );
 }
 

@@ -10,10 +10,10 @@ const DOCS = {
   termos: {
     title: 'Termos de Uso',
     sections: [
-      ['O que é o MedCare Sênior', 'Um aplicativo para lembrar e registrar as doses de remédio de pessoas idosas e avisar quem cuida delas quando uma dose não é confirmada.'],
+      ['O que é o MedCare Sênior', 'Um aplicativo para lembrar e registrar as doses de remédio dos pacientes e avisar quem cuida deles quando uma dose não é confirmada. Foi pensado para pessoas idosas, mas pode ser usado por pacientes de qualquer idade.'],
       ['O que o app não faz', 'Não substitui orientação médica nem altera receitas. A aparência dos remédios pode variar conforme o fabricante.'],
       ['Responsabilidades de quem cuida', 'Cadastrar corretamente remédios, horários e pacientes, e manter o código de conexão em sigilo.'],
-      ['Registros de doses', 'Doses confirmadas ou não confirmadas não podem ser alteradas depois, para que o histórico seja confiável. A dose pode ser confirmada pela pessoa idosa, no celular dela, ou por você, na tela da dose, e o registro guarda quem confirmou.'],
+      ['Registros de doses', 'Doses confirmadas ou não confirmadas não podem ser alteradas depois, para que o histórico seja confiável. A dose pode ser confirmada pelo paciente, no celular dele, ou por você, na tela da dose, e o registro guarda quem confirmou.'],
     ],
   },
   lgpd: {

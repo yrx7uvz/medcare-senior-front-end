@@ -1,7 +1,7 @@
 # MedCare Sênior — aplicativo móvel (front-end)
 
 Front-end Android do MedCare Sênior em React Native + Expo (SDK 52) e TypeScript, com as duas interfaces:
-**Cuidador** (completa) e **Idoso** (ultra-simplificada). Nesta fase não há backend real: todos os dados
+**Cuidador** (completa) e **Paciente** (ultra-simplificada). Nesta fase não há backend real: todos os dados
 vêm de adapters mock isolados, prontos para serem trocados pela API Spring Boot.
 
 ## Como rodar
@@ -29,7 +29,7 @@ Verificado neste estado: `tsc --noEmit` sem erros e `npx expo export --platform 
 
 Existe só no protótipo. Permite:
 
-- **Visualizar como** Cuidador / Idoso, sem refazer login;
+- **Visualizar como** Cuidador / Paciente, sem refazer login;
 - **Relógio simulado**: o app começa em 05/06/2026 às 14:02 e o tempo corre a partir daí. O atalho
   **15:10** faz a Atorvastatina virar "Não tomada" e, se o Omeprazol não foi confirmado, dispara um alerta novo;
 - **Simular falhas**: erro de API (500), sem conexão e carregamento lento;
@@ -45,8 +45,8 @@ Códigos de vínculo prontos: `482913` (José, válido), `305718` (Helena, váli
 3. **Cadastrar remédio**: digite "Omeprazol" ou "Metformina" e toque em "Buscar dados do remédio" — formato, cor, tamanho
    e marcação são preenchidos e a prévia é desenhada. Teste também um nome inexistente para ver o preenchimento manual.
 4. **Tratamento**: dias, horários (horário repetido é bloqueado — RN07), início e fim.
-5. **Filtro de idosos**: alterne José / Helena / Todos no painel; a escolha vale em todas as abas.
-6. **Perfil Idoso**: menu do protótipo → Idoso → código `482913` → criar PIN de 4 dígitos.
+5. **Filtro de pacientes**: alterne José / Helena / Todos no painel; a escolha vale em todas as abas.
+6. **Perfil Paciente**: menu do protótipo → Paciente → código `482913` → criar PIN de 4 dígitos.
 7. **Confirmar dose em 2 toques**: "TOMAR REMÉDIO AGORA" → "TOMEI O REMÉDIO". A Atorvastatina está atrasada,
    então aparece primeiro e é registrada como "Confirmada com atraso"; em seguida, o Omeprazol, como "Tomada".
 8. **Voltar ao Cuidador**: a dose aparece confirmada no painel.
@@ -54,7 +54,7 @@ Códigos de vínculo prontos: `482913` (José, válido), `305718` (Helena, váli
 10. **Histórico** com filtros de status e período (registros não editáveis — RN08).
 11. **Exportar PDF**: barras de adesão por remédio e geração simulada.
 12. **Configurações**: tolerância de 5 a 120 min, com a linha do tempo do aviso e do encerramento.
-13. **Mensagens** nos dois perfis (mensagem vazia é bloqueada; o idoso tem respostas rápidas).
+13. **Mensagens** nos dois perfis (mensagem vazia é bloqueada; o paciente tem respostas rápidas).
 14. **Excluir conta**: confirmação em duas etapas (digitar EXCLUIR), com o texto da RN13.
 
 ## Estrutura
@@ -63,15 +63,15 @@ Códigos de vínculo prontos: `482913` (José, válido), `305718` (Helena, váli
 src/
   app/            App.tsx e navegação (stack + bottom tabs, telas condicionais por perfil/sessão/PIN)
   components/ui   PillVisual, PillSizeLegend, DoseStatusBadge, BigActionButton, PinPad, ChatThread, AdherenceBars...
-  components/layout  ElderSwitcher, AlertBanner, AlertWatcher, CaregiverScreen, ElderScreen, ProfileSwitcher, Toast
-  features/       auth, dashboard, elders, medications, history, messages, settings, elder (telas do idoso), legal
+  components/layout  PatientSwitcher, AlertBanner, AlertWatcher, CaregiverScreen, PatientScreen, ProfileSwitcher, Toast
+  features/       auth, dashboard, patients, medications, history, messages, settings, patient (telas do paciente), legal
   services/       contratos (types.ts), erros e o ponto único de troca (index.ts)
   adapters/mock   implementação mock dos 7 serviços
   adapters/http   cliente HTTP com JWT e mapa de endpoints da API (ainda não ligado)
   mocks/          seed (Maria, José, Helena), histórico determinístico, catálogo do MedicationInfoService
   lib/            datas, regras de dose (RN08/RN09/RN14), esquemas Zod, máscaras, useQuery, SecureStore
   store/          estado leve da interface (Zustand) e chaves do menu do protótipo
-  theme/          cores (claro, escuro, idoso, alto contraste), tipografia Nunito/Nunito Sans, espaçamentos
+  theme/          cores (claro, escuro, paciente, alto contraste), tipografia Nunito/Nunito Sans, espaçamentos
 ```
 
 ## Trocando os mocks pela API
@@ -81,7 +81,7 @@ implementação de cada interface de `src/services/types.ts` usando `request()` 
 objeto em `services/index.ts`. Configure a URL em `EXPO_PUBLIC_API_URL` (ver `.env.example`).
 Depois de cada escrita, chame `invalidateQueries()` para as telas abertas recarregarem.
 
-Pontos que a API ainda precisa expor para cobrir todas as telas: listagem de idosos do cuidador,
+Pontos que a API ainda precisa expor para cobrir todas as telas: listagem de pacientes do cuidador,
 `GET /api/doses/pendentes` com o status resolvido, alertas do dia, contagem de mensagens não lidas e os campos de
 aparência do medicamento (formato, cores, tamanho em mm, imprint, sulco) — hoje a tabela `medicamento` tem só
 `formato` e `cor`.
@@ -98,7 +98,7 @@ aparência do medicamento (formato, cores, tamanho em mm, imprint, sulco) — ho
 - **Relatório em PDF**: baixado da API (até 12 meses) e enviado pelo menu de compartilhar do Android; o arquivo fica
   no cache privado do app só durante o envio. Usa `expo-sharing` (módulo nativo: precisa de nova build de
   desenvolvimento no EAS).
-- **Tema**: claro/escuro guardado no aparelho (sem escolha, segue o sistema); idoso com tema claro, escuro e alto
+- **Tema**: claro/escuro guardado no aparelho (sem escolha, segue o sistema); paciente com tema claro, escuro e alto
   contraste. Todas as cores ficam em `src/theme/colors.ts` e o `npm run check:contrast` confere os cinco temas.
 - **Modo demo fora do release**: os mocks só entram no bundle com `EXPO_PUBLIC_DEMO=true` (`npm run check:mocks`
   falha se algo fora do caminho do demo importar os mocks).
@@ -107,9 +107,9 @@ aparência do medicamento (formato, cores, tamanho em mm, imprint, sulco) — ho
 - **Sem senha no código**: a conta de demonstração entra por um botão. Contas criadas no app guardam um hash
   ilustrativo só em memória (o backend usa BCrypt). No mock, José e Helena passam a pertencer à conta que entrar,
   para o roteiro funcionar com uma conta nova.
-- **Armazenamento local**: apenas a sessão e o PIN do idoso, no SecureStore (Keystore do Android). Nenhum dado de
+- **Armazenamento local**: apenas a sessão e o PIN do paciente, no SecureStore (Keystore do Android). Nenhum dado de
   saúde vai para AsyncStorage; os dados mock somem ao fechar o app.
-- **PIN do idoso**: guardado só como hash PBKDF2-HMAC-SHA256 (2.000 iterações, sal aleatório de 16 bytes do
+- **PIN do paciente**: guardado só como hash PBKDF2-HMAC-SHA256 (2.000 iterações, sal aleatório de 16 bytes do
   `expo-crypto`, comparação em tempo constante). A cada 5 erros seguidos o teclado bloqueia por 30 s, 2 min e
   10 min; o bloqueio conta pelo relógio monotônico (adiantar o relógio não adianta) e continua se o app for fechado.
   PIN antigo em texto é convertido no primeiro uso. O `expo-crypto` é nativo: exige um development build novo.
@@ -121,7 +121,7 @@ aparência do medicamento (formato, cores, tamanho em mm, imprint, sulco) — ho
   em `app.config.ts`.
 - **Tamanho real**: a régua da `PillSizeLegend` usa 1 mm ≈ 6,3 dp (densidade de referência do Android). É uma
   aproximação; a medida exata depende da tela.
-- **Acessibilidade (RNF01)**: textos do idoso ≥ 20 sp, botões principais ≥ 88 dp, teclado numérico com teclas de 72 dp,
+- **Acessibilidade (RNF01)**: textos do paciente ≥ 20 sp, botões principais ≥ 88 dp, teclado numérico com teclas de 72 dp,
   status sempre com ícone + texto, rótulos para leitor de tela e respeito ao tamanho de fonte do sistema.
   O botão verde usa `#1E7B45` (contraste 5,6:1 com branco), porque `#27AE60` com texto branco não atinge 4,5:1.
 - **Push, PDF e som** são simulados: modal de alerta, arquivo fictício e vibração com anúncio do leitor de tela.

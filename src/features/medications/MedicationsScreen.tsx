@@ -18,17 +18,17 @@ import { palette } from '../../theme/colors';
 export function MedicationsScreen({ navigation }: TabScreenProps<'Remedios'>) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const filter = useAppStore((s) => s.selectedElderId);
+  const filter = useAppStore((s) => s.selectedPatientId);
   const showToast = useAppStore((s) => s.showToast);
   const q = useQuery(['meds', filter], () => services.medications.list(filter));
-  const elders = useQuery(['elders'], () => services.elders.list());
+  const patients = useQuery(['patients'], () => services.patients.list());
   const remove = useMutation(services.medications.remove);
   const [target, setTarget] = useState<MedicationView | null>(null);
   // RN06: o servidor recusou com 409 TRATAMENTO_ATIVO; a próxima confirmação força a remoção
   const [mustForce, setMustForce] = useState(false);
   const needsForce = mustForce || !!target?.activeTreatment;
 
-  const elderName = filter === 'ALL' ? null : elders.data?.find((e) => e.id === filter)?.name;
+  const patientName = filter === 'ALL' ? null : patients.data?.find((e) => e.id === filter)?.name;
   const count = q.data?.length ?? 0;
 
   async function confirmRemove() {
@@ -56,8 +56,8 @@ export function MedicationsScreen({ navigation }: TabScreenProps<'Remedios'>) {
   return (
     <CaregiverScreen
       title="Remédios"
-      subtitle={q.data ? `${elderName ?? 'Todos os pacientes'} • ${count} ${count === 1 ? 'cadastrado' : 'cadastrados'}` : undefined}
-      withElderSwitcher
+      subtitle={q.data ? `${patientName ?? 'Todos os pacientes'} • ${count} ${count === 1 ? 'cadastrado' : 'cadastrados'}` : undefined}
+      withPatientSwitcher
     >
       {q.loading ? (
         <View style={styles.pad}><LoadingSkeleton /></View>
@@ -81,7 +81,7 @@ export function MedicationsScreen({ navigation }: TabScreenProps<'Remedios'>) {
             <EmptyState
               icon={Pill}
               title="Nenhum medicamento cadastrado para este paciente"
-              description={elderName ? `Cadastre o primeiro remédio de ${firstName(elderName)}.` : 'Cadastre o primeiro remédio.'}
+              description={patientName ? `Cadastre o primeiro remédio de ${firstName(patientName)}.` : 'Cadastre o primeiro remédio.'}
               actionLabel="Cadastrar remédio"
               onAction={() => navigation.navigate('MedicationForm')}
             />
@@ -89,7 +89,7 @@ export function MedicationsScreen({ navigation }: TabScreenProps<'Remedios'>) {
           renderItem={({ item }) => (
             <MedicationCard
               item={item}
-              showElder={filter === 'ALL'}
+              showPatient={filter === 'ALL'}
               onPress={() => navigation.navigate('MedicationForm', { medicationId: item.medication.id })}
               onRemove={() => {
                 remove.clearError();

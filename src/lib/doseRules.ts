@@ -63,12 +63,12 @@ export const isMissed = (s: DisplayStatus) => s === 'ATRASADA' || s === 'NAO_TOM
 export const isRegistered = (s: DisplayStatus) => s === 'CONFIRMADA_NO_HORARIO' || s === 'CONFIRMADA_COM_ATRASO' || s === 'NAO_TOMADA';
 
 /**
- * "Confirmada por José às 08:05" (idoso, com o primeiro nome) ou "Confirmada por você às 08:05" (cuidador vendo a
+ * "Confirmada por José às 08:05" (paciente, com o primeiro nome) ou "Confirmada por você às 08:05" (cuidador vendo a
  * própria confirmação). Sem quem confirmou (dados antigos), só a hora.
  */
-export function confirmedByText(by: ConfirmedBy | undefined, elderFirstName: string, time: string): string {
+export function confirmedByText(by: ConfirmedBy | undefined, patientFirstName: string, time: string): string {
   if (by === 'CUIDADOR') return `Confirmada por você às ${time}`;
-  if (by === 'IDOSO') return `Confirmada por ${elderFirstName} às ${time}`;
+  if (by === 'PACIENTE') return `Confirmada por ${patientFirstName} às ${time}`;
   return `Confirmada às ${time}`;
 }
 
