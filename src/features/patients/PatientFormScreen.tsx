@@ -19,7 +19,7 @@ import { radius, spacing, useTheme } from '../../theme';
 
 const PATIENT_FIELDS = ['name', 'birthDate', 'phone'] as const;
 
-/** T04 — Cadastrar paciente. Aviso (não bloqueio) para menos de 60 anos; RN03. */
+/** Cadastrar paciente. Aviso (não bloqueio) para menos de 60 anos; RN03. */
 export function PatientFormScreen({ navigation }: RootScreenProps<'PatientForm'>) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();

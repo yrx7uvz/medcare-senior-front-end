@@ -15,7 +15,7 @@ import { usePolling, useScreenActive } from '../../lib/useScreenActivity';
 import { cardShadow, radius, spacing, useTheme } from '../../theme';
 
 /**
- * T09 — Mensagens do cuidador (UC-010). "Todos" mostra a lista de conversas por paciente; um paciente, a conversa. Atualiza
+ * Mensagens do cuidador (UC-010). "Todos" mostra a lista de conversas por paciente; um paciente, a conversa. Atualiza
  * sozinha só enquanto esta tela está visível.
  */
 export function CaregiverMessagesScreen(_: TabScreenProps<'Mensagens'>) {

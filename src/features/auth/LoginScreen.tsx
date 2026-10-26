@@ -17,7 +17,7 @@ import { useMutation } from '../../lib/useQuery';
 import { radius, spacing, useTheme } from '../../theme';
 import { Logo } from './Logo';
 
-/** T01 — Login do cuidador. Erro idêntico para e-mail inexistente e senha incorreta. */
+/** Login do cuidador. Erro idêntico para e-mail inexistente e senha incorreta. */
 export function LoginScreen({ navigation, route }: RootScreenProps<'Login'>) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();

@@ -18,7 +18,7 @@ import { radius, spacing, useTheme } from '../../theme';
 import { PatientDoseRow } from './PatientDoseRow';
 import { pickNextDose } from './nextDose';
 
-/** T10 — Início do paciente: próxima dose, botão gigante e o dia de hoje. */
+/** Início do paciente: próxima dose, botão gigante e o dia de hoje. */
 export function PatientHomeScreen({ navigation }: RootScreenProps<'PatientHome'>) {
   const { colors } = useTheme();
   const patientId = useAppStore((s) => s.patientSession?.patientId ?? '');

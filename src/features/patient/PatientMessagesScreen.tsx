@@ -13,7 +13,7 @@ import { spacing } from '../../theme';
 const QUICK_REPLIES = ['Já tomei, agradeço', 'Estou bem', 'Pode me ligar?'];
 
 /**
- * T13 — Mensagens do paciente (UC-010): só a conversa dele, bolhas e letra grandes, botão de enviar de 64 dp e respostas
+ * Mensagens do paciente (UC-010): só a conversa dele, bolhas e letra grandes, botão de enviar de 64 dp e respostas
  * rápidas. Atualiza sozinha só enquanto esta tela está visível.
  */
 export function PatientMessagesScreen(_: RootScreenProps<'PatientMessages'>) {

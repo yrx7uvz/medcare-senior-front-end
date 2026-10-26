@@ -18,7 +18,7 @@ import { PasswordStrengthMeter } from './PasswordStrengthMeter';
 
 const SIGN_UP_FIELDS = ['name', 'email', 'phone', 'password', 'lgpdConsent'] as const;
 
-/** T02 — Cadastro do cuidador com consentimento LGPD obrigatório. */
+/** Cadastro do cuidador com consentimento LGPD obrigatório. */
 export function SignUpScreen({ navigation }: RootScreenProps<'SignUp'>) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();

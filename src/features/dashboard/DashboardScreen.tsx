@@ -22,7 +22,7 @@ import { spacing, useTheme } from '../../theme';
 import { DoseCard } from './DoseCard';
 import { SummaryCards } from './SummaryCards';
 
-/** T03 — Painel diário do cuidador. */
+/** Painel diário do cuidador. */
 export function DashboardScreen({ navigation }: TabScreenProps<'Painel'>) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();

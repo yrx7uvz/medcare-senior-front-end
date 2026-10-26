@@ -29,7 +29,7 @@ import { ToleranceSelector } from './ToleranceSelector';
 const EXPECTED_REMOVAL_DAYS = IS_DEMO ? 30 : 0;
 const removalWhen = (days: number) => (days === 0 ? 'imediatamente' : `em até ${days} dias`);
 
-/** T08 — Configurações do cuidador. */
+/** Configurações do cuidador. */
 export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
