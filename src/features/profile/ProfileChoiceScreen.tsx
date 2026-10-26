@@ -1,41 +1,42 @@
-import { HeartHandshake, UserRound } from 'lucide-react-native';
+import HeartHandshake from 'lucide-react-native/icons/heart-handshake';
+import UserRound from 'lucide-react-native/icons/user-round';
 import { StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
-import { ElderScreen } from '../../components/layout/ElderScreen';
+import { PatientScreen } from '../../components/layout/PatientScreen';
 import { AppText, BigActionButton } from '../../components/ui';
 import { chooseProfile } from '../../lib/session';
 import { spacing } from '../../theme';
 
 /**
- * Primeira tela do aparelho: quem vai usar este celular. Tema do idoso na tela
+ * Primeira tela do aparelho: quem vai usar este celular. Tema do paciente na tela
  * inteira (texto ≥ 20sp, botões ≥ 88dp). A escolha fica gravada no SecureStore.
  */
 export function ProfileChoiceScreen(_: RootScreenProps<'ProfileChoice'>) {
   return (
-    <ElderScreen>
+    <PatientScreen>
       <View style={styles.head}>
-        <AppText variant="elderDisplay" accessibilityRole="header">
+        <AppText variant="patientDisplay" accessibilityRole="header">
           Quem vai usar este celular?
         </AppText>
-        <AppText variant="elderBody" muted>
+        <AppText variant="patientBody" muted>
           Escolha uma opção. Dá para trocar depois.
         </AppText>
       </View>
       <BigActionButton
-        title="Sou cuidador"
-        subtitle="Cuido dos remédios de alguém"
+        title="Cuido de alguém"
+        subtitle="Acompanho os remédios de outra pessoa"
         icon={HeartHandshake}
         variant="primary"
         onPress={() => void chooseProfile('CAREGIVER')}
       />
       <BigActionButton
-        title="Sou idoso"
+        title="Tomo os remédios"
         subtitle="Quero ver e confirmar meus remédios"
         icon={UserRound}
         variant="success"
-        onPress={() => void chooseProfile('ELDER')}
+        onPress={() => void chooseProfile('PATIENT')}
       />
-    </ElderScreen>
+    </PatientScreen>
   );
 }
 

@@ -7,9 +7,11 @@ import type { ThemeColors } from '../theme/colors';
  */
 export const MIN_TEXT = 4.5;
 export const MIN_LARGE_OR_UI = 3;
+/** Alto contraste (WCAG AAA): textos principais com pelo menos 7:1. */
+export const MIN_TEXT_HIGH_CONTRAST = 7;
 
 function channel(hex: string, offset: number): number {
-  const c = parseInt(hex.slice(offset, offset + 2), 16) / 255;
+  const c = Number.parseInt(hex.slice(offset, offset + 2), 16) / 255;
   return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
 }
 
@@ -23,7 +25,8 @@ export function contrastRatio(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-export type PairKind = 'text' | 'large' | 'ui';
+/** main = texto principal (no alto contraste exige 7:1); text = demais textos; large/ui = 3:1. */
+export type PairKind = 'main' | 'text' | 'large' | 'ui';
 
 export interface ContrastPair {
   name: string;
@@ -32,7 +35,8 @@ export interface ContrastPair {
   kind: PairKind;
 }
 
-export const minimumFor = (kind: PairKind) => (kind === 'text' ? MIN_TEXT : MIN_LARGE_OR_UI);
+export const minimumFor = (kind: PairKind, highContrast = false) =>
+  kind === 'main' ? (highContrast ? MIN_TEXT_HIGH_CONTRAST : MIN_TEXT) : kind === 'text' ? MIN_TEXT : MIN_LARGE_OR_UI;
 
 /** Pares de cor que o app usa de fato: texto sobre fundo, botões, cabeçalho, erros, status, bordas e indicadores. */
 export function themeContrastPairs(c: ThemeColors): ContrastPair[] {
@@ -40,16 +44,16 @@ export function themeContrastPairs(c: ThemeColors): ContrastPair[] {
   const add = (name: string, fg: string, bg: string, kind: PairKind) => pairs.push({ name, fg, bg, kind });
 
   for (const [bgName, bg] of [['background', c.background], ['surface', c.surface], ['surfaceAlt', c.surfaceAlt]] as const) {
-    add(`text / ${bgName}`, c.text, bg, 'text');
+    add(`text / ${bgName}`, c.text, bg, 'main');
     add(`textMuted / ${bgName}`, c.textMuted, bg, 'text');
-    add(`primary (link, botão secundário) / ${bgName}`, c.primary, bg, 'text');
+    add(`primary (link, botão secundário) / ${bgName}`, c.primary, bg, 'main');
     add(`danger (erro) / ${bgName}`, c.danger, bg, 'text');
   }
   add('text / inputBackground', c.text, c.inputBackground, 'text');
-  add('primaryDark (nome do idoso) / surface', c.primaryDark, c.surface, 'text');
+  add('primaryDark (nome do paciente) / surface', c.primaryDark, c.surface, 'text');
   add('onHeader (título do cabeçalho) / header', c.onHeader, c.header, 'text');
   add('onHeaderMuted (subtítulo do cabeçalho) / header', c.onHeaderMuted, c.header, 'text');
-  add('onPrimary (botão principal, chip escolhido) / primary', c.onPrimary, c.primary, 'text');
+  add('onPrimary (botão principal, chip escolhido) / primary', c.onPrimary, c.primary, 'main');
   add('onSuccessButton / successButton', c.onSuccessButton, c.successButton, 'text');
   add('danger / dangerSoft (caixa de erro)', c.danger, c.dangerSoft, 'text');
   add('warningText / warningSoft (aviso)', c.warningText, c.warningSoft, 'text');
@@ -64,6 +68,13 @@ export function themeContrastPairs(c: ThemeColors): ContrastPair[] {
   add('inputBorder (borda de campo) / surface', c.inputBorder, c.surface, 'ui');
   add('inputBorder (caixa de seleção, chip) / background', c.inputBorder, c.background, 'ui');
   add('focus / surface', c.focus, c.surface, 'ui');
+  // Seletor liga/desliga: trilha contra o fundo, polegar contra a trilha, borda da trilha desligada
+  for (const [bgName, bg] of [['background', c.background], ['surface', c.surface]] as const) {
+    add(`switch ligado: trilha / ${bgName}`, c.switch.onTrack, bg, 'ui');
+    add(`switch desligado: borda da trilha / ${bgName}`, c.switch.offBorder, bg, 'ui');
+  }
+  add('switch ligado: polegar / trilha', c.switch.onThumb, c.switch.onTrack, 'ui');
+  add('switch desligado: polegar / trilha', c.switch.offThumb, c.switch.offTrack, 'ui');
   return pairs;
 }
 
@@ -73,10 +84,11 @@ export interface ContrastResult extends ContrastPair {
   ok: boolean;
 }
 
-export function checkTheme(c: ThemeColors): ContrastResult[] {
+/** @param highContrast tema de alto contraste: textos principais com 7:1 */
+export function checkTheme(c: ThemeColors, highContrast = false): ContrastResult[] {
   return themeContrastPairs(c).map((p) => {
     const ratio = contrastRatio(p.fg, p.bg);
-    const min = minimumFor(p.kind);
+    const min = minimumFor(p.kind, highContrast);
     return { ...p, ratio, min, ok: ratio >= min };
   });
 }

@@ -1,5 +1,7 @@
-import { FileDown, History as HistoryIcon, Lock } from 'lucide-react-native';
-import { useState } from 'react';
+import FileDown from 'lucide-react-native/icons/file-down';
+import HistoryIcon from 'lucide-react-native/icons/rotate-ccw-clock';
+import Lock from 'lucide-react-native/icons/lock';
+import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TabScreenProps } from '../../app/navigation/types';
@@ -34,32 +36,33 @@ interface MorePages {
 }
 
 /**
- * Histórico de doses (UC-011): filtros de idoso (ElderSwitcher), remédio, status e período; páginas de 20 do mais
+ * Histórico de doses (UC-011): filtros de paciente (PatientSwitcher), remédio, status e período; páginas de 20 do mais
  * recente para o mais antigo, com "carregar mais". Datas no fuso de São Paulo. Período sem registros mostra aviso
  * (RN-011); período invertido é recusado na tela e, se chegar à API, a mensagem do 400 é mostrada.
  */
 export function HistoryScreen({ navigation }: TabScreenProps<'Historico'>) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const elder = useAppStore((s) => s.selectedElderId);
+  const patient = useAppStore((s) => s.selectedPatientId);
+  const openDose = useCallback((d: DoseView) => navigation.navigate('DoseDetail', { doseId: d.id }), [navigation]);
   const now = useNow();
   const today = appTodayKey(now);
   const [status, setStatus] = useState<HistoryStatusFilter>('ALL');
   const [period, setPeriod] = useState<HistoryPeriod>('7');
   const [customFrom, setCustomFrom] = useState(keyToDateBR(shiftDateKey(today, -13)));
   const [customTo, setCustomTo] = useState(keyToDateBR(today));
-  // O remédio escolhido vale só para o idoso em que foi escolhido
-  const [medicationChoice, setMedicationChoice] = useState<{ elder: string; id: string } | null>(null);
-  const medicationId = medicationChoice && medicationChoice.elder === elder ? medicationChoice.id : undefined;
+  // O remédio escolhido vale só para o paciente em que foi escolhido
+  const [medicationChoice, setMedicationChoice] = useState<{ patient: string; id: string } | null>(null);
+  const medicationId = medicationChoice && medicationChoice.patient === patient ? medicationChoice.id : undefined;
 
   const range = historyRange(period, today, customFrom, customTo);
-  const filters = { elder, medicationId, from: range.from, to: range.to, status };
+  const filters = { patient, medicationId, from: range.from, to: range.to, status };
   const filtersKey = JSON.stringify(filters);
 
   const first = useQuery(['history', filtersKey], () => services.doses.listHistory({ ...filters, page: 0, size: HISTORY_PAGE_SIZE }), {
     enabled: !range.error,
   });
-  const medications = useQuery(['history-medications', elder], () => services.medications.list(elder), { enabled: elder !== 'ALL' });
+  const medications = useQuery(['history-medications', patient], () => services.medications.list(patient), { enabled: patient !== 'ALL' });
 
   const [more, setMore] = useState<MorePages | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -99,7 +102,7 @@ export function HistoryScreen({ navigation }: TabScreenProps<'Historico'>) {
           <Chip key={s.value} label={s.label} selected={status === s.value} onPress={() => setStatus(s.value)} />
         ))}
       </ScrollView>
-      {elder !== 'ALL' && medications.data && medications.data.length > 0 ? (
+      {patient !== 'ALL' && medications.data && medications.data.length > 0 ? (
         <>
           <AppText variant="label">Remédio</AppText>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
@@ -109,7 +112,7 @@ export function HistoryScreen({ navigation }: TabScreenProps<'Historico'>) {
                 key={m.medication.id}
                 label={m.medication.name}
                 selected={medicationId === m.medication.id}
-                onPress={() => setMedicationChoice({ elder, id: m.medication.id })}
+                onPress={() => setMedicationChoice({ patient, id: m.medication.id })}
               />
             ))}
           </ScrollView>
@@ -139,7 +142,7 @@ export function HistoryScreen({ navigation }: TabScreenProps<'Historico'>) {
       <View style={[styles.notice, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
         <Lock color={colors.textMuted} size={16} />
         <AppText variant="caption" muted style={styles.flex}>
-          Registros de doses não podem ser alterados retroativamente (RN08).
+          Registros de doses não podem ser alterados retroativamente.
         </AppText>
       </View>
       <Button title="Exportar histórico em PDF" icon={FileDown} variant="secondary" onPress={() => navigation.navigate('ExportPdf')} />
@@ -171,7 +174,7 @@ export function HistoryScreen({ navigation }: TabScreenProps<'Historico'>) {
     ) : undefined;
 
   return (
-    <CaregiverScreen title="Histórico de doses" subtitle={`${formatDateBR(range.from)} a ${formatDateBR(range.to)}`} withElderSwitcher>
+    <CaregiverScreen title="Histórico de doses" subtitle={`${formatDateBR(range.from)} a ${formatDateBR(range.to)}`} withPatientSwitcher>
       {first.loading ? (
         <ScrollView contentContainerStyle={styles.pad}>
           {header}
@@ -186,8 +189,8 @@ export function HistoryScreen({ navigation }: TabScreenProps<'Historico'>) {
         <HistoryList
           doses={range.error ? [] : doses}
           todayKey={today}
-          showElder={elder === 'ALL'}
-          onPress={(d) => navigation.navigate('DoseDetail', { doseId: d.id })}
+          showPatient={patient === 'ALL'}
+          onPress={openDose}
           header={header}
           footer={footer}
           bottomInset={insets.bottom}

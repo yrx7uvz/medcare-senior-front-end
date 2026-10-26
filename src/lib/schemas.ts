@@ -2,9 +2,11 @@ import { z } from 'zod';
 import { MEDICATION_TYPE_VALUES, PILL_SHAPE_VALUES } from '../types/domain';
 import { dateBRToKey, isValidDateBR, parseDateBR } from './date';
 import { meetsPasswordPolicy } from './password';
+import { DUPLICATE_TIME_MESSAGE, EMPTY_TIMES_MESSAGE } from './timeList';
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Domínio em partes separadas por ponto, sem ponto vazio: as classes não se sobrepõem (sem retrocesso caro)
+const EMAIL_RE = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
 
 export const loginSchema = z.object({
   email: z.string().trim().min(1, 'Informe seu e-mail').regex(EMAIL_RE, 'E-mail inválido'),
@@ -17,14 +19,14 @@ export const signUpSchema = z
     name: z.string().trim().min(3, 'Informe seu nome completo'),
     email: z.string().trim().regex(EMAIL_RE, 'E-mail inválido'),
     phone: z.string().refine((v) => v === '' || v.replace(/\D/g, '').length >= 10, 'Telefone incompleto'),
-    password: z.string().refine(meetsPasswordPolicy, 'A senha não atende aos requisitos (RN02)'),
+    password: z.string().refine(meetsPasswordPolicy, 'A senha não atende aos requisitos'),
     confirmPassword: z.string(),
     lgpdConsent: z.boolean().refine((v) => v, 'É preciso aceitar para criar a conta'),
   })
   .refine((v) => v.password === v.confirmPassword, { path: ['confirmPassword'], message: 'As senhas não conferem' });
 export type SignUpValues = z.infer<typeof signUpSchema>;
 
-export const elderSchema = z.object({
+export const patientSchema = z.object({
   name: z.string().trim().min(3, 'Informe o nome completo'),
   birthDate: z
     .string()
@@ -35,7 +37,7 @@ export const elderSchema = z.object({
     }, 'Confira o ano de nascimento'),
   phone: z.string().refine((v) => v === '' || v.replace(/\D/g, '').length >= 10, 'Telefone incompleto'),
 });
-export type ElderValues = z.infer<typeof elderSchema>;
+export type PatientValues = z.infer<typeof patientSchema>;
 
 /**
  * Formulário de remédio + tratamento: só os campos que a API guarda (MedicamentoRequestDTO e TratamentoRequestDTO),
@@ -43,10 +45,10 @@ export type ElderValues = z.infer<typeof elderSchema>;
  */
 export const medicationFormSchema = z
   .object({
-    elderId: z.string().min(1, 'Escolha o paciente'),
-    name: z.string().trim().min(1, 'Informe o nome do remédio (RN05)').max(255, 'Até 255 caracteres'),
-    dosage: z.string().trim().min(1, 'Informe a dosagem (RN05)').max(100, 'Até 100 caracteres'),
-    type: z.enum(MEDICATION_TYPE_VALUES, { errorMap: () => ({ message: 'Escolha o tipo (RN05)' }) }),
+    patientId: z.string().min(1, 'Escolha o paciente'),
+    name: z.string().trim().min(1, 'Informe o nome do remédio').max(255, 'Até 255 caracteres'),
+    dosage: z.string().trim().min(1, 'Informe a dosagem').max(100, 'Até 100 caracteres'),
+    type: z.enum(MEDICATION_TYPE_VALUES, { errorMap: () => ({ message: 'Escolha o tipo' }) }),
     shape: z.enum(PILL_SHAPE_VALUES),
     primaryColor: z.string().max(50),
     stock: z.string().refine((v) => v.trim() === '' || /^\d{1,5}$/.test(v.trim()), 'Use um número inteiro'),
@@ -58,12 +60,12 @@ export const medicationFormSchema = z
     weekdays: z.array(z.number().int().min(0).max(6)).min(1, 'Escolha ao menos um dia'),
     times: z
       .array(z.object({ time: z.string().regex(TIME_RE, 'Use HH:MM') }))
-      .min(1, 'Adicione ao menos um horário')
+      .min(1, EMPTY_TIMES_MESSAGE)
       .superRefine((times, ctx) => {
         const seen = new Set<string>();
         times.forEach((t, i) => {
           if (seen.has(t.time)) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, path: [i, 'time'], message: 'Horário repetido (RN07)' });
+            ctx.addIssue({ code: z.ZodIssueCode.custom, path: [i, 'time'], message: DUPLICATE_TIME_MESSAGE });
           }
           seen.add(t.time);
         });

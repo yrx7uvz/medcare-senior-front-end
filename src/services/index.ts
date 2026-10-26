@@ -9,4 +9,4 @@ import type { Services } from './types';
 export const services: Services = getDemo()?.mockServices ?? httpServices;
 
 export * from './errors';
-export type { Services, AuthService, ElderService, MedicationService, DoseService, MessageService, ReportService, MedicationInfoService } from './types';
+export type { Services, AuthService, PatientService, MedicationService, DoseService, MessageService, ReportService, MedicationInfoService } from './types';

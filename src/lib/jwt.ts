@@ -1,3 +1,5 @@
+import { semFinal } from './text';
+
 /**
  * Leitura do payload de um JWT no aparelho, só para saber se ele já expirou
  * (a assinatura é conferida pela API, nunca aqui). Sem biblioteca: base64url → bytes → UTF-8.
@@ -9,7 +11,7 @@ function base64UrlToBytes(input: string): number[] | null {
   const bytes: number[] = [];
   let buffer = 0;
   let bits = 0;
-  for (const ch of input.replace(/=+$/, '')) {
+  for (const ch of semFinal(input, '=')) {
     const value = ALPHABET.indexOf(ch);
     if (value < 0) return null;
     buffer = (buffer << 6) | value;

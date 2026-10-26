@@ -1,4 +1,5 @@
-import { AlertTriangle, X } from 'lucide-react-native';
+import AlertTriangle from 'lucide-react-native/icons/triangle-alert';
+import X from 'lucide-react-native/icons/x';
 import { StyleSheet, View } from 'react-native';
 import type { AlertView } from '../../types/views';
 import { formatTime } from '../../lib/date';
@@ -14,7 +15,7 @@ interface Props {
 
 export function alertMessage(a: AlertView) {
   return a.status === 'NAO_TOMADA'
-    ? `${a.medicationName} ${a.dosage} (${formatTime(a.scheduledAt)}) não foi tomada. O prazo terminou.`
+    ? `${a.medicationName} ${a.dosage} (${formatTime(a.scheduledAt)}) não foi confirmada. O prazo terminou.`
     : `${a.medicationName} ${a.dosage} (${formatTime(a.scheduledAt)}) não foi confirmada dentro da tolerância.`;
 }
 
@@ -32,7 +33,7 @@ export function AlertBanner({ alert, onDetails, onDismiss, extraCount = 0 }: Pro
         <AlertTriangle color={c.fg} size={22} />
         <View style={styles.texts}>
           <AppText variant="bodyStrong" color={c.fg}>
-            Dose não confirmada — {alert.elderName}
+            Dose não confirmada — {alert.patientName}
           </AppText>
           <AppText variant="body" color={colors.text}>
             {alertMessage(alert)}

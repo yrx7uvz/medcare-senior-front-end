@@ -5,7 +5,7 @@
  */
 const MESSAGES: Readonly<Record<string, string>> = {
   CODIGO_INVALIDO: 'Código inválido, expirado ou já usado. Confira os 6 números com quem cuida de você.',
-  IDOSO_DUPLICADO: 'Você já cadastrou um paciente com este nome e esta data de nascimento.',
+  PACIENTE_DUPLICADO: 'Você já cadastrou um paciente com este nome e esta data de nascimento.',
   ACESSO_NEGADO: 'Você não tem permissão para acessar estas informações.',
   RECURSO_NAO_ENCONTRADO: 'Não encontramos este item. Ele pode ter sido removido. Atualize a tela.',
   DOSE_JA_REGISTRADA: 'Esta dose já foi registrada. A tela foi atualizada.',

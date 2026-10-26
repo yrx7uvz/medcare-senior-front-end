@@ -7,6 +7,7 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
  *   vem do arquivo secreto GOOGLE_SERVICES_JSON (eas env:create --type file); localmente, da mesma variável apontando
  *   para um arquivo fora do projeto. Sem a variável, o app compila sem Firebase (o push fica inerte).
  * - expo-notifications: canal padrão "alertas-dose" (o mesmo que o backend usa no FCM) e cor do ícone.
+ * - expo-splash-screen: o ícone arredondado sobre o fundo do tema claro ou do escuro.
  * - Permissões: lista mínima explícita e bloqueio do que bibliotecas ou o modelo do Expo acrescentam sem o app usar.
  */
 
@@ -48,6 +49,26 @@ export const ANDROID_BLOCKED_PERMISSIONS = [
   'android.permission.REQUEST_INSTALL_PACKAGES',
   // Identificador de publicidade que bibliotecas do Google Play Services podem declarar
   'com.google.android.gms.permission.AD_ID',
+  // Origem da instalação pela Play Store (Install Referrer, vem com o Firebase): o app não usa
+  'com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE',
+  // Contador no ícone (badge) de vários fabricantes, do ShortcutBadger que o expo-notifications traz pelo Maven: o app
+  // não usa contador no ícone. Só aparecem no APK final (aapt), não no prebuild: npm run check:permissions -- --apk
+  'android.permission.READ_APP_BADGE',
+  'com.anddoes.launcher.permission.UPDATE_COUNT',
+  'com.htc.launcher.permission.READ_SETTINGS',
+  'com.htc.launcher.permission.UPDATE_SHORTCUT',
+  'com.huawei.android.launcher.permission.CHANGE_BADGE',
+  'com.huawei.android.launcher.permission.READ_SETTINGS',
+  'com.huawei.android.launcher.permission.WRITE_SETTINGS',
+  'com.majeur.launcher.permission.UPDATE_BADGE',
+  'com.oppo.launcher.permission.READ_SETTINGS',
+  'com.oppo.launcher.permission.WRITE_SETTINGS',
+  'com.sec.android.provider.badge.permission.READ',
+  'com.sec.android.provider.badge.permission.WRITE',
+  'com.sonyericsson.home.permission.BROADCAST_BADGE',
+  'com.sonymobile.home.permission.PROVIDER_INSERT_BADGE',
+  'me.everything.badger.permission.BADGE_COUNT_READ',
+  'me.everything.badger.permission.BADGE_COUNT_WRITE',
 ];
 
 /**
@@ -55,6 +76,13 @@ export const ANDROID_BLOCKED_PERMISSIONS = [
  * development do eas.json define ANDROID_ALLOW_CLEARTEXT=true; preview e production (e qualquer build sem a variável)
  * ficam com usesCleartextTraffic=false, e o app ainda recusa EXPO_PUBLIC_API_URL sem https:// no release.
  */
+/**
+ * Cores da marca usadas fora do app (ícone das notificações e splash). O carregador do app.config não importa outros
+ * arquivos .ts, então elas ficam copiadas aqui; o check:core falha se divergirem de src/theme/colors.ts
+ * (palette.primary, palette.background e darkColors.background).
+ */
+export const CORES_NATIVAS = { primaria: '#1A6FB5', fundoClaro: '#F0F4F8', fundoEscuro: '#121417' } as const;
+
 export function withCleartextPolicy(plugins: ExpoConfig['plugins'], allowCleartext: boolean): ExpoConfig['plugins'] {
   return (plugins ?? []).map((plugin) => {
     if (!Array.isArray(plugin) || plugin[0] !== 'expo-build-properties') return plugin;
@@ -81,7 +109,17 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     plugins: [
       ...(withCleartextPolicy(config.plugins, allowCleartext) ?? []),
       'expo-dev-client',
-      ['expo-notifications', { color: '#1A6FB5', defaultChannel: 'alertas-dose' }],
+      ['expo-notifications', { color: CORES_NATIVAS.primaria, defaultChannel: 'alertas-dose' }],
+      [
+        'expo-splash-screen',
+        {
+          image: './assets/splash-icon.png',
+          imageWidth: 160,
+          resizeMode: 'contain',
+          backgroundColor: CORES_NATIVAS.fundoClaro,
+          dark: { image: './assets/splash-icon.png', backgroundColor: CORES_NATIVAS.fundoEscuro },
+        },
+      ],
     ],
   };
 };

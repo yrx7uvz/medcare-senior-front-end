@@ -1,4 +1,5 @@
-import { CalendarClock, Trash2 } from 'lucide-react-native';
+import CalendarClock from 'lucide-react-native/icons/calendar-clock';
+import Trash2 from 'lucide-react-native/icons/trash';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, Badge, IconButton, PillVisual } from '../../components/ui';
 import { TYPE_LABEL, stockLabel } from '../../lib/medicationMeta';
@@ -7,13 +8,13 @@ import { cardShadow, radius, spacing, useTheme } from '../../theme';
 
 interface Props {
   item: MedicationView;
-  showElder?: boolean;
+  showPatient?: boolean;
   onPress: () => void;
   onRemove: () => void;
 }
 
-/** T05 — Item da lista de remédios. */
-export function MedicationCard({ item, showElder, onPress, onRemove }: Props) {
+/** Item da lista de remédios. */
+export function MedicationCard({ item, showPatient, onPress, onRemove }: Props) {
   const { colors, mode } = useTheme();
   const m = item.medication;
   const stock = stockLabel(m);
@@ -22,7 +23,7 @@ export function MedicationCard({ item, showElder, onPress, onRemove }: Props) {
     <View style={[styles.card, cardShadow(mode === 'dark'), { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${m.name}. ${line}. ${item.activeTreatment ? 'Tratamento ativo' : 'Sem tratamento ativo'}. ${item.scheduleSummary}${showElder ? `. Paciente: ${item.elderName}` : ''}`}
+        accessibilityLabel={`${m.name}. ${line}. ${item.activeTreatment ? 'Tratamento ativo' : 'Sem tratamento ativo'}. ${item.scheduleSummary}${showPatient ? `. Paciente: ${item.patientName}` : ''}`}
         accessibilityHint="Abre para editar o remédio e o tratamento"
         onPress={onPress}
         style={({ pressed }) => [styles.main, { opacity: pressed ? 0.85 : 1 }]}
@@ -36,7 +37,7 @@ export function MedicationCard({ item, showElder, onPress, onRemove }: Props) {
             <AppText variant="caption" muted numberOfLines={1} style={styles.flex}>{item.scheduleSummary}</AppText>
           </View>
           <View style={styles.badges}>
-            {item.activeTreatment ? <Badge label="Tratamento ativo" tone="success" /> : <Badge label="Sem tratamento ativo" />}            {showElder ? <Badge label={item.elderName} tone="info" /> : null}
+            {item.activeTreatment ? <Badge label="Tratamento ativo" tone="success" /> : <Badge label="Sem tratamento ativo" />}            {showPatient ? <Badge label={item.patientName} tone="info" /> : null}
           </View>
         </View>
       </Pressable>

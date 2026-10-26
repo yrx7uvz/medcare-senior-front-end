@@ -16,6 +16,7 @@ export type NotificationsModule = Pick<
   | 'requestPermissionsAsync'
   | 'addNotificationResponseReceivedListener'
   | 'getLastNotificationResponseAsync'
+  | 'clearLastNotificationResponse'
   | 'setNotificationHandler'
   | 'AndroidImportance'
 >;
@@ -77,6 +78,18 @@ const toPermission = (status: string | undefined): PushPermission =>
 
 /** Dados de uma notificação como objeto simples (o FCM manda tudo como texto). */
 const dataOf = (data: unknown): Record<string, unknown> => (data && typeof data === 'object' ? (data as Record<string, unknown>) : {});
+
+/**
+ * Dados do push tocado. No Android, conforme a versão e o estado do app, o payload do FCM chega em content.data ou só
+ * em trigger.remoteMessage.data: usa o primeiro que tiver conteúdo.
+ */
+export function responseData(response: unknown): Record<string, unknown> {
+  const request = (response as { notification?: { request?: { content?: { data?: unknown }; trigger?: unknown } } })?.notification?.request;
+  const content = dataOf(request?.content?.data);
+  if (Object.keys(content).length > 0) return content;
+  const remote = (request?.trigger as { remoteMessage?: { data?: unknown } } | undefined)?.remoteMessage?.data;
+  return dataOf(remote);
+}
 
 /**
  * @param load carrega o expo-notifications; só é chamado se o push for suportado (no Expo Go e no iOS o módulo nem é
@@ -146,7 +159,7 @@ export function createPushService(env: PushEnvironment, load: () => Notification
       const n = notifications();
       if (!n) return noop;
       try {
-        const sub = n.addNotificationResponseReceivedListener((response) => listener(dataOf(response.notification.request.content.data)));
+        const sub = n.addNotificationResponseReceivedListener((response) => listener(responseData(response)));
         return () => sub.remove();
       } catch {
         return noop;
@@ -156,7 +169,10 @@ export function createPushService(env: PushEnvironment, load: () => Notification
     getLaunchData: () =>
       safe(async (n) => {
         const response = await n.getLastNotificationResponseAsync();
-        return response ? dataOf(response.notification.request.content.data) : null;
+        if (!response) return null;
+        // Já consumida: sem limpar, a mesma notificação abriria a dose de novo em toda abertura do app
+        if (typeof n.clearLastNotificationResponse === 'function') n.clearLastNotificationResponse();
+        return responseData(response);
       }, null),
 
     showInForeground(enabled = () => true) {

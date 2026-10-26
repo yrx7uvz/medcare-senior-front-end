@@ -1,5 +1,6 @@
 import type { Medication, MedicationType, PillShape, Treatment } from '../types/domain';
 import { WEEKDAYS_SHORT } from './date';
+import { pillColors } from '../theme/colors';
 
 export const TYPE_LABEL: Record<MedicationType, string> = {
   COMPRIMIDO: 'Comprimido',
@@ -21,20 +22,20 @@ export const SHAPE_LABEL: Record<PillShape, string> = {
 
 /** Paleta do seletor de cor. Os nomes são lidos pelo leitor de tela. */
 export const PILL_COLORS: { value: string; name: string }[] = [
-  { value: '#FFFFFF', name: 'Branco' },
-  { value: '#F3EBDD', name: 'Creme' },
-  { value: '#F4D35E', name: 'Amarelo' },
-  { value: '#F29E4C', name: 'Laranja' },
-  { value: '#F4A6B8', name: 'Rosa' },
-  { value: '#D64545', name: 'Vermelho' },
-  { value: '#9CC9F0', name: 'Azul-claro' },
-  { value: '#3D7DCA', name: 'Azul' },
-  { value: '#6CC08B', name: 'Verde' },
-  { value: '#6D4BA8', name: 'Roxo' },
-  { value: '#8B5E3C', name: 'Marrom' },
-  { value: '#B5651D', name: 'Âmbar' },
-  { value: '#B8C2CC', name: 'Cinza' },
-  { value: '#2E2E2E', name: 'Preto' },
+  { value: pillColors.branco, name: 'Branco' },
+  { value: pillColors.creme, name: 'Creme' },
+  { value: pillColors.amarelo, name: 'Amarelo' },
+  { value: pillColors.laranja, name: 'Laranja' },
+  { value: pillColors.rosa, name: 'Rosa' },
+  { value: pillColors.vermelho, name: 'Vermelho' },
+  { value: pillColors.azulClaro, name: 'Azul-claro' },
+  { value: pillColors.azul, name: 'Azul' },
+  { value: pillColors.verde, name: 'Verde' },
+  { value: pillColors.roxo, name: 'Roxo' },
+  { value: pillColors.marrom, name: 'Marrom' },
+  { value: pillColors.ambar, name: 'Âmbar' },
+  { value: pillColors.cinza, name: 'Cinza' },
+  { value: pillColors.preto, name: 'Preto' },
 ];
 
 export function colorName(hex?: string): string {
@@ -47,21 +48,21 @@ export const hasPhysicalSize = (t: MedicationType) => t === 'COMPRIMIDO' || t ==
 export const isBottle = (t: MedicationType) => t === 'GOTAS' || t === 'XAROPE';
 
 export const DEFAULT_PRIMARY: Record<MedicationType, string> = {
-  COMPRIMIDO: '#FFFFFF',
-  CAPSULA: '#3D7DCA',
-  GOTAS: '#B5651D',
-  XAROPE: '#B5651D',
-  INJECAO: '#9CC9F0',
-  ADESIVO: '#F3EBDD',
+  COMPRIMIDO: pillColors.branco,
+  CAPSULA: pillColors.azul,
+  GOTAS: pillColors.ambar,
+  XAROPE: pillColors.ambar,
+  INJECAO: pillColors.azulClaro,
+  ADESIVO: pillColors.creme,
 };
 
 export const DEFAULT_SECONDARY: Record<MedicationType, string> = {
-  COMPRIMIDO: '#FFFFFF',
-  CAPSULA: '#F3EBDD',
-  GOTAS: '#F29E4C',
-  XAROPE: '#FFFFFF',
-  INJECAO: '#B8C2CC',
-  ADESIVO: '#F3EBDD',
+  COMPRIMIDO: pillColors.branco,
+  CAPSULA: pillColors.creme,
+  GOTAS: pillColors.laranja,
+  XAROPE: pillColors.branco,
+  INJECAO: pillColors.cinza,
+  ADESIVO: pillColors.creme,
 };
 
 export function defaultDoseQuantity(t: MedicationType): string {
@@ -112,7 +113,7 @@ export function weekdaySummary(weekdays: number[]): string {
 
 export function scheduleSummary(t?: Treatment): string {
   if (!t) return 'Sem tratamento';
-  const times = t.times.map((x) => x.time).sort();
+  const times = t.times.map((x) => x.time).sort((a, b) => a.localeCompare(b));
   const timesText = times.length > 1 ? `${times.slice(0, -1).join(', ')} e ${times[times.length - 1]}` : times[0] ?? '';
   return `${timesText} • ${weekdaySummary(t.weekdays)}`;
 }

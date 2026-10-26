@@ -34,7 +34,7 @@ export function generateDoses(
       const scheduledAt = toDateTimeKey(scheduled);
       doses.push({
         id: doseId(treatment.id, scheduledAt),
-        elderId: medication.elderId,
+        patientId: medication.patientId,
         medicationId: medication.id,
         treatmentId: treatment.id,
         scheduledAt,

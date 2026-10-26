@@ -1,5 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { LogIn, ShieldCheck, UserRoundCheck } from 'lucide-react-native';
+import LogIn from 'lucide-react-native/icons/log-in';
+import ShieldCheck from 'lucide-react-native/icons/shield-check';
+import UserRoundCheck from 'lucide-react-native/icons/user-round-check';
 import { useForm } from 'react-hook-form';
 import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,7 +17,7 @@ import { useMutation } from '../../lib/useQuery';
 import { radius, spacing, useTheme } from '../../theme';
 import { Logo } from './Logo';
 
-/** T01 — Login do cuidador. Erro idêntico para e-mail inexistente e senha incorreta. */
+/** Login do cuidador. Erro idêntico para e-mail inexistente e senha incorreta. */
 export function LoginScreen({ navigation, route }: RootScreenProps<'Login'>) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -84,9 +86,15 @@ export function LoginScreen({ navigation, route }: RootScreenProps<'Login'>) {
 
           <View style={styles.signup}>
             <AppText muted>Primeira vez?</AppText>
-            <Pressable accessibilityRole="link" onPress={() => navigation.navigate('SignUp')} hitSlop={10} style={styles.link}>
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Criar conta para cuidar de alguém"
+              onPress={() => navigation.navigate('SignUp')}
+              hitSlop={10}
+              style={styles.link}
+            >
               <AppText variant="bodyStrong" color={colors.primary}>
-                Criar conta de cuidador
+                Criar conta para cuidar de alguém
               </AppText>
             </Pressable>
           </View>
@@ -94,7 +102,7 @@ export function LoginScreen({ navigation, route }: RootScreenProps<'Login'>) {
           <SwitchProfileLink />
 
           <View style={[styles.lgpd, { borderColor: colors.border }]}>
-            <ShieldCheck color={colors.status.TOMADA.fg} size={18} />
+            <ShieldCheck color={colors.status.CONFIRMADA_NO_HORARIO.fg} size={18} />
             <AppText variant="caption" muted>
               Dados protegidos conforme a LGPD
             </AppText>

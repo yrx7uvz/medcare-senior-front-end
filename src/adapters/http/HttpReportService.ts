@@ -2,17 +2,18 @@ import type { ReportService } from '../../services/types';
 import type { DailyReport } from '../../types/views';
 import { endpoints } from './endpoints';
 import { remember, toDoseView, type DoseResponse } from './HttpDoseService';
-import { request } from './httpClient';
+import { pdfFileName } from '../../lib/pdfReport';
+import { request, requestBinary } from './httpClient';
 import { fromApiId, toApiId } from './ids';
 import { notIntegrated } from './stubs';
 
 /** GET /api/relatorios/diario (RelatorioDiarioResponseDTO). */
 export interface RelatorioDiarioResponse {
-  idoso: { id: number; nome: string };
+  paciente: { id: number; nome: string };
   data: string;
   totais: {
     total: number;
-    tomadas: number;
+    confirmadasNoHorario: number;
     confirmadasComAtraso: number;
     naoTomadas: number;
     pendentes: number;
@@ -23,11 +24,11 @@ export interface RelatorioDiarioResponse {
 
 export function toDailyReport(dto: RelatorioDiarioResponse): DailyReport {
   return {
-    elder: { id: fromApiId(dto.idoso.id), name: dto.idoso.nome },
+    patient: { id: fromApiId(dto.paciente.id), name: dto.paciente.nome },
     day: dto.data,
     totals: {
       total: dto.totais.total,
-      taken: dto.totais.tomadas,
+      onTime: dto.totais.confirmadasNoHorario,
       late: dto.totais.confirmadasComAtraso,
       missed: dto.totais.naoTomadas,
       pending: dto.totais.pendentes,
@@ -40,9 +41,15 @@ export function toDailyReport(dto: RelatorioDiarioResponse): DailyReport {
 
 
 export const httpReportService: ReportService = {
-  async getDaily(elderId, day) {
-    return toDailyReport(await request<RelatorioDiarioResponse>('GET', endpoints.dailyReport(String(toApiId(elderId)), day)));
+  async getDaily(patientId, day) {
+    return toDailyReport(await request<RelatorioDiarioResponse>('GET', endpoints.dailyReport(String(toApiId(patientId)), day)));
   },
   getAdherence: notIntegrated,
-  generatePdf: notIntegrated,
+
+  /** GET /api/relatorios/pdf com o token do cuidador. O nome do arquivo não leva dado pessoal. */
+  async downloadPdf(patientId, from, to) {
+    const apiId = toApiId(patientId);
+    const bytes = await requestBinary(endpoints.pdfReport(String(apiId), from, to), 'application/pdf');
+    return { fileName: pdfFileName(apiId, from, to), bytes, demo: false };
+  },
 };

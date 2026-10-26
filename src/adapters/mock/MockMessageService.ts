@@ -14,23 +14,23 @@ export const mockMessageService: MessageService = {
   listConversations: () =>
     simulate(() => {
       const db = getDb();
-      return db.elders
-        .map<ConversationView>((elder) => {
-          const thread = db.messages.filter((m) => m.elderId === elder.id).sort((a, b) => a.sentAt.localeCompare(b.sentAt));
+      return db.patients
+        .map<ConversationView>((patient) => {
+          const thread = db.messages.filter((m) => m.patientId === patient.id).sort((a, b) => a.sentAt.localeCompare(b.sentAt));
           const last = thread[thread.length - 1];
           return {
-            elder,
+            patient,
             lastMessage: last ? { text: last.text, sentAt: last.sentAt, from: last.from } : undefined,
-            unread: thread.filter((m) => m.from === 'IDOSO' && !m.read).length,
+            unread: thread.filter((m) => m.from === 'PACIENTE' && !m.read).length,
           };
         })
         .sort((a, b) => (b.lastMessage?.sentAt ?? '').localeCompare(a.lastMessage?.sentAt ?? ''));
     }),
 
-  listThread: (elderId, page = 0) =>
+  listThread: (patientId, page = 0) =>
     simulate(() => {
       const all = getDb()
-        .messages.filter((m) => m.elderId === elderId)
+        .messages.filter((m) => m.patientId === patientId)
         .sort((a, b) => byConversationOrder(b, a));
       return {
         items: all.slice(page * MESSAGE_PAGE_SIZE, (page + 1) * MESSAGE_PAGE_SIZE),
@@ -40,21 +40,21 @@ export const mockMessageService: MessageService = {
       };
     }),
 
-  send: (elderId, from, text) =>
+  send: (patientId, from, text) =>
     simulate(() => {
       const problem = messageError(text);
       if (problem) throw httpError(400, problem, 'VALIDACAO');
-      const message: Message = { id: uid('msg'), elderId, from, text: text.trim(), sentAt: toDateTimeKey(getNow()), read: false };
+      const message: Message = { id: uid('msg'), patientId, from, text: text.trim(), sentAt: toDateTimeKey(getNow()), read: false };
       mutateDb((db) => {
         db.messages.push(message);
       });
       return message;
     }, -120),
 
-  markRead: (elderId, reader) =>
+  markRead: (patientId, reader) =>
     simulate(() => {
-      const author = reader === 'CUIDADOR' ? 'IDOSO' : 'CUIDADOR';
-      const pending = getDb().messages.filter((m) => m.elderId === elderId && m.from === author && !m.read);
+      const author = reader === 'CUIDADOR' ? 'PACIENTE' : 'CUIDADOR';
+      const pending = getDb().messages.filter((m) => m.patientId === patientId && m.from === author && !m.read);
       if (!pending.length) return 0;
       mutateDb(() => {
         pending.forEach((m) => {
@@ -64,9 +64,9 @@ export const mockMessageService: MessageService = {
       return pending.length;
     }, -200),
 
-  unreadCount: (elderId, reader) =>
+  unreadCount: (patientId, reader) =>
     simulate(() => {
-      const author = reader === 'CUIDADOR' ? 'IDOSO' : 'CUIDADOR';
-      return getDb().messages.filter((m) => (elderId === 'ALL' || m.elderId === elderId) && m.from === author && !m.read).length;
+      const author = reader === 'CUIDADOR' ? 'PACIENTE' : 'CUIDADOR';
+      return getDb().messages.filter((m) => (patientId === 'ALL' || m.patientId === patientId) && m.from === author && !m.read).length;
     }, -200),
 };

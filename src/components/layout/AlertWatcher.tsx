@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
-import { BellRing } from 'lucide-react-native';
+import BellRing from 'lucide-react-native/icons/bell-ring';
 import { useEffect, useMemo } from 'react';
 import type { RootNavigation } from '../../app/navigation/types';
 import { services } from '../../services';
@@ -39,7 +39,7 @@ export function AlertWatcher() {
       visible
       icon={BellRing}
       tone="danger"
-      title={`Dose não confirmada — ${fresh.elderName}`}
+      title={`Dose não confirmada — ${fresh.patientName}`}
       message={
         <>
           <AppText>{alertMessage(fresh)}</AppText>

@@ -1,5 +1,8 @@
-import { CalendarCheck, CalendarX, ClipboardList, UserPlus } from 'lucide-react-native';
-import React from 'react';
+import CalendarCheck from 'lucide-react-native/icons/calendar-check';
+import CalendarX from 'lucide-react-native/icons/calendar-x';
+import ClipboardList from 'lucide-react-native/icons/clipboard-list';
+import UserPlus from 'lucide-react-native/icons/user-plus';
+import React, { useCallback } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TabScreenProps } from '../../app/navigation/types';
@@ -19,52 +22,52 @@ import { spacing, useTheme } from '../../theme';
 import { DoseCard } from './DoseCard';
 import { SummaryCards } from './SummaryCards';
 
-/** T03 — Painel diário do cuidador. */
+/** Painel diário do cuidador. */
 export function DashboardScreen({ navigation }: TabScreenProps<'Painel'>) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const session = useAppStore((s) => s.session);
-  const filter = useAppStore((s) => s.selectedElderId);
+  const filter = useAppStore((s) => s.selectedPatientId);
   const dismissed = useAppStore((s) => s.dismissedAlertIds);
   const dismiss = useAppStore((s) => s.dismissAlert);
   const now = useNow();
   const today = appTodayKey(now);
   const silentKey = minuteStamp(now);
 
-  const elders = useQuery(['elders'], () => services.elders.list());
+  const patients = useQuery(['patients'], () => services.patients.list());
   const doses = useQuery(['doses-day', filter, today], () => services.doses.listForDay(filter, today), { silentKey });
   const alerts = useQuery(['alerts'], () => services.doses.listAlerts(), { silentKey });
 
   const visibleAlerts = (alerts.data ?? []).filter(
-    (a) => !dismissed.includes(`${a.doseId}:${a.status}`) && (filter === 'ALL' || a.elderId === filter),
+    (a) => !dismissed.includes(`${a.doseId}:${a.status}`) && (filter === 'ALL' || a.patientId === filter),
   );
-  // Status entre as atualizações: só compara agora com a janela que veio do servidor (FE-21)
+  // Status entre as atualizações: só compara agora com a janela que veio do servidor
   const list = (doses.data ?? []).map((d) => liveAt(d, now));
   const summary = summarize(list.map((d) => d.status));
-  const selectedElder = filter === 'ALL' ? null : elders.data?.find((e) => e.id === filter);
-  const openDose = (d: DoseView) => navigation.navigate('DoseDetail', { doseId: d.id });
+  const selectedPatient = filter === 'ALL' ? null : patients.data?.find((e) => e.id === filter);
+  const openDose = useCallback((d: DoseView) => navigation.navigate('DoseDetail', { doseId: d.id }), [navigation]);
 
   let content: React.ReactNode;
-  if (doses.loading || elders.loading) {
+  if (doses.loading || patients.loading) {
     content = <LoadingSkeleton variant="dashboard" />;
-  } else if (doses.error || elders.error) {
+  } else if (doses.error || patients.error) {
     content = (
       <ErrorState
-        error={doses.error ?? elders.error}
+        error={doses.error ?? patients.error}
         onRetry={() => {
           doses.reload();
-          elders.reload();
+          patients.reload();
         }}
       />
     );
-  } else if (!elders.data?.length) {
+  } else if (!patients.data?.length) {
     content = (
       <EmptyState
         icon={UserPlus}
         title="Nenhum paciente cadastrado"
         description="Cadastre o primeiro paciente para começar a acompanhar as doses."
         actionLabel="Cadastrar paciente"
-        onAction={() => navigation.navigate('ElderForm')}
+        onAction={() => navigation.navigate('PatientForm')}
       />
     );
   } else {
@@ -85,7 +88,7 @@ export function DashboardScreen({ navigation }: TabScreenProps<'Painel'>) {
           variant="secondary"
           size="sm"
           style={styles.reportButton}
-          onPress={() => navigation.navigate('DailyReport', filter === 'ALL' ? undefined : { elderId: filter })}
+          onPress={() => navigation.navigate('DailyReport', filter === 'ALL' ? undefined : { patientId: filter })}
           accessibilityHint="Abre o relatório de uso dos medicamentos de um paciente em um dia"
         />
         {list.length === 0 ? (
@@ -93,22 +96,22 @@ export function DashboardScreen({ navigation }: TabScreenProps<'Painel'>) {
             icon={CalendarCheck}
             title="Sem doses para hoje"
             description={
-              selectedElder
-                ? `${firstName(selectedElder.name)} não tem remédios programados para hoje.`
+              selectedPatient
+                ? `${firstName(selectedPatient.name)} não tem remédios programados para hoje.`
                 : 'Nenhum paciente tem remédios programados para hoje.'
             }
           />
         ) : filter === 'ALL' ? (
-          (elders.data ?? []).map((elder) => {
-            const group = list.filter((d) => d.elderId === elder.id);
+          (patients.data ?? []).map((patient) => {
+            const group = list.filter((d) => d.patientId === patient.id);
             const s = summarize(group.map((d) => d.status));
             const hasAlert = group.some((d) => d.status === 'ATRASADA' || d.status === 'NAO_TOMADA');
             return (
-              <View key={elder.id} style={styles.group}>
-                <View style={styles.groupHead} accessible accessibilityRole="header" accessibilityLabel={`${elder.name}: ${s.confirmed} de ${s.total} confirmadas`}>
-                  <Avatar name={elder.name} color={elder.avatarColor} size={36} alert={hasAlert} />
+              <View key={patient.id} style={styles.group}>
+                <View style={styles.groupHead} accessible accessibilityRole="header" accessibilityLabel={`${patient.name}: ${s.confirmed} de ${s.total} confirmadas`}>
+                  <Avatar name={patient.name} color={patient.avatarColor} size={36} alert={hasAlert} />
                   <View style={styles.flex}>
-                    <AppText variant="heading">{elder.name}</AppText>
+                    <AppText variant="heading">{patient.name}</AppText>
                     <AppText variant="caption" muted>
                       {s.total ? `${s.confirmed} de ${s.total} confirmadas` : 'Sem doses hoje'}
                     </AppText>
@@ -122,13 +125,13 @@ export function DashboardScreen({ navigation }: TabScreenProps<'Painel'>) {
                     </AppText>
                   </View>
                 ) : (
-                  group.map((d) => <DoseCard key={d.id} dose={d} onPress={() => openDose(d)} />)
+                  group.map((d) => <DoseCard key={d.id} dose={d} onPress={openDose} />)
                 )}
               </View>
             );
           })
         ) : (
-          list.map((d) => <DoseCard key={d.id} dose={d} onPress={() => openDose(d)} />)
+          list.map((d) => <DoseCard key={d.id} dose={d} onPress={openDose} />)
         )}
       </>
     );
@@ -136,7 +139,7 @@ export function DashboardScreen({ navigation }: TabScreenProps<'Painel'>) {
 
   const name = firstName(session?.name ?? '');
   return (
-    <CaregiverScreen title={`${greeting(now)}, ${name}`} subtitle={formatLongDate(now)} withElderSwitcher>
+    <CaregiverScreen title={`${greeting(now)}, ${name}`} subtitle={formatLongDate(now)} withPatientSwitcher>
       <ScrollView
         contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + spacing.xxl }]}
         refreshControl={
