@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { Message } from '../../types/domain';
 import { formatTime } from '../../lib/date';
@@ -11,7 +12,11 @@ interface Props {
   large?: boolean;
 }
 
-export function ChatBubble({ message, mine, authorName, large }: Props) {
+/**
+ * Memorizado pelo conteúdo: a conversa é consultada a cada 10 s e cada consulta traz objetos novos; só os balões que
+ * mudaram (texto, horário ou lida) são redesenhados.
+ */
+export const ChatBubble = memo(function ChatBubble({ message, mine, authorName, large }: Props) {
   const { colors, highContrast } = useTheme();
   const bg = mine ? colors.primary : colors.surface;
   const fg = mine ? colors.onPrimary : colors.text;
@@ -27,7 +32,7 @@ export function ChatBubble({ message, mine, authorName, large }: Props) {
           styles.bubble,
           {
             backgroundColor: bg,
-            borderColor: highContrast ? colors.border : colors.border,
+            borderColor: colors.border,
             borderWidth: mine ? 0 : highContrast ? 2 : StyleSheet.hairlineWidth,
             borderBottomRightRadius: mine ? 4 : radius.lg,
             borderBottomLeftRadius: mine ? radius.lg : 4,
@@ -45,6 +50,11 @@ export function ChatBubble({ message, mine, authorName, large }: Props) {
       </View>
     </View>
   );
+}, mesmoBalao);
+
+function mesmoBalao(a: Props, b: Props): boolean {
+  return a.mine === b.mine && a.authorName === b.authorName && a.large === b.large && a.message.id === b.message.id
+    && a.message.text === b.message.text && a.message.sentAt === b.message.sentAt && a.message.read === b.message.read;
 }
 
 const styles = StyleSheet.create({

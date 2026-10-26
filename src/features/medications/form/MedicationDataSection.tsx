@@ -1,4 +1,9 @@
-import { Bandage, Droplet, FlaskConical, Pill, Syringe, Tablets } from 'lucide-react-native';
+import Bandage from 'lucide-react-native/icons/bandage';
+import Droplet from 'lucide-react-native/icons/droplet';
+import FlaskConical from 'lucide-react-native/icons/flask-conical';
+import Pill from 'lucide-react-native/icons/pill';
+import Syringe from 'lucide-react-native/icons/syringe';
+import Tablets from 'lucide-react-native/icons/tablets';
 import type { Control } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
 import { AppText, Card, Chip, FormTextField, type IconComponent } from '../../../components/ui';

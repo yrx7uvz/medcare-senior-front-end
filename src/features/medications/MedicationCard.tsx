@@ -1,4 +1,5 @@
-import { CalendarClock, Trash2 } from 'lucide-react-native';
+import CalendarClock from 'lucide-react-native/icons/calendar-clock';
+import Trash2 from 'lucide-react-native/icons/trash';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, Badge, IconButton, PillVisual } from '../../components/ui';
 import { TYPE_LABEL, stockLabel } from '../../lib/medicationMeta';

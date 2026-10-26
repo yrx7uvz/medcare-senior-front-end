@@ -1,4 +1,6 @@
-import { Pill, Plus, Trash2 } from 'lucide-react-native';
+import Pill from 'lucide-react-native/icons/pill';
+import Plus from 'lucide-react-native/icons/plus';
+import Trash2 from 'lucide-react-native/icons/trash';
 import { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

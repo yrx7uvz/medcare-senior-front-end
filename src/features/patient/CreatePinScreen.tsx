@@ -1,4 +1,4 @@
-import { ShieldCheck } from 'lucide-react-native';
+import ShieldCheck from 'lucide-react-native/icons/shield-check';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';

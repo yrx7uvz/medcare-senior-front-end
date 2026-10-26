@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { Delete } from 'lucide-react-native';
+import Delete from 'lucide-react-native/icons/delete';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { radius, spacing, useTheme } from '../../theme';
 import { AppText } from './AppText';

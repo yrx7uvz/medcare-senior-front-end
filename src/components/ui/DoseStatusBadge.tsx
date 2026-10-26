@@ -1,4 +1,8 @@
-import { AlarmClockCheck, AlertTriangle, CheckCircle2, Clock, XCircle } from 'lucide-react-native';
+import AlarmClockCheck from 'lucide-react-native/icons/alarm-clock-check';
+import AlertTriangle from 'lucide-react-native/icons/triangle-alert';
+import CheckCircle2 from 'lucide-react-native/icons/circle-check';
+import Clock from 'lucide-react-native/icons/clock';
+import XCircle from 'lucide-react-native/icons/circle-x';
 import { StyleSheet, View } from 'react-native';
 import type { DisplayStatus } from '../../types/domain';
 import { radius, useTheme } from '../../theme';

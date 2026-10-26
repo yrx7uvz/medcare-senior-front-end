@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Info, UserPlus } from 'lucide-react-native';
+import Info from 'lucide-react-native/icons/info';
+import UserPlus from 'lucide-react-native/icons/user-plus';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { KeyboardAvoidingView, ScrollView, StyleSheet, View } from 'react-native';

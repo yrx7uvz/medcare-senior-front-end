@@ -11,7 +11,7 @@ export const MIN_LARGE_OR_UI = 3;
 export const MIN_TEXT_HIGH_CONTRAST = 7;
 
 function channel(hex: string, offset: number): number {
-  const c = parseInt(hex.slice(offset, offset + 2), 16) / 255;
+  const c = Number.parseInt(hex.slice(offset, offset + 2), 16) / 255;
   return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
 }
 

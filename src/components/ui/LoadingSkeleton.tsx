@@ -14,7 +14,7 @@ export function LoadingSkeleton({ variant = 'list', rows = 4 }: { variant?: 'lis
 
   useEffect(() => {
     let loop: Animated.CompositeAnimation | undefined;
-    AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
+    void AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
       if (reduce) return;
       loop = Animated.loop(
         Animated.sequence([

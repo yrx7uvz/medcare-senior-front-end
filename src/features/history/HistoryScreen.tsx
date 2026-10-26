@@ -1,5 +1,7 @@
-import { FileDown, History as HistoryIcon, Lock } from 'lucide-react-native';
-import { useState } from 'react';
+import FileDown from 'lucide-react-native/icons/file-down';
+import HistoryIcon from 'lucide-react-native/icons/rotate-ccw-clock';
+import Lock from 'lucide-react-native/icons/lock';
+import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TabScreenProps } from '../../app/navigation/types';
@@ -42,6 +44,7 @@ export function HistoryScreen({ navigation }: TabScreenProps<'Historico'>) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const patient = useAppStore((s) => s.selectedPatientId);
+  const openDose = useCallback((d: DoseView) => navigation.navigate('DoseDetail', { doseId: d.id }), [navigation]);
   const now = useNow();
   const today = appTodayKey(now);
   const [status, setStatus] = useState<HistoryStatusFilter>('ALL');
@@ -187,7 +190,7 @@ export function HistoryScreen({ navigation }: TabScreenProps<'Historico'>) {
           doses={range.error ? [] : doses}
           todayKey={today}
           showPatient={patient === 'ALL'}
-          onPress={(d) => navigation.navigate('DoseDetail', { doseId: d.id })}
+          onPress={openDose}
           header={header}
           footer={footer}
           bottomInset={insets.bottom}

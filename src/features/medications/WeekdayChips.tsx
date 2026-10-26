@@ -12,7 +12,7 @@ const ORDER = [1, 2, 3, 4, 5, 6, 0];
 export function WeekdayChips({ value, onChange, error }: { value: number[]; onChange: (v: number[]) => void; error?: string }) {
   const { colors } = useTheme();
   const all = value.length === 7;
-  const toggle = (d: number) => onChange(value.includes(d) ? value.filter((x) => x !== d) : [...value, d].sort());
+  const toggle = (d: number) => onChange(value.includes(d) ? value.filter((x) => x !== d) : [...value, d].sort((a, b) => a - b));
   return (
     <View style={styles.wrap}>
       <View style={styles.row}>

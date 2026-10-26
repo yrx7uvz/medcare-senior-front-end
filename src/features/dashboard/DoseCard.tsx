@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText, DoseStatusBadge, PillVisual, statusLabel } from '../../components/ui';
 import { formatTime } from '../../lib/date';
@@ -9,14 +10,18 @@ import { cardShadow, radius, spacing, useTheme } from '../../theme';
 interface Props {
   dose: DoseView;
   showPatient?: boolean;
-  onPress?: () => void;
+  /** Estável (useCallback) no chamador: o cartão só é redesenhado quando a dose muda. */
+  onPress?: (dose: DoseView) => void;
 }
 
 /**
  * Linha de dose do cuidador: desenho do remédio, nome, horário, status e quem confirmou. Em tela estreita ou com fonte
  * ampliada os textos quebram linha em vez de cortar; o status fica embaixo do nome para ter a largura toda.
+ *
+ * Memorizado: o Painel re-renderiza a cada 15 s (relógio) e a cada atualização, e só os cartões cuja dose mudou
+ * (o liveAt devolve o mesmo objeto quando nada muda) são redesenhados.
  */
-export function DoseCard({ dose, showPatient, onPress }: Props) {
+export const DoseCard = memo(function DoseCard({ dose, showPatient, onPress }: Props) {
   const { colors, mode } = useTheme();
   const med = dose.medication;
   const time = formatTime(dose.scheduledAt);
@@ -27,7 +32,7 @@ export function DoseCard({ dose, showPatient, onPress }: Props) {
       accessibilityRole="button"
       accessibilityLabel={`${med.name} ${med.dosage}, ${TYPE_LABEL[med.type]}, às ${time}${showPatient ? `, ${dose.patientName}` : ''}. ${statusLabel(dose.status)}. ${detail ?? ''}`}
       accessibilityHint="Abre os detalhes da dose"
-      onPress={onPress}
+      onPress={onPress ? () => onPress(dose) : undefined}
       style={({ pressed }) => [
         styles.card,
         cardShadow(mode === 'dark'),
@@ -62,7 +67,7 @@ export function DoseCard({ dose, showPatient, onPress }: Props) {
       </AppText>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {

@@ -1,4 +1,5 @@
-import { Check, Circle } from 'lucide-react-native';
+import Check from 'lucide-react-native/icons/check';
+import Circle from 'lucide-react-native/icons/circle';
 import { StyleSheet, View } from 'react-native';
 import { AppText } from '../../components/ui';
 import { passwordChecks, passwordStrength } from '../../lib/password';

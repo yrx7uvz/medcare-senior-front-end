@@ -1,5 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
-import { ArrowLeft, Contrast } from 'lucide-react-native';
+import ArrowLeft from 'lucide-react-native/icons/arrow-left';
+import Contrast from 'lucide-react-native/icons/contrast';
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

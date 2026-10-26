@@ -1,4 +1,4 @@
-import { Info } from 'lucide-react-native';
+import Info from 'lucide-react-native/icons/info';
 import { StyleSheet, View } from 'react-native';
 import { AppText } from '../../../components/ui';
 import type { AppError } from '../../../services/errors';

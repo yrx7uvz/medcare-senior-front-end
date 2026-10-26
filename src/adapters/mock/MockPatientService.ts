@@ -68,7 +68,7 @@ export const mockPatientService: PatientService = {
       const taken = new Set(db.linkCodes.filter((c) => !c.used && c.expiresAt > now).map((c) => c.code));
       let code = '';
       for (let i = 0; i < 10 && (!code || taken.has(code)); i += 1) {
-        code = String(Math.floor(100000 + Math.random() * 900000));
+        code = String(Math.floor(100000 + Math.random() * 900000)); // NOSONAR: só no modo demonstração; o código real vem do backend (SecureRandom)
       }
       const link: LinkCode = { code, patientId, expiresAt: now + LINK_CODE_TTL_MS, used: false };
       mutateDb((d) => {

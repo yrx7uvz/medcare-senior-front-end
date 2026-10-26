@@ -1,4 +1,4 @@
-import { CalendarRange } from 'lucide-react-native';
+import CalendarRange from 'lucide-react-native/icons/calendar-range';
 import { Controller, type Control } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
 import { AppText, Card, FormTextField } from '../../../components/ui';

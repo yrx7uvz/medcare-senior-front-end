@@ -1,4 +1,5 @@
-import { Moon, Sun } from 'lucide-react-native';
+import Moon from 'lucide-react-native/icons/moon';
+import Sun from 'lucide-react-native/icons/sun';
 import { useAppStore } from '../../store/appStore';
 import { useTheme, useThemeMode } from '../../theme';
 import { AppSwitch } from './AppSwitch';

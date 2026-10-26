@@ -1,5 +1,7 @@
 import * as Haptics from 'expo-haptics';
-import { AlarmClockCheck, CheckCircle2, Home } from 'lucide-react-native';
+import AlarmClockCheck from 'lucide-react-native/icons/alarm-clock-check';
+import CheckCircle2 from 'lucide-react-native/icons/circle-check';
+import Home from 'lucide-react-native/icons/house';
 import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Animated, StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
@@ -34,7 +36,7 @@ export function DoseConfirmedScreen({ route, navigation }: RootScreenProps<'Pati
     // Feedback tátil + "som" simulado pelo anúncio do leitor de tela.
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
     AccessibilityInfo.announceForAccessibility(late ? 'Remédio confirmado com atraso' : 'Remédio confirmado');
-    AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
+    void AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
       if (reduce) scale.setValue(1);
       else Animated.spring(scale, { toValue: 1, friction: 5, useNativeDriver: true }).start();
     });

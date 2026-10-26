@@ -1,4 +1,4 @@
-import { RefreshCw } from 'lucide-react-native';
+import RefreshCw from 'lucide-react-native/icons/refresh-cw';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { radius, spacing, touch, useTheme } from '../../theme';
 import { AppText } from './AppText';

@@ -1,4 +1,4 @@
-import { BellRing } from 'lucide-react-native';
+import BellRing from 'lucide-react-native/icons/bell-ring';
 import { useEffect, useState } from 'react';
 import { push } from '../../lib/push';
 import { pushStorage } from '../../lib/secureStorage';

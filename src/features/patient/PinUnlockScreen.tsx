@@ -1,4 +1,5 @@
-import { HelpCircle, Lock } from 'lucide-react-native';
+import HelpCircle from 'lucide-react-native/icons/circle-question-mark';
+import Lock from 'lucide-react-native/icons/lock';
 import { useEffect, useState } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';

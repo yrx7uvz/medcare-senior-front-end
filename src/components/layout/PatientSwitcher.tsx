@@ -1,5 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
-import { Plus, Users } from 'lucide-react-native';
+import Plus from 'lucide-react-native/icons/plus';
+import Users from 'lucide-react-native/icons/users';
 import React, { useEffect, useRef } from 'react';
 import { AccessibilityInfo, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { RootNavigation } from '../../app/navigation/types';

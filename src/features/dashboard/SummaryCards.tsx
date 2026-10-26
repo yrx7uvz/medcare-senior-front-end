@@ -1,4 +1,6 @@
-import { AlertTriangle, CheckCircle2, Clock } from 'lucide-react-native';
+import AlertTriangle from 'lucide-react-native/icons/triangle-alert';
+import CheckCircle2 from 'lucide-react-native/icons/circle-check';
+import Clock from 'lucide-react-native/icons/clock';
 import { StyleSheet, View } from 'react-native';
 import { AppText, type IconComponent } from '../../components/ui';
 import type { DoseSummary } from '../../lib/doseRules';

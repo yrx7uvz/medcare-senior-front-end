@@ -1,4 +1,7 @@
-import { CalendarCheck, CheckCircle2, MessageCircle, Pill } from 'lucide-react-native';
+import CalendarCheck from 'lucide-react-native/icons/calendar-check';
+import CheckCircle2 from 'lucide-react-native/icons/circle-check';
+import MessageCircle from 'lucide-react-native/icons/message-circle';
+import Pill from 'lucide-react-native/icons/pill';
 import { StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { PatientScreen } from '../../components/layout/PatientScreen';

@@ -1,4 +1,6 @@
-import { CheckCircle2, FileDown, Users } from 'lucide-react-native';
+import CheckCircle2 from 'lucide-react-native/icons/circle-check';
+import FileDown from 'lucide-react-native/icons/file-down';
+import Users from 'lucide-react-native/icons/users';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
