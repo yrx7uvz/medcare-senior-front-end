@@ -50,8 +50,15 @@ PDF; o Expo Go não serve):
 2. No `.env`: `EXPO_PUBLIC_API_URL=http://10.0.2.2:8080` no emulador, ou `http://IP-DO-PC:8080` no celular da
    mesma rede.
 3. Com o app de desenvolvimento instalado (`npm run build:dev` gera o APK no EAS):
-   - **Emulador:** `npm run emulador`. O Metro sobe em `localhost` com `adb reverse` (não depende do IP da rede
-     nem do firewall) e abre o app no emulador já conectado.
+   - **Emulador:** `npm run emulador`. Antes do Metro, o script `scripts/preparar-emulador.ts`:
+     - abre o emulador, se nenhum estiver aberto (`EMULADOR_AVD` escolhe qual);
+     - confere se o app está instalado;
+     - encerra um Metro antigo que esteja na porta 8081;
+     - faz o `adb reverse` do Metro e da API;
+     - avisa se o backend estiver fora do ar ou com código antigo.
+
+     O Metro sobe em `localhost`, sem depender do IP da rede nem do firewall, e abre o app. Só a preparação, sem
+     subir o Metro: `npm run emulador:preparar`.
    - **Celular na mesma rede:** `npm run start:dev` e escaneie o QR code.
 
    Se aparecer "Unable to load script", o app tentou um servidor que não está no ar: deixe o `npm run emulador`
