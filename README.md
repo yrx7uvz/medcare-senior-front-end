@@ -25,11 +25,17 @@ Um mesmo app tem dois perfis, escolhidos na primeira tela:
    compartilhado pelo menu do Android.
 7. Troca **mensagens** com cada paciente, ajusta a **tolerância** do aviso (5 a 120 minutos), o tema e as notificações,
    e pode **excluir a conta**.
+8. Quando um paciente **pede para sair da conta**, recebe um push e vê no Painel o cartão "{Paciente} pediu para sair
+   da conta" com **Autorizar** (com confirmação) e **Recusar**. Na tela do código de vínculo do paciente, pode
+   **desconectar o aparelho** sem pedido (celular perdido ou trocado). Para o paciente voltar, gera um código novo.
 
 **Paciente:**
 1. Entra com o código que o cuidador gerou e cria um **PIN** de 4 números (pedido ao abrir o app).
 2. Vê o próximo remédio em destaque e confirma em dois toques ("Tomar remédio agora" → "Tomei o remédio").
 3. Lê e responde as mensagens do cuidador; pode ligar o **alto contraste**.
+4. Em **Ajustes**, "Sair da conta" envia o pedido ao cuidador e mostra "Aguardando autorização" (a tela se atualiza
+   sozinha enquanto está aberta). Autorizado: o celular sai da conta e volta ao pareamento; recusado ou expirado: continua
+   conectado, com a explicação na tela.
 
 A janela de cada dose vem do servidor: abre 60 minutos antes do horário; no fim da tolerância do cuidador vira
 "atrasada" e o cuidador é avisado; 30 minutos depois, encerra como "não confirmada". Até o aviso, a confirmação é "no
