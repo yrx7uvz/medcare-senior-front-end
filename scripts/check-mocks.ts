@@ -111,6 +111,44 @@ async function main() {
   console.log('Código válido →', ok.patientName);
   try { await services.patients.validateLinkCode('482913'); } catch (e) { console.log('Reuso →', (e as Error).message); }
   await conferirHorarioDoTratamento();
+  await conferirSaidaDaConta();
   process.exit(0);
+}
+
+/** Saída da conta do paciente no demo: as mesmas regras da API (um pendente, decisão única, 401 depois de autorizado). */
+async function conferirSaidaDaConta() {
+  const leave = services.leaveRequests;
+  const status = async (e: unknown) => (e as AppError).status;
+
+  // Recusar: o paciente continua conectado e pode pedir de novo
+  const pedido = await leave.request('e-helena');
+  assert.equal(pedido.status, 'PENDENTE');
+  assert.equal((await leave.request('e-helena')).id, pedido.id, 'pedir de novo devolve o mesmo pendente');
+  assert.deepEqual((await leave.listPending()).map((p) => p.patientName), ['Helena Souza']);
+  assert.equal((await leave.deny('e-helena', pedido.id)).status, 'RECUSADO');
+  assert.equal((await leave.deny('e-helena', pedido.id)).status, 'RECUSADO', 'recusar de novo não muda nada');
+  await assert.rejects(leave.approve('e-helena', pedido.id), (e) => (e as AppError).code === 'PEDIDO_ENCERRADO');
+  assert.equal((await leave.current('e-helena'))?.status, 'RECUSADO');
+
+  // Cancelar
+  await leave.request('e-helena');
+  await leave.cancel('e-helena');
+  assert.equal((await leave.current('e-helena'))?.status, 'CANCELADO');
+  assert.equal((await leave.listPending()).length, 0);
+
+  // Autorizar: o aparelho cai com 401 e os códigos não usados deixam de valer; um código novo reconecta
+  const antigo = await services.patients.generateLinkCode('e-helena');
+  const autorizar = await leave.request('e-helena');
+  assert.equal((await leave.approve('e-helena', autorizar.id)).status, 'AUTORIZADO');
+  assert.equal(await leave.current('e-helena').catch(status), 401);
+  await assert.rejects(services.patients.validateLinkCode(antigo.code), (e) => (e as AppError).code === 'CODIGO_INVALIDO');
+  const novo = await services.patients.generateLinkCode('e-helena');
+  await services.patients.validateLinkCode(novo.code);
+  assert.equal((await leave.current('e-helena'))?.status, 'AUTORIZADO');
+
+  // Desconexão direta pelo cuidador
+  await leave.disconnectDevice('e-helena');
+  assert.equal(await leave.request('e-helena').catch(status), 401);
+  console.log('Saída da conta: pedir, recusar, cancelar, autorizar (401 e código novo) e desconectar seguem a API');
 }
 void main();

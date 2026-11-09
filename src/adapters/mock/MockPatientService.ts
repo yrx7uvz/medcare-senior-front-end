@@ -5,6 +5,7 @@ import { getNow } from '../../lib/clock';
 import { firstName } from '../../lib/date';
 import { uid } from '../../lib/ids';
 import { getDb, mutateDb } from '../../mocks/db';
+import { reconnectDemoPatient } from './MockLeaveRequestService';
 import { simulate } from './simulate';
 import { avatarColors } from '../../theme/colors';
 
@@ -98,6 +99,8 @@ export const mockPatientService: PatientService = {
       mutateDb(() => {
         link.used = true;
       });
+      // Código novo depois de uma desconexão: o aparelho volta a valer
+      reconnectDemoPatient(link.patientId);
       const patient = db.patients.find((e) => e.id === link.patientId)!;
       return { patientId: patient.id, patientName: patient.name, token: `mock.jwt.paciente.${patient.id}` };
     }, 300),

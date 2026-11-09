@@ -28,4 +28,9 @@ export const endpoints = {
   markMessagesRead: (patientId: string) => `/api/mensagens/lidas?pacienteId=${patientId}`,
   unreadMessages: '/api/mensagens/nao-lidas',
   pdfReport: (patientId: string, from: string, to: string) => `/api/relatorios/pdf?pacienteId=${patientId}&de=${from}&ate=${to}`,
+  myLeaveRequest: '/api/pacientes/me/pedido-desconexao',
+  pendingLeaveRequests: '/api/pacientes/pedidos-desconexao',
+  decideLeaveRequest: (patientId: string, requestId: string, action: 'autorizar' | 'recusar') =>
+    `/api/pacientes/${patientId}/pedidos-desconexao/${requestId}/${action}`,
+  disconnectDevice: (patientId: string) => `/api/pacientes/${patientId}/desconectar-aparelho`,
 } as const;

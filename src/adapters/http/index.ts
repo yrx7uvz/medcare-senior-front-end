@@ -5,6 +5,7 @@ import { httpPatientService } from './HttpPatientService';
 import { httpMedicationService } from './HttpMedicationService';
 import { httpMessageService } from './HttpMessageService';
 import { httpReportService } from './HttpReportService';
+import { httpLeaveRequestService } from './HttpLeaveRequestService';
 import { stubMedicationInfoService } from './stubs';
 
 /**
@@ -19,4 +20,5 @@ export const httpServices: Services = {
   messages: httpMessageService,
   reports: httpReportService,
   medicationInfo: stubMedicationInfoService,
+  leaveRequests: httpLeaveRequestService,
 };

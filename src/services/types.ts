@@ -1,4 +1,4 @@
-import type { DateKey, Dose, Patient, ID, LinkCode, Message, MessageAuthor, Treatment, Medication } from '../types/domain';
+import type { DateKey, Dose, Patient, ID, LeaveRequest, LinkCode, Message, MessageAuthor, PendingLeaveRequest, Treatment, Medication } from '../types/domain';
 import type {
   AdherenceReport,
   AlertView,
@@ -102,6 +102,27 @@ export interface ReportService {
 }
 
 /**
+ * Saída da conta do paciente com autorização do cuidador. Do lado do paciente, quem pede vem do token na API:
+ * `patientId` só serve ao demo.
+ */
+export interface LeaveRequestService {
+  /** Paciente: POST /api/pacientes/me/pedido-desconexao (devolve o pendente se já houver um). */
+  request(patientId: ID): Promise<LeaveRequest>;
+  /** Paciente: GET do pedido mais recente; null se nunca pediu. Depois de autorizado, a API responde 401. */
+  current(patientId: ID): Promise<LeaveRequest | null>;
+  /** Paciente: DELETE (idempotente). */
+  cancel(patientId: ID): Promise<void>;
+  /** Cuidador: pedidos pendentes dos pacientes dele. */
+  listPending(): Promise<PendingLeaveRequest[]>;
+  /** Cuidador: autoriza (desconecta o aparelho). 409 PEDIDO_ENCERRADO se já decidido de outro jeito ou vencido. */
+  approve(patientId: ID, requestId: ID): Promise<LeaveRequest>;
+  /** Cuidador: recusa (o paciente continua conectado). */
+  deny(patientId: ID, requestId: ID): Promise<LeaveRequest>;
+  /** Cuidador: desconecta o aparelho do paciente sem pedido. */
+  disconnectDevice(patientId: ID): Promise<void>;
+}
+
+/**
  * Fonte de aparência do remédio (formato, cor, tamanho, imprint). Interface
  * única para trocar depois por DailyMed/SPL, base própria ou API da ANVISA.
  */
@@ -117,6 +138,7 @@ export interface Services {
   messages: MessageService;
   reports: ReportService;
   medicationInfo: MedicationInfoService;
+  leaveRequests: LeaveRequestService;
 }
 
 export type { Dose };
