@@ -39,3 +39,7 @@ tools/
 .scannerwork/
 backups/
 *.dump
+
+# Credenciais da demonstração e APK de entrega (ficam fora dos repositórios)
+CREDENCIAIS_DEMO*
+entrega/
