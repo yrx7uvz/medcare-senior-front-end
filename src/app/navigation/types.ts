@@ -27,6 +27,8 @@ export type RootStackParamList = {
   DoseDetail: { doseId: string; patientId?: string; day?: string; fromPush?: boolean };
   // UC-008: relatório diário de um paciente (paciente e dia opcionais)
   DailyReport: { patientId?: string; day?: string } | undefined;
+  // Pedido de um paciente para sair da conta, aberto pelo toque no aviso
+  LeaveRequest: { patientId: string; requestId: string };
   // Comum
   Legal: { doc: 'termos' | 'lgpd' };
   // Paciente
@@ -38,6 +40,9 @@ export type RootStackParamList = {
   PatientConfirmDose: { doseId: string };
   PatientDoseConfirmed: { doseId: string };
   PatientMessages: undefined;
+  PatientSettings: undefined;
+  // Saída da conta com autorização do cuidador (explicação, espera e resultado)
+  PatientLeave: undefined;
 };
 
 export type RootScreenProps<T extends keyof RootStackParamList> = NativeStackScreenProps<RootStackParamList, T>;

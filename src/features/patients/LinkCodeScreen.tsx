@@ -2,14 +2,17 @@ import CheckCircle2 from 'lucide-react-native/icons/circle-check';
 import KeyRound from 'lucide-react-native/icons/key-round';
 import RefreshCw from 'lucide-react-native/icons/refresh-cw';
 import Smartphone from 'lucide-react-native/icons/smartphone';
+import Unplug from 'lucide-react-native/icons/unplug';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { StackHeader } from '../../components/layout/StackHeader';
-import { AppText, Button, Card, EmptyState, ErrorState, LoadingSkeleton } from '../../components/ui';
+import { AppText, Button, Card, ConfirmDialog, EmptyState, ErrorState, LoadingSkeleton } from '../../components/ui';
 import { services } from '../../services';
+import { useAppStore } from '../../store/appStore';
 import { firstName } from '../../lib/date';
+import { DISCONNECT_CONFIRM_MESSAGE } from '../../lib/leaveRequest';
 import { useMutation, useQuery } from '../../lib/useQuery';
 import type { LinkCode } from '../../types/domain';
 import { spacing, useTheme } from '../../theme';
@@ -24,6 +27,19 @@ export function LinkCodeScreen({ route, navigation }: RootScreenProps<'LinkCode'
   const active = useQuery(['link-code', patientId], () => services.patients.getActiveLinkCode(patientId));
   const generate = useMutation(services.patients.generateLinkCode);
   const [fresh, setFresh] = useState<LinkCode | null>(null);
+  const disconnect = useMutation(services.leaveRequests.disconnectDevice);
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+  const showToast = useAppStore((s) => s.showToast);
+  const onDisconnect = async () => {
+    const result = await disconnect.run(patientId);
+    setConfirmDisconnect(false);
+    if (result.ok) {
+      // Os códigos ainda não usados deixaram de valer: some com o que estava na tela
+      setFresh(null);
+      active.reload();
+      showToast('Celular desconectado. Para voltar, gere um código novo.');
+    }
+  };
   const newCode = async () => {
     const created = await generate.mutate(patientId);
     if (created) setFresh(created);
@@ -98,7 +114,31 @@ export function LinkCodeScreen({ route, navigation }: RootScreenProps<'LinkCode'
 
         {justCreated ? (
           <Button title="Cadastrar remédio para este paciente" onPress={() => navigation.replace('MedicationForm', undefined)} />
-        ) : null}
+        ) : (
+          <Card style={styles.card}>
+            <View style={styles.titleRow}>
+              <Unplug color={colors.danger} size={20} />
+              <AppText variant="heading">Desconectar o celular</AppText>
+            </View>
+            <AppText>
+              Use se o celular de {firstName(name) || 'paciente'} foi perdido ou trocado. O app sai da conta nele; os remédios e o
+              histórico continuam.
+            </AppText>
+            {disconnect.error ? <AppText color={colors.danger}>{disconnect.error.message}</AppText> : null}
+            <Button title="Desconectar aparelho" icon={Unplug} variant="secondary" onPress={() => setConfirmDisconnect(true)} />
+          </Card>
+        )}
+        <ConfirmDialog
+          visible={confirmDisconnect}
+          title={`Desconectar o celular de ${firstName(name) || 'paciente'}?`}
+          message={DISCONNECT_CONFIRM_MESSAGE}
+          confirmLabel="Desconectar"
+          icon={Unplug}
+          tone="danger"
+          loading={disconnect.loading}
+          onConfirm={() => void onDisconnect()}
+          onCancel={() => setConfirmDisconnect(false)}
+        />
       </ScrollView>
     </View>
   );

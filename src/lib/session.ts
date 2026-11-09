@@ -4,6 +4,7 @@ import { clearHttpCache, setTokenProvider, setUnauthorizedHandler, setViewerProv
 import { IS_DEMO } from '../config/env';
 import { useAppStore, type ViewAs } from '../store/appStore';
 import { resolveStoredSessions, SESSION_EXPIRED_MESSAGE } from './bootRules';
+import { patientDisconnectedFlash } from './leaveRequest';
 import { invalidateQueries } from './queryBus';
 import { pushRegistration } from './pushSession';
 import { caregiverSessionStorage, patientDeviceStorage, notificationPrefsStorage, profileStorage, type DeviceProfile } from './secureStorage';
@@ -94,11 +95,22 @@ export async function logoutCaregiver(flash: string | null = null) {
   clearDataCaches();
 }
 
-/** Aparelho do paciente desconectado pela API: apaga sessão e PIN e volta ao pareamento. */
+/**
+ * Aparelho do paciente desconectado pela API: apaga sessão e PIN e volta ao pareamento. Se ele tinha pedido para sair,
+ * é a autorização do cuidador chegando, e a mensagem diz isso. O paciente não tem token de push no servidor (o push é
+ * só do cuidador): não há registro a desfazer.
+ */
 async function disconnectPatient() {
-  useAppStore.setState({ patientSession: null, patientUnlocked: false, flash: PATIENT_DISCONNECTED_MESSAGE });
+  const flash = patientDisconnectedFlash(useAppStore.getState().patientLeaveRequested, PATIENT_DISCONNECTED_MESSAGE);
+  useAppStore.setState({ patientSession: null, patientUnlocked: false, patientLeaveRequested: false, flash });
   await safely(() => patientDeviceStorage.clear(), undefined);
   clearDataCaches();
+}
+
+/** Saída autorizada pelo cuidador, vista pela tela de espera do paciente: mesma limpeza, com a mensagem da autorização. */
+export async function leavePatientAccount() {
+  useAppStore.getState().setPatientLeaveRequested(true);
+  await disconnectPatient();
 }
 
 /**

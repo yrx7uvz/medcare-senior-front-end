@@ -2,6 +2,7 @@ import { endpoints } from '../adapters/http/endpoints';
 import { request } from '../adapters/http/httpClient';
 import { useAppStore } from '../store/appStore';
 import { push } from './push';
+import { parseLeavePayload } from './leaveRequest';
 import { parseDosePayload } from './pushPayload';
 import { createPushRegistration } from './pushRegistrationCore';
 import { pushStorage } from './secureStorage';
@@ -14,10 +15,12 @@ export const pushRegistration = createPushRegistration({
   pending: { get: () => pushStorage.getPendingRemoval(), set: (p) => pushStorage.setPendingRemoval(p) },
 });
 
-/** Toque numa notificação: payload válido vira a dose a abrir; qualquer outro é ignorado. */
+/** Toque numa notificação: payload válido vira a dose (ou o pedido de saída) a abrir; qualquer outro é ignorado. */
 function onNotificationOpened(data: Record<string, unknown>) {
   const target = parseDosePayload(data);
   if (target) useAppStore.getState().setPendingDoseOpen(target);
+  const leave = parseLeavePayload(data);
+  if (leave) useAppStore.getState().setPendingLeaveOpen(leave);
 }
 
 /**

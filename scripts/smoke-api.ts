@@ -4,7 +4,8 @@
  * remédio e um tratamento com dose daqui a ~20 min (um horário daqui a 2 min é recusado), pareia o paciente, confirma a
  * dose e por fim exclui a conta (o que apaga tudo o que foi criado). Além das chamadas diretas, faz o fluxo do app pelos
  * ADAPTERS HTTP (pacientes, remédio e tratamento, doses do cuidador e do paciente, confirmação, edição e remoção com
- * confirmação, histórico, mensagens nos dois papéis). Falha em qualquer passo = código de saída != 0 com o passo.
+ * confirmação, histórico, mensagens nos dois papéis, saída da conta do paciente com autorização do cuidador). Falha
+ * em qualquer passo = código de saída != 0 com o passo.
  *
  * Uso: npm run smoke:api  (EXPO_PUBLIC_API_URL; padrão http://localhost:8080)
  */
@@ -62,6 +63,7 @@ async function main() {
   const { httpDoseService } = await import('../src/adapters/http/HttpDoseService');
   const { httpReportService } = await import('../src/adapters/http/HttpReportService');
   const { httpMessageService } = await import('../src/adapters/http/HttpMessageService');
+  const { httpLeaveRequestService } = await import('../src/adapters/http/HttpLeaveRequestService');
   const { fromApiId, toApiId } = await import('../src/adapters/http/ids');
   const { AppError } = await import('../src/services/errors');
   const { getApiBaseUrl } = await import('../src/config/env');
@@ -496,6 +498,58 @@ async function main() {
       assert.equal(vista?.status, 'CONFIRMADA_NO_HORARIO');
       assert.equal(vista?.statusExibicao, 'CONFIRMADA_NO_HORARIO');
       assert.equal(vista?.confirmadoPor, 'CUIDADOR');
+    });
+
+    // Saída da conta com autorização do cuidador, com o segundo paciente pareado (o primeiro segue até a exclusão)
+    const tokenCuidadorAtivo = sessao.token;
+    const pareiaOutro = async () => {
+      token = tokenCuidadorAtivo;
+      const novoCodigo = await httpPatientService.generateLinkCode(outroPaciente.id);
+      token = null;
+      return (await httpPatientService.validateLinkCode(novoCodigo.code)).token;
+    };
+    const tokenOutro = await step('app: segundo paciente pareado (código novo)', pareiaOutro);
+
+    await step('app: paciente pede para sair (201, de novo devolve o mesmo), cuidador vê e RECUSA -> continua conectado', async () => {
+      token = tokenOutro;
+      const pedido = await httpLeaveRequestService.request(outroPaciente.id);
+      assert.equal(pedido.status, 'PENDENTE');
+      assert.equal((await httpLeaveRequestService.request(outroPaciente.id)).id, pedido.id);
+      token = tokenCuidadorAtivo;
+      const pendentes = await httpLeaveRequestService.listPending();
+      assert.deepEqual(pendentes.map((p) => [p.id, p.patientName]), [[pedido.id, 'Outra Paciente Smoke']]);
+      assert.equal((await httpLeaveRequestService.deny(outroPaciente.id, pedido.id)).status, 'RECUSADO');
+      await expectError(() => httpLeaveRequestService.approve(outroPaciente.id, pedido.id), 409, 'PEDIDO_ENCERRADO');
+      token = tokenOutro;
+      assert.equal((await httpLeaveRequestService.current(outroPaciente.id))?.status, 'RECUSADO');
+      await request('GET', '/api/pacientes/me');
+    });
+
+    await step('app: paciente pede para sair e o cuidador AUTORIZA -> aparelho deslogado (401 SESSAO_INVALIDA), vínculo mantido', async () => {
+      token = tokenOutro;
+      const pedido = await httpLeaveRequestService.request(outroPaciente.id);
+      token = tokenCuidadorAtivo;
+      assert.equal((await httpLeaveRequestService.approve(outroPaciente.id, pedido.id)).status, 'AUTORIZADO');
+      assert.equal((await httpLeaveRequestService.approve(outroPaciente.id, pedido.id)).status, 'AUTORIZADO');
+      token = tokenOutro;
+      const r = await expectError(() => httpLeaveRequestService.current(outroPaciente.id), 401, 'SESSAO_INVALIDA');
+      await expectError(() => request('GET', '/api/pacientes/me/doses'), 401, 'SESSAO_INVALIDA');
+      token = tokenCuidadorAtivo;
+      assert.equal((await httpPatientService.get(outroPaciente.id)).name, 'Outra Paciente Smoke');
+      return r;
+    });
+
+    await step('app: cuidador desconecta o aparelho sem pedido (código novo reconecta antes)', async () => {
+      // O marcador da desconexão vai ao segundo seguinte: espera para o token novo valer
+      await new Promise((r) => setTimeout(r, 1_100));
+      const tokenDeVolta = await pareiaOutro();
+      token = tokenDeVolta;
+      await request('GET', '/api/pacientes/me');
+      token = tokenCuidadorAtivo;
+      await httpLeaveRequestService.disconnectDevice(outroPaciente.id);
+      token = tokenDeVolta;
+      await expectError(() => request('GET', '/api/pacientes/me'), 401, 'SESSAO_INVALIDA');
+      token = tokenCuidadorAtivo;
     });
 
     await step('token do aparelho: PUT e DELETE /api/cuidadores/me/fcm-token -> 204 (DELETE idempotente)', async () => {

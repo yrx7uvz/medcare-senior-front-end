@@ -21,6 +21,7 @@ import { minuteStamp, useNow } from '../../lib/useNow';
 import type { DoseView } from '../../types/views';
 import { spacing, useTheme } from '../../theme';
 import { DoseCard } from './DoseCard';
+import { LeaveRequestCard } from './LeaveRequestCard';
 import { SummaryCards } from './SummaryCards';
 
 /** Painel diário do cuidador. */
@@ -39,6 +40,9 @@ export function DashboardScreen({ navigation }: TabScreenProps<'Painel'>) {
   const patients = useQuery(['patients'], () => services.patients.list());
   const doses = useQuery(['doses-day', filter, today], () => services.doses.listForDay(filter, today), { silentKey });
   const alerts = useQuery(['alerts'], () => services.doses.listAlerts(), { silentKey });
+  // Pedidos dos pacientes para sair da conta: a cada minuto, como os alertas (o push avisa na hora)
+  const leaveRequests = useQuery(['leave-requests'], () => services.leaveRequests.listPending(), { silentKey });
+  const visibleLeaveRequests = (leaveRequests.data ?? []).filter((r) => filter === 'ALL' || r.patientId === filter);
 
   const visibleAlerts = (alerts.data ?? []).filter(
     (a) => !dismissed.includes(`${a.doseId}:${a.status}`) && (filter === 'ALL' || a.patientId === filter),
@@ -150,6 +154,7 @@ export function DashboardScreen({ navigation }: TabScreenProps<'Painel'>) {
             onRefresh={() => {
               doses.reload();
               alerts.refresh();
+              leaveRequests.refresh();
             }}
             colors={[colors.primary]}
           />
@@ -164,6 +169,9 @@ export function DashboardScreen({ navigation }: TabScreenProps<'Painel'>) {
           />
         ) : null}
         {notifications.show ? <NotificationsOffBanner onEnable={() => void notifications.enable()} /> : null}
+        {visibleLeaveRequests.map((r) => (
+          <LeaveRequestCard key={r.id} request={r} onDecided={leaveRequests.refresh} />
+        ))}
         {visibleAlerts.length > 0 ? (
           <AlertBanner
             alert={visibleAlerts[0]}

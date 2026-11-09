@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { LeaveOpenTarget } from '../lib/leaveRequest';
 import type { DoseOpenTarget } from '../lib/pushPayload';
 import type { ThemeMode, ThemePrefs } from '../lib/themePrefs';
 import type { CaregiverSession, PatientFilter } from '../types/views';
@@ -46,6 +47,9 @@ interface AppState {
   /** Dose a abrir vinda de um toque em notificação (espera o login, se a sessão tiver expirado). */
   pendingDoseOpen: DoseOpenTarget | null;
   setPendingDoseOpen: (target: DoseOpenTarget | null) => void;
+  /** Pedido de saída a abrir, vindo de um toque no aviso (espera o login, como a dose). */
+  pendingLeaveOpen: LeaveOpenTarget | null;
+  setPendingLeaveOpen: (target: LeaveOpenTarget | null) => void;
 
   patientHighContrast: boolean;
   togglePatientHighContrast: () => void;
@@ -57,6 +61,9 @@ interface AppState {
   /** PIN digitado nesta abertura. */
   patientUnlocked: boolean;
   setPatientUnlocked: (v: boolean) => void;
+  /** O paciente pediu para sair e espera o cuidador: a desconexão que vier da API é a saída autorizada. */
+  patientLeaveRequested: boolean;
+  setPatientLeaveRequested: (v: boolean) => void;
 
   dismissedAlertIds: string[];
   dismissAlert: (id: string) => void;
@@ -97,6 +104,8 @@ export const useAppStore = create<AppState>()((set) => ({
 
   pendingDoseOpen: null,
   setPendingDoseOpen: (pendingDoseOpen) => set({ pendingDoseOpen }),
+  pendingLeaveOpen: null,
+  setPendingLeaveOpen: (pendingLeaveOpen) => set({ pendingLeaveOpen }),
 
   patientHighContrast: false,
   togglePatientHighContrast: () => set((s) => ({ patientHighContrast: !s.patientHighContrast })),
@@ -106,6 +115,8 @@ export const useAppStore = create<AppState>()((set) => ({
   setPatientSession: (patientSession) => set({ patientSession, patientSessionLoaded: true }),
   patientUnlocked: false,
   setPatientUnlocked: (patientUnlocked) => set({ patientUnlocked }),
+  patientLeaveRequested: false,
+  setPatientLeaveRequested: (patientLeaveRequested) => set({ patientLeaveRequested }),
 
   dismissedAlertIds: [],
   dismissAlert: (id) => set((s) => ({ dismissedAlertIds: [...s.dismissedAlertIds, id] })),

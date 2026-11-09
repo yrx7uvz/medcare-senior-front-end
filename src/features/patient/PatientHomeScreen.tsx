@@ -2,6 +2,7 @@ import CalendarCheck from 'lucide-react-native/icons/calendar-check';
 import CheckCircle2 from 'lucide-react-native/icons/circle-check';
 import MessageCircle from 'lucide-react-native/icons/message-circle';
 import Pill from 'lucide-react-native/icons/pill';
+import Settings from 'lucide-react-native/icons/settings';
 import { StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { PatientScreen } from '../../components/layout/PatientScreen';
@@ -121,6 +122,7 @@ export function PatientHomeScreen({ navigation }: RootScreenProps<'PatientHome'>
         variant="primary"
         onPress={() => navigation.navigate('PatientMessages')}
       />
+      <BigActionButton title="AJUSTES" icon={Settings} variant="outline" onPress={() => navigation.navigate('PatientSettings')} accessibilityHint="Alto contraste e sair da conta" />
     </PatientScreen>
   );
 }

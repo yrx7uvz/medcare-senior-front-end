@@ -13,6 +13,9 @@ import { CreatePinScreen } from '../../features/patient/CreatePinScreen';
 import { DoseConfirmedScreen } from '../../features/patient/DoseConfirmedScreen';
 import { PatientHomeScreen } from '../../features/patient/PatientHomeScreen';
 import { PatientMessagesScreen } from '../../features/patient/PatientMessagesScreen';
+import { PatientLeaveScreen } from '../../features/patient/PatientLeaveScreen';
+import { PatientSettingsScreen } from '../../features/patient/PatientSettingsScreen';
+import { LeaveRequestScreen } from '../../features/dashboard/LeaveRequestScreen';
 import { PairingScreen } from '../../features/patient/PairingScreen';
 import { PinUnlockScreen } from '../../features/patient/PinUnlockScreen';
 import { PatientFormScreen } from '../../features/patients/PatientFormScreen';
@@ -39,6 +42,8 @@ const PatientHome = withPatientTheme(PatientHomeScreen);
 const PatientConfirmDose = withPatientTheme(ConfirmDoseScreen);
 const PatientDoseConfirmed = withPatientTheme(DoseConfirmedScreen);
 const PatientMessages = withPatientTheme(PatientMessagesScreen);
+const PatientSettings = withPatientTheme(PatientSettingsScreen);
+const PatientLeave = withPatientTheme(PatientLeaveScreen);
 const ProfileChoice = withPatientTheme(ProfileChoiceScreen);
 
 function PatientLoading() {
@@ -76,6 +81,7 @@ export function RootNavigator() {
   const patientUnlocked = useAppStore((s) => s.patientUnlocked);
   const highContrast = useAppStore((s) => s.patientHighContrast);
   const pendingDoseOpen = useAppStore((s) => s.pendingDoseOpen);
+  const pendingLeaveOpen = useAppStore((s) => s.pendingLeaveOpen);
   const [navReady, setNavReady] = useState(false);
 
   // Toque num aviso de dose (app fechado, em segundo plano ou aberto em qualquer tela): abre a dose assim que houver
@@ -103,6 +109,24 @@ export function RootNavigator() {
     }, 0);
     return () => clearTimeout(id);
   }, [navReady, viewAs, session, pendingDoseOpen]);
+
+  // Toque no aviso de pedido de saída: mesmo caminho da dose (espera o login; perfil do paciente ignora), com o Painel
+  // por baixo
+  useEffect(() => {
+    if (!navReady || !pendingLeaveOpen) return;
+    if (viewAs === 'PATIENT') {
+      useAppStore.getState().setPendingLeaveOpen(null);
+      return;
+    }
+    if (viewAs !== 'CAREGIVER' || !session) return;
+    const id = setTimeout(() => {
+      if (!navigationRef.isReady()) return;
+      useAppStore.getState().setPendingLeaveOpen(null);
+      const painel = { name: 'CaregiverTabs' as const, params: { screen: 'Painel' as const } };
+      navigationRef.dispatch(CommonActions.reset({ index: 1, routes: [painel, { name: 'LeaveRequest', params: pendingLeaveOpen }] }));
+    }, 0);
+    return () => clearTimeout(id);
+  }, [navReady, viewAs, session, pendingLeaveOpen]);
 
   const navTheme = useMemo<NavTheme>(() => {
     const base = mode === 'dark' ? DarkTheme : DefaultTheme;
@@ -135,6 +159,7 @@ export function RootNavigator() {
               <Stack.Screen name="ExportPdf" component={ExportPdfScreen} />
               <Stack.Screen name="DoseDetail" component={DoseDetailScreen} />
               <Stack.Screen name="DailyReport" component={DailyReportScreen} />
+              <Stack.Screen name="LeaveRequest" component={LeaveRequestScreen} />
             </Stack.Group>
           ) : (
             <Stack.Group>
@@ -157,6 +182,8 @@ export function RootNavigator() {
             <Stack.Screen name="PatientConfirmDose" component={PatientConfirmDose} />
             <Stack.Screen name="PatientDoseConfirmed" component={PatientDoseConfirmed} options={{ animation: 'fade', gestureEnabled: false }} />
             <Stack.Screen name="PatientMessages" component={PatientMessages} />
+            <Stack.Screen name="PatientSettings" component={PatientSettings} />
+            <Stack.Screen name="PatientLeave" component={PatientLeave} options={{ gestureEnabled: false }} />
           </Stack.Group>
         )}
         <Stack.Screen name="Legal" component={LegalScreen} options={{ presentation: 'modal' }} />
