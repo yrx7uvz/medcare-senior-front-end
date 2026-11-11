@@ -25,6 +25,7 @@ import { LegalScreen } from '../../features/legal/LegalScreen';
 import { MedicationFormScreen } from '../../features/medications/MedicationFormScreen';
 import { ProfileChoiceScreen } from '../../features/profile/ProfileChoiceScreen';
 import { decideDoseOpen } from '../../lib/doseOpen';
+import { markPatientActivity } from '../../lib/pinSession';
 import { bootSession } from '../../lib/session';
 import { navigationRef } from './navigationRef';
 import { useAppStore } from '../../store/appStore';
@@ -33,6 +34,12 @@ import { CaregiverTabs } from './CaregiverTabs';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+/** Devolve false: só registra o toque (no máximo uma gravação por minuto), quem responde continua sendo o botão. */
+const touchCountsAsUse = () => {
+  markPatientActivity();
+  return false;
+};
 
 // Telas do paciente com o tema dedicado (fontes grandes e alto contraste).
 const PatientPairing = withPatientTheme(PairingScreen);
@@ -142,52 +149,56 @@ export function RootNavigator() {
   const statusLight = viewAs === 'CAREGIVER' || highContrast || mode === 'dark';
 
   return (
-    <NavigationContainer ref={navigationRef} theme={navTheme} onReady={() => setNavReady(true)}>
-      <StatusBar style={statusLight ? 'light' : 'dark'} />
-      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-        {!profileLoaded ? (
-          <Stack.Screen name="PatientLoading" component={PatientLoading} />
-        ) : viewAs === null ? (
-          <Stack.Screen name="ProfileChoice" component={ProfileChoice} />
-        ) : viewAs === 'CAREGIVER' ? (
-          session ? (
+    // Toques no app do paciente contam como uso (para a tolerância do PIN), sem capturar o toque. O fundo acompanha o
+    // tema: é o que aparece atrás da barra de navegação do Android (borda a borda) e durante as transições
+    <View style={{ flex: 1, backgroundColor: navTheme.colors.background }} onStartShouldSetResponderCapture={touchCountsAsUse}>
+      <NavigationContainer ref={navigationRef} theme={navTheme} onReady={() => setNavReady(true)}>
+        <StatusBar style={statusLight ? 'light' : 'dark'} />
+        <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+          {!profileLoaded ? (
+            <Stack.Screen name="PatientLoading" component={PatientLoading} />
+          ) : viewAs === null ? (
+            <Stack.Screen name="ProfileChoice" component={ProfileChoice} />
+          ) : viewAs === 'CAREGIVER' ? (
+            session ? (
+              <Stack.Group>
+                <Stack.Screen name="CaregiverTabs" component={CaregiverTabs} />
+                <Stack.Screen name="PatientForm" component={PatientFormScreen} />
+                <Stack.Screen name="LinkCode" component={LinkCodeScreen} />
+                <Stack.Screen name="MedicationForm" component={MedicationFormScreen} />
+                <Stack.Screen name="ExportPdf" component={ExportPdfScreen} />
+                <Stack.Screen name="DoseDetail" component={DoseDetailScreen} />
+                <Stack.Screen name="DailyReport" component={DailyReportScreen} />
+                <Stack.Screen name="LeaveRequest" component={LeaveRequestScreen} />
+              </Stack.Group>
+            ) : (
+              <Stack.Group>
+                <Stack.Screen name="Login" component={LoginScreen} />
+                <Stack.Screen name="SignUp" component={SignUpScreen} />
+              </Stack.Group>
+            )
+          ) : !patientLoaded ? (
+            <Stack.Screen name="PatientLoading" component={PatientLoading} />
+          ) : !patientSession ? (
             <Stack.Group>
-              <Stack.Screen name="CaregiverTabs" component={CaregiverTabs} />
-              <Stack.Screen name="PatientForm" component={PatientFormScreen} />
-              <Stack.Screen name="LinkCode" component={LinkCodeScreen} />
-              <Stack.Screen name="MedicationForm" component={MedicationFormScreen} />
-              <Stack.Screen name="ExportPdf" component={ExportPdfScreen} />
-              <Stack.Screen name="DoseDetail" component={DoseDetailScreen} />
-              <Stack.Screen name="DailyReport" component={DailyReportScreen} />
-              <Stack.Screen name="LeaveRequest" component={LeaveRequestScreen} />
+              <Stack.Screen name="PatientPairing" component={PatientPairing} />
+              <Stack.Screen name="PatientCreatePin" component={PatientCreatePin} />
             </Stack.Group>
+          ) : !patientUnlocked ? (
+            <Stack.Screen name="PatientPinUnlock" component={PatientPinUnlock} />
           ) : (
             <Stack.Group>
-              <Stack.Screen name="Login" component={LoginScreen} />
-              <Stack.Screen name="SignUp" component={SignUpScreen} />
+              <Stack.Screen name="PatientHome" component={PatientHome} />
+              <Stack.Screen name="PatientConfirmDose" component={PatientConfirmDose} />
+              <Stack.Screen name="PatientDoseConfirmed" component={PatientDoseConfirmed} options={{ animation: 'fade', gestureEnabled: false }} />
+              <Stack.Screen name="PatientMessages" component={PatientMessages} />
+              <Stack.Screen name="PatientSettings" component={PatientSettings} />
+              <Stack.Screen name="PatientLeave" component={PatientLeave} options={{ gestureEnabled: false }} />
             </Stack.Group>
-          )
-        ) : !patientLoaded ? (
-          <Stack.Screen name="PatientLoading" component={PatientLoading} />
-        ) : !patientSession ? (
-          <Stack.Group>
-            <Stack.Screen name="PatientPairing" component={PatientPairing} />
-            <Stack.Screen name="PatientCreatePin" component={PatientCreatePin} />
-          </Stack.Group>
-        ) : !patientUnlocked ? (
-          <Stack.Screen name="PatientPinUnlock" component={PatientPinUnlock} />
-        ) : (
-          <Stack.Group>
-            <Stack.Screen name="PatientHome" component={PatientHome} />
-            <Stack.Screen name="PatientConfirmDose" component={PatientConfirmDose} />
-            <Stack.Screen name="PatientDoseConfirmed" component={PatientDoseConfirmed} options={{ animation: 'fade', gestureEnabled: false }} />
-            <Stack.Screen name="PatientMessages" component={PatientMessages} />
-            <Stack.Screen name="PatientSettings" component={PatientSettings} />
-            <Stack.Screen name="PatientLeave" component={PatientLeave} options={{ gestureEnabled: false }} />
-          </Stack.Group>
-        )}
-        <Stack.Screen name="Legal" component={LegalScreen} options={{ presentation: 'modal' }} />
-      </Stack.Navigator>
-    </NavigationContainer>
+          )}
+          <Stack.Screen name="Legal" component={LegalScreen} options={{ presentation: 'modal' }} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </View>
   );
 }

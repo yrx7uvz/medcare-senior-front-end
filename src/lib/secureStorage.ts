@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
-import { createPinGuard, type PinCheck } from './pinCore';
+import { createPinGuard, PIN_KEYS, type PinCheck } from './pinCore';
+import { parseLastUse, parsePinAskMode, type PinAskMode } from './pinGrace';
 import { parseThemePrefs, serializeThemePrefs, type ThemePrefs } from './themePrefs';
 
 /**
@@ -136,6 +137,18 @@ export const patientDeviceStorage = {
   async persistPinAttempts() {
     await pinGuard.persist();
   },
+  /** Escolha de quando pedir o PIN e o último uso desbloqueado (tolerância de 10 minutos). */
+  async loadPinGrace(): Promise<{ mode: PinAskMode; lastUseMs: number | null }> {
+    return { mode: parsePinAskMode(await getItem(PIN_KEYS.askMode)), lastUseMs: parseLastUse(await getItem(PIN_KEYS.lastUse)) };
+  },
+  async savePinAskMode(mode: PinAskMode) {
+    await setItem(PIN_KEYS.askMode, mode);
+  },
+  /** Grava o instante do último uso desbloqueado (relógio do aparelho, em ms). */
+  async markUnlockedUse(nowMs: number) {
+    await setItem(PIN_KEYS.lastUse, String(Math.floor(nowMs)));
+  },
+  /** Apaga sessão, PIN, tentativas, último uso e a escolha de quando pedir o PIN. */
   async clear() {
     await removeItem(KEYS.patientSession);
     await pinGuard.clear();

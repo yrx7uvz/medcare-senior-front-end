@@ -7,6 +7,8 @@ import { resolveStoredSessions, SESSION_EXPIRED_MESSAGE } from './bootRules';
 import { patientDisconnectedFlash } from './leaveRequest';
 import { invalidateQueries } from './queryBus';
 import { pushRegistration } from './pushSession';
+import { DEFAULT_PIN_ASK_MODE } from './pinGrace';
+import { forgetPatientActivity, patientStartsUnlocked } from './pinSession';
 import { caregiverSessionStorage, patientDeviceStorage, notificationPrefsStorage, profileStorage, type DeviceProfile } from './secureStorage';
 
 export { PATIENT_EXPIRED_MESSAGE, SESSION_EXPIRED_MESSAGE } from './bootRules';
@@ -60,12 +62,16 @@ export async function bootSession() {
   // Preferências de notificação do aparelho (sem elas, ficam as padrão)
   const prefs = await safely(() => notificationPrefsStorage.load(), null);
   if (prefs) useAppStore.getState().setNotificationPrefs(prefs);
+  // PIN do paciente: entra direto se o último uso desbloqueado foi há até 10 minutos (ou se escolheu "Nunca")
+  const grace = resolved.patient ? await safely(() => patientStartsUnlocked(), null) : null;
   useAppStore.setState({
     viewAs: toViewAs(profile),
     session: resolved.caregiver,
     patientSession: resolved.patient,
     patientSessionLoaded: true,
     profileLoaded: true,
+    patientUnlocked: profile === 'PACIENTE' && !!grace?.unlocked,
+    ...(grace ? { pinAskMode: grace.mode } : {}),
     ...(flash ? { flash } : {}),
   });
 }
@@ -102,8 +108,10 @@ export async function logoutCaregiver(flash: string | null = null) {
  */
 async function disconnectPatient() {
   const flash = patientDisconnectedFlash(useAppStore.getState().patientLeaveRequested, PATIENT_DISCONNECTED_MESSAGE);
-  useAppStore.setState({ patientSession: null, patientUnlocked: false, patientLeaveRequested: false, flash });
+  useAppStore.setState({ patientSession: null, patientUnlocked: false, patientLeaveRequested: false, pinAskMode: DEFAULT_PIN_ASK_MODE, flash });
+  // Junto com o PIN, vão o último uso desbloqueado e a escolha de quando pedir o PIN
   await safely(() => patientDeviceStorage.clear(), undefined);
+  forgetPatientActivity();
   clearDataCaches();
 }
 

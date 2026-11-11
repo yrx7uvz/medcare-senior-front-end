@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { LeaveOpenTarget } from '../lib/leaveRequest';
+import { DEFAULT_PIN_ASK_MODE, type PinAskMode } from '../lib/pinGrace';
 import type { DoseOpenTarget } from '../lib/pushPayload';
 import type { ThemeMode, ThemePrefs } from '../lib/themePrefs';
 import type { CaregiverSession, PatientFilter } from '../types/views';
@@ -33,8 +34,8 @@ interface AppState {
 
   /** Tema escolhido nas Configurações; null = seguir o tema do sistema. Guardado no aparelho. */
   themeChoice: ThemeMode | null;
-  /** Troca o tema a partir do que está na tela (vira escolha explícita). */
-  toggleTheme: (current: ThemeMode) => void;
+  /** Escolha do seletor de tema; null = Automático (tema do celular). */
+  setThemeChoice: (choice: ThemeMode | null) => void;
   /** As preferências de aparência já foram lidas do aparelho (até lá, só a tela de carregamento da marca). */
   themeLoaded: boolean;
   setThemePrefs: (prefs: ThemePrefs) => void;
@@ -58,9 +59,12 @@ interface AppState {
   patientSession: { patientId: string; token: string } | null;
   patientSessionLoaded: boolean;
   setPatientSession: (s: { patientId: string; token: string } | null) => void;
-  /** PIN digitado nesta abertura. */
+  /** App do paciente desbloqueado: PIN digitado ou último uso dentro da tolerância (pinGrace). */
   patientUnlocked: boolean;
   setPatientUnlocked: (v: boolean) => void;
+  /** Quando pedir o PIN neste aparelho (Ajustes do paciente). */
+  pinAskMode: PinAskMode;
+  setPinAskMode: (mode: PinAskMode) => void;
   /** O paciente pediu para sair e espera o cuidador: a desconexão que vier da API é a saída autorizada. */
   patientLeaveRequested: boolean;
   setPatientLeaveRequested: (v: boolean) => void;
@@ -94,7 +98,7 @@ export const useAppStore = create<AppState>()((set) => ({
   setSelectedPatient: (selectedPatientId) => set({ selectedPatientId }),
 
   themeChoice: null,
-  toggleTheme: (current) => set({ themeChoice: current === 'light' ? 'dark' : 'light' }),
+  setThemeChoice: (themeChoice) => set({ themeChoice }),
   themeLoaded: false,
   setThemePrefs: (prefs) => set({ themeChoice: prefs.mode, patientHighContrast: prefs.patientHighContrast, themeLoaded: true }),
 
@@ -115,6 +119,8 @@ export const useAppStore = create<AppState>()((set) => ({
   setPatientSession: (patientSession) => set({ patientSession, patientSessionLoaded: true }),
   patientUnlocked: false,
   setPatientUnlocked: (patientUnlocked) => set({ patientUnlocked }),
+  pinAskMode: DEFAULT_PIN_ASK_MODE,
+  setPinAskMode: (pinAskMode) => set({ pinAskMode }),
   patientLeaveRequested: false,
   setPatientLeaveRequested: (patientLeaveRequested) => set({ patientLeaveRequested }),
 

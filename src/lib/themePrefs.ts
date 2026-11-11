@@ -32,3 +32,11 @@ export function resolveThemeMode(choice: ThemeMode | null, system: string | null
   if (choice) return choice;
   return system === 'dark' ? 'dark' : 'light';
 }
+
+/** Opções do seletor de tema (cuidador e paciente): Automático = seguir o tema do celular (sem escolha salva). */
+export type ThemeChoice = 'AUTO' | ThemeMode;
+export const THEME_CHOICES: readonly { value: ThemeChoice; label: string }[] = [
+  { value: 'AUTO', label: 'Automático' },
+  { value: 'light', label: 'Claro' },
+  { value: 'dark', label: 'Escuro' },
+];

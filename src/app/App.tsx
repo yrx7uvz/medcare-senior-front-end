@@ -7,6 +7,7 @@ import { DemoBanner } from '../components/layout/DemoBanner';
 import { ProfileSwitcher } from '../components/layout/ProfileSwitcher';
 import { Toast } from '../components/layout/Toast';
 import { API_CONFIG_PROBLEM, IS_DEMO } from '../config/env';
+import { startPinGrace } from '../lib/pinSession';
 import { startPush } from '../lib/pushSession';
 import { bootSession, registerSessionHandlers } from '../lib/session';
 import { hydrateTheme, persistTheme } from '../lib/themeSession';
@@ -42,9 +43,12 @@ export default function App() {
     void bootSession();
     // Push (só no app Android instalado; no Expo Go, no iOS e no demo não faz nada)
     const stopPush = startPush();
+    // PIN do paciente com tolerância: último uso desbloqueado e novo bloqueio ao voltar do segundo plano
+    const stopPinGrace = startPinGrace();
     return () => {
       unsubscribe();
       stopPush();
+      stopPinGrace();
     };
   }, []);
 

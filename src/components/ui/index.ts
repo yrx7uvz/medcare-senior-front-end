@@ -17,6 +17,7 @@ export * from './ErrorState';
 export * from './RefreshFailedBanner';
 export * from './LoadingSkeleton';
 export * from './ConfirmDialog';
+export * from './OptionList';
 export * from './ThemeToggle';
 export * from './ChatBubble';
 export * from './ChatThread';

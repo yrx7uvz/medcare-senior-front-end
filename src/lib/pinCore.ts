@@ -63,6 +63,10 @@ export const PIN_KEYS = {
   attempts: 'medcare.elder.pinAttempts',
   /** Versões antigas guardavam o PIN em texto aqui: é convertido e apagado no primeiro uso. */
   legacyPlain: 'medcare.elder.pin',
+  /** Último uso com o app desbloqueado (epoch em ms), para a tolerância do PIN (pinGrace). */
+  lastUse: 'medcare.elder.pinLastUse',
+  /** Quando pedir o PIN: sempre, depois de 10 minutos ou nunca neste celular (pinGrace). */
+  askMode: 'medcare.elder.pinAskMode',
 } as const;
 
 export const isValidPin = (pin: string) => new RegExp(`^\\d{${PIN_LENGTH}}$`).test(pin);
@@ -225,6 +229,8 @@ export function createPinGuard(deps: PinDeps): PinGuard {
       await deps.store.remove(PIN_KEYS.record);
       await deps.store.remove(PIN_KEYS.legacyPlain);
       await deps.store.remove(PIN_KEYS.attempts);
+      await deps.store.remove(PIN_KEYS.lastUse);
+      await deps.store.remove(PIN_KEYS.askMode);
     },
   };
 }
