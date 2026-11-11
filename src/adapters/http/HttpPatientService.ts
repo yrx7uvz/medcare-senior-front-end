@@ -93,6 +93,12 @@ export const httpPatientService: PatientService = {
     return toPatient(dto);
   },
 
+  /** 204; 404 (já desvinculado ou de outra conta) chega como AppError. */
+  async remove(id) {
+    await request<void>('DELETE', endpoints.patient(String(toApiId(id))));
+    forgetLinkCode(id);
+  },
+
   async generateLinkCode(patientId) {
     const link = toLinkCode(await request<CodigoVinculoResponse>('POST', endpoints.generateLinkCode(String(toApiId(patientId)))));
     lastCodes.set(link.patientId, link);

@@ -552,6 +552,27 @@ async function main() {
       token = tokenCuidadorAtivo;
     });
 
+    await step('app: cuidador cria um paciente, pareia e DESVINCULA -> 404 ao buscar, fora da lista, aparelho com 401', async () => {
+      token = tokenCuidadorAtivo;
+      const temporario = await httpPatientService.create({ name: 'Paciente Desvinculado Smoke', birthDate: '1949-02-03' });
+      const codigo = await httpPatientService.generateLinkCode(temporario.id);
+      token = null;
+      const tokenTemporario = (await httpPatientService.validateLinkCode(codigo.code)).token;
+      token = tokenTemporario;
+      await request('GET', '/api/pacientes/me');
+      token = tokenCuidadorAtivo;
+      await httpPatientService.remove(temporario.id);
+      await expectError(() => httpPatientService.get(temporario.id), 404, 'RECURSO_NAO_ENCONTRADO');
+      assert.ok(!(await httpPatientService.list()).some((p) => p.id === temporario.id));
+      assert.ok(!(await httpMessageService.listConversations()).some((c) => c.patient.id === temporario.id));
+      await expectError(() => httpPatientService.remove(temporario.id), 404, 'RECURSO_NAO_ENCONTRADO');
+      // Os outros pacientes continuam
+      assert.equal((await httpPatientService.get(outroPaciente.id)).name, 'Outra Paciente Smoke');
+      token = tokenTemporario;
+      await expectError(() => request('GET', '/api/pacientes/me'), 401, 'SESSAO_INVALIDA');
+      token = tokenCuidadorAtivo;
+    });
+
     await step('token do aparelho: PUT e DELETE /api/cuidadores/me/fcm-token -> 204 (DELETE idempotente)', async () => {
       await request('PUT', '/api/cuidadores/me/fcm-token', { token: `smoke-fcm-${Date.now()}` });
       await request('DELETE', '/api/cuidadores/me/fcm-token');

@@ -36,7 +36,7 @@ export interface AuthService {
   deleteAccount(): Promise<{ removalDeadlineDays: number }>;
 }
 
-/** POST /api/pacientes, POST /api/pacientes/{id}/gerar-codigo, POST /api/vinculo/validar */
+/** POST /api/pacientes, DELETE /api/pacientes/{id}, POST /api/pacientes/{id}/gerar-codigo, POST /api/vinculo/validar */
 export interface PatientService {
   list(): Promise<Patient[]>;
   get(id: ID): Promise<Patient>;
@@ -45,6 +45,8 @@ export interface PatientService {
   getActiveLinkCode(patientId: ID): Promise<LinkCode | null>;
   validateLinkCode(code: string): Promise<PatientPairing>;
   getProfile(patientId: ID): Promise<PatientProfile>;
+  /** Cuidador: DELETE /api/pacientes/{id}. Apaga o paciente e os dados dele (doses registradas ficam sem o nome); 404 se já não existir. */
+  remove(id: ID): Promise<void>;
 }
 
 /** /api/medicamentos e /api/medicamentos/{id}/tratamentos */

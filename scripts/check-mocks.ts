@@ -112,6 +112,7 @@ async function main() {
   try { await services.patients.validateLinkCode('482913'); } catch (e) { console.log('Reuso →', (e as Error).message); }
   await conferirHorarioDoTratamento();
   await conferirSaidaDaConta();
+  await conferirDesvinculo();
   process.exit(0);
 }
 
@@ -150,5 +151,20 @@ async function conferirSaidaDaConta() {
   await leave.disconnectDevice('e-helena');
   assert.equal(await leave.request('e-helena').catch(status), 401);
   console.log('Saída da conta: pedir, recusar, cancelar, autorizar (401 e código novo) e desconectar seguem a API');
+}
+
+/** Desvincular paciente no demo: some com os dados dele, os outros pacientes ficam, e o aparelho dele cai com 401. */
+async function conferirDesvinculo() {
+  const status = async (e: unknown) => (e as AppError).status;
+  const novo = await services.patients.create({ name: 'Paciente Temporário', birthDate: '1950-01-02' });
+  await services.messages.send(novo.id, 'CUIDADOR', 'Oi');
+  await services.patients.remove(novo.id);
+  assert.equal(await services.patients.get(novo.id).catch(status), 404);
+  assert.ok(!(await services.patients.list()).some((p) => p.id === novo.id));
+  assert.ok(!(await services.messages.listConversations()).some((c) => c.patient.id === novo.id));
+  assert.equal(await services.patients.remove(novo.id).catch(status), 404, 'desvincular de novo responde 404');
+  assert.equal(await services.patients.getProfile(novo.id).catch(status), 401, 'o aparelho do paciente recebe 401');
+  assert.equal((await services.patients.get('e-jose')).name, 'José Ferreira', 'os outros pacientes continuam');
+  console.log('Desvincular paciente: dados apagados, 404 depois, aparelho com 401 e os outros intactos');
 }
 void main();

@@ -40,6 +40,9 @@ export const setUnauthorizedHandler = (fn: UnauthorizedHandler | null) => {
   onUnauthorized = fn;
 };
 
+/** O modo demonstração simula o mesmo 401 da API (aparelho do paciente desconectado ou desvinculado). */
+export const reportUnauthorized = () => onUnauthorized?.();
+
 const inFlight = new Map<string, Promise<unknown>>();
 const recent = new Map<string, { at: number; data: unknown }>();
 
