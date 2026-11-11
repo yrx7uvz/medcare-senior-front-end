@@ -2,7 +2,7 @@
 
 Gerado por `npm run plano:testes` (repositório do app, com o do backend ao lado). O script **confere que cada teste
 citado existe** (método no backend, título no app) e falha se algum sumir ou mudar de nome: a matriz não fica
-desatualizada. São 100 referências a testes automatizados, todas conferidas.
+desatualizada. São 113 referências a testes automatizados, todas conferidas.
 
 Como rodar todos os testes automatizados:
 - **backend:** `.\mvnw.cmd verify` (com as variáveis `POSTGRES_*`);
@@ -34,7 +34,10 @@ Como rodar todos os testes automatizados:
 |---|---|---|
 | Cadastro e login | Cuidador se cadastra (com o termo LGPD) e entra | backend: `CadastrarCuidadorUseCaseTest` › deveCadastrarCuidadorComSenhaHasheada<br>backend: `SegurancaApiTest` › cadastroDeCuidadorContinuaPublico<br>backend: `SegurancaApiTest` › erroResponseTemCodigoEFormatoPadrao<br>app: `tests/validacoes.test.ts` › cadastro confere senhas, telefone e consentimento LGPD |
 | Paciente e pareamento | Cuidador cadastra o paciente e gera o código; o aparelho do paciente entra com ele | backend: `GerarCodigoVinculoUseCaseTest` › deveGerarCodigoDeSeisDigitosValidoPor24Horas<br>backend: `ValidarCodigoVinculoUseCaseTest` › codigoValidoDeveGerarTokenComRolePacienteEDevolverIdENomeDoPaciente<br>backend: `ValidarCodigoVinculoUseCaseTest` › codigoJaUsadoDeveSerRejeitado<br>backend: `RateLimiterTest` › deveBloquearASextaTentativaAposCincoFalhas<br>app: `tests/pareamento.test.ts` › aceita exatamente 6 números, ignorando espaços e hífens |
-| PIN do paciente | PIN local de 4 números, com hash e bloqueio progressivo | app: `tests/pin.test.ts` › PBKDF2-SHA256 com o custo atual, sal de 16 bytes aleatório: o mesmo PIN gera hashes diferentes<br>app: `tests/pin.test.ts` › a cada 5 erros seguidos, bloqueio de 30 s, 2 min, 10 min e 10 min daí em diante<br>app: `tests/pin.test.ts` › nunca guarda o PIN em texto |
+| PIN do paciente | PIN local de 4 números, com hash e bloqueio progressivo | app: `tests/pin.test.ts` › PBKDF2-SHA256 com o custo atual, sal de 16 bytes aleatório: o mesmo PIN gera hashes diferentes<br>app: `tests/pin.test.ts` › a cada 5 erros seguidos, bloqueio de 30 s, 2 min, 10 min e 10 min daí em diante<br>app: `tests/pin.test.ts` › nunca guarda o PIN em texto<br>app: `tests/pinTolerancia.test.ts` › fronteiras: 9:59 e 10:00 entram direto; 10:01 pede o PIN<br>app: `tests/pinTolerancia.test.ts` › relógio que voltou (último uso no futuro): pede o PIN<br>app: `tests/pinTolerancia.test.ts` › Sempre pede; Nunca não pede; o padrão segue a tolerância |
+| Desvincular paciente | Cuidador remove um paciente da conta: dados apagados, doses registradas anonimizadas, aparelho do paciente sai | backend: `DesvincularPacienteUseCaseTest` › deveApagarDadosDoPacienteNaOrdemDasChavesEstrangeiras<br>backend: `DesvinculacaoApiTest` › desvincularApagaOPacienteEOsDadosDeleEAnonimizaAsDosesRegistradas<br>backend: `DesvinculacaoApiTest` › depoisDeDesvincularOPacienteSome404EOAparelhoPerdeASessao<br>backend: `DesvinculacaoAtomicaTest` › falhaNoMeioNaoDeixaEstadoParcial<br>app: `tests/desvinculo.test.ts` › nome diferente, só o primeiro nome ou vazio não libera<br>app: `tests/desvinculo.test.ts` › DELETE /api/pacientes/{id}, 204 sem corpo |
+| Tema do paciente | Escuro do paciente igual ao do cuidador; o paciente escolhe Automático, Claro ou Escuro | app: `tests/tema.test.ts` › só o texto secundário (documentado) difere entre paciente escuro e cuidador escuro<br>app: `tests/tema.test.ts` › escolher Escuro muda as cores do paciente mesmo com o celular no claro; Automático volta a seguir o celular |
+| Abrir a dose do paciente | A tela da dose abre com a dose da lista, sem skeleton nem salto, e o status não muda só por abrir | app: `tests/aberturaDaDose.test.ts` › com a dose da lista: pronta no primeiro quadro, sem carregamento<br>app: `tests/aberturaDaDose.test.ts` › a dose da lista, recalculada na tela da dose no mesmo instante, não muda (sem "Atrasado" piscando) |
 | UC-04 Remédios | Cadastro, edição e remoção de remédios | backend: `CadastrarMedicamentoUseCaseTest` › deveCadastrarMedicamento<br>backend: `EditarMedicamentoUseCaseTest` › deveRejeitarTransferenciaParaPacienteDeOutroCuidador<br>app: `tests/mapeadores.test.ts` › pedido leva só os campos da API, formato só de comprimido e estoque opcional |
 | Tratamentos e doses | Horários e dias da semana; as doses são geradas numa janela rolante | backend: `SalvarTratamentoUseCaseTest` › deveSalvarTratamentoValido<br>backend: `GeradorDeDosesServiceTest` › deveGerarSomenteNosDiasDaSemanaDoTratamento<br>backend: `GeradorDeDosesServiceTest` › naoDeveDuplicarDosesJaExistentes<br>backend: `PersistenciaPostgresTest` › indiceUnicoDeixaUmaSoDoseNoMesmoHorarioDoMesmoTratamento<br>app: `tests/mapeadores.test.ts` › tratamento: horários únicos e ordenados, dias em inglês; resposta vira HH:mm e índice |
 | Horário do tratamento | Horário de hoje com pelo menos 5 minutos de antecedência (na edição, só os novos); o que já passou fica para o próximo dia | backend: `AntecedenciaDoHorarioTest` › menosDeCincoMinutosAFrenteEhRecusado<br>backend: `EditarTratamentoUseCaseTest` › edicaoSemMudarOsHorariosNaoEhBloqueadaPorHorarioQueJaExistia<br>backend: `TratamentoApiTest` › horarioAgoraOuAMenosDeCincoMinutosResponde400ComAMensagemNoTopoENoCampo<br>app: `tests/horarioDoTratamento.test.ts` › a menos de 5 minutos é recusado; com 5 minutos ou mais, aceito<br>app: `tests/horarioDoTratamento.test.ts` › horário de hoje passou: amanhã, com o texto do aviso |
@@ -104,6 +107,39 @@ Estes itens dependem de aparelho real, de serviço externo ou de percepção hum
 2. Confira o ícone (e o ícone temático no Android 13+) e a splash ao abrir.
 3. Faça os fluxos de docs/apk-de-release.md, seção "Validar o APK".
 4. Instale uma versão nova (versionCode maior) por cima: a sessão e o PIN continuam.
+
+| Aparelho e Android | Data | Resultado | Observação |
+|---|---|---|---|
+| | | | |
+
+### PIN com tolerância de 10 minutos
+
+1. No celular do paciente, desbloqueie com o PIN, use o app e feche (tire da lista de recentes).
+2. Abra de novo antes de 10 minutos: entra direto, sem PIN.
+3. Feche e espere mais de 10 minutos: ao abrir, o PIN é pedido.
+4. Ajustes → "Pedir o PIN ao abrir o app" → Sempre: a cada abertura, o PIN é pedido.
+5. Escolha "Nunca neste celular": o app pede o PIN atual e mostra o aviso; depois disso, abre sem PIN.
+
+| Aparelho e Android | Data | Resultado | Observação |
+|---|---|---|---|
+| | | | |
+
+### Desvincular paciente
+
+1. Cuidador: Ajustes → Pacientes → o paciente → "Desvincular paciente".
+2. Leia a explicação, toque em Continuar e digite o nome do paciente: o botão só libera com o nome certo.
+3. Confirme: aparece "Paciente desvinculado." e a lista, o Painel, Remédios, Histórico e Mensagens não mostram mais o paciente.
+4. No celular do paciente, abra o app: ele volta ao pareamento com o aviso de conectar de novo.
+
+| Aparelho e Android | Data | Resultado | Observação |
+|---|---|---|---|
+| | | | |
+
+### Tema e tela da dose do paciente
+
+1. Paciente: Ajustes → Tema → Escuro; compare com o cuidador no escuro: mesmas cores de fundo, cartões e botões.
+2. No início, toque em "Tomar remédio agora": a tela da dose abre já pronta, sem esqueleto e sem o rodapé surgir depois.
+3. Repita com a fonte do Android no máximo e no alto contraste: o horário e o status não cortam; o status desce de linha.
 
 | Aparelho e Android | Data | Resultado | Observação |
 |---|---|---|---|

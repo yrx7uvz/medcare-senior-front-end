@@ -101,7 +101,8 @@ direto não há recuperação. Enquanto ela estiver no EAS, a cópia é a garant
 5. **Push:** espere uma dose passar da tolerância sem confirmar; o aviso precisa chegar ao celular do cuidador, mesmo
    com o app fechado.
 6. **PDF:** Histórico → Exportar PDF → compartilhar pelo menu do Android.
-7. Feche e abra de novo: a sessão continua; o paciente pede o PIN.
+7. Feche e abra de novo: a sessão continua. O paciente entra direto se usou o app há até 10 minutos; depois disso,
+   pede o PIN (em Ajustes do paciente dá para escolher "Sempre" ou "Nunca neste celular").
 
 **No emulador do Android Studio** (sem push real: o emulador precisa de imagem com Google Play):
 ```powershell

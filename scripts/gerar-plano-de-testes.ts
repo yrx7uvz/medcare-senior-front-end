@@ -114,6 +114,25 @@ const CASOS: Item[] = [
     ['app', 'tests/pin.test.ts', 'PBKDF2-SHA256 com o custo atual, sal de 16 bytes aleatório: o mesmo PIN gera hashes diferentes'],
     ['app', 'tests/pin.test.ts', 'a cada 5 erros seguidos, bloqueio de 30 s, 2 min, 10 min e 10 min daí em diante'],
     ['app', 'tests/pin.test.ts', 'nunca guarda o PIN em texto'],
+    ['app', 'tests/pinTolerancia.test.ts', 'fronteiras: 9:59 e 10:00 entram direto; 10:01 pede o PIN'],
+    ['app', 'tests/pinTolerancia.test.ts', 'relógio que voltou (último uso no futuro): pede o PIN'],
+    ['app', 'tests/pinTolerancia.test.ts', 'Sempre pede; Nunca não pede; o padrão segue a tolerância'],
+  ] },
+  { id: 'Desvincular paciente', descricao: 'Cuidador remove um paciente da conta: dados apagados, doses registradas anonimizadas, aparelho do paciente sai', testes: [
+    ['backend', 'DesvincularPacienteUseCaseTest', 'deveApagarDadosDoPacienteNaOrdemDasChavesEstrangeiras'],
+    ['backend', 'DesvinculacaoApiTest', 'desvincularApagaOPacienteEOsDadosDeleEAnonimizaAsDosesRegistradas'],
+    ['backend', 'DesvinculacaoApiTest', 'depoisDeDesvincularOPacienteSome404EOAparelhoPerdeASessao'],
+    ['backend', 'DesvinculacaoAtomicaTest', 'falhaNoMeioNaoDeixaEstadoParcial'],
+    ['app', 'tests/desvinculo.test.ts', 'nome diferente, só o primeiro nome ou vazio não libera'],
+    ['app', 'tests/desvinculo.test.ts', 'DELETE /api/pacientes/{id}, 204 sem corpo'],
+  ] },
+  { id: 'Tema do paciente', descricao: 'Escuro do paciente igual ao do cuidador; o paciente escolhe Automático, Claro ou Escuro', testes: [
+    ['app', 'tests/tema.test.ts', 'só o texto secundário (documentado) difere entre paciente escuro e cuidador escuro'],
+    ['app', 'tests/tema.test.ts', 'escolher Escuro muda as cores do paciente mesmo com o celular no claro; Automático volta a seguir o celular'],
+  ] },
+  { id: 'Abrir a dose do paciente', descricao: 'A tela da dose abre com a dose da lista, sem skeleton nem salto, e o status não muda só por abrir', testes: [
+    ['app', 'tests/aberturaDaDose.test.ts', 'com a dose da lista: pronta no primeiro quadro, sem carregamento'],
+    ['app', 'tests/aberturaDaDose.test.ts', 'a dose da lista, recalculada na tela da dose no mesmo instante, não muda (sem "Atrasado" piscando)'],
   ] },
   { id: 'UC-04 Remédios', descricao: 'Cadastro, edição e remoção de remédios', testes: [
     ['backend', 'CadastrarMedicamentoUseCaseTest', 'deveCadastrarMedicamento'],
@@ -213,6 +232,24 @@ const MANUAIS = [
     'Confira o ícone (e o ícone temático no Android 13+) e a splash ao abrir.',
     'Faça os fluxos de docs/apk-de-release.md, seção "Validar o APK".',
     'Instale uma versão nova (versionCode maior) por cima: a sessão e o PIN continuam.',
+  ] },
+  { caso: 'PIN com tolerância de 10 minutos', roteiro: [
+    'No celular do paciente, desbloqueie com o PIN, use o app e feche (tire da lista de recentes).',
+    'Abra de novo antes de 10 minutos: entra direto, sem PIN.',
+    'Feche e espere mais de 10 minutos: ao abrir, o PIN é pedido.',
+    'Ajustes → "Pedir o PIN ao abrir o app" → Sempre: a cada abertura, o PIN é pedido.',
+    'Escolha "Nunca neste celular": o app pede o PIN atual e mostra o aviso; depois disso, abre sem PIN.',
+  ] },
+  { caso: 'Desvincular paciente', roteiro: [
+    'Cuidador: Ajustes → Pacientes → o paciente → "Desvincular paciente".',
+    'Leia a explicação, toque em Continuar e digite o nome do paciente: o botão só libera com o nome certo.',
+    'Confirme: aparece "Paciente desvinculado." e a lista, o Painel, Remédios, Histórico e Mensagens não mostram mais o paciente.',
+    'No celular do paciente, abra o app: ele volta ao pareamento com o aviso de conectar de novo.',
+  ] },
+  { caso: 'Tema e tela da dose do paciente', roteiro: [
+    'Paciente: Ajustes → Tema → Escuro; compare com o cuidador no escuro: mesmas cores de fundo, cartões e botões.',
+    'No início, toque em "Tomar remédio agora": a tela da dose abre já pronta, sem esqueleto e sem o rodapé surgir depois.',
+    'Repita com a fonte do Android no máximo e no alto contraste: o horário e o status não cortam; o status desce de linha.',
   ] },
   { caso: 'PDF compartilhado', roteiro: [
     'Histórico → Exportar PDF → escolha o período e gere.',

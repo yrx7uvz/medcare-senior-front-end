@@ -27,12 +27,19 @@ Um mesmo app tem dois perfis, escolhidos na primeira tela:
    e pode **excluir a conta**.
 8. Quando um paciente **pede para sair da conta**, recebe um push e vê no Painel o cartão "{Paciente} pediu para sair
    da conta" com **Autorizar** (com confirmação) e **Recusar**. Na tela do código de vínculo do paciente, pode
-   **desconectar o aparelho** sem pedido (celular perdido ou trocado). Para o paciente voltar, gera um código novo.
+   **desconectar o celular do paciente** sem pedido (celular perdido ou trocado). Para o paciente voltar, gera um código
+   novo.
+9. Na mesma tela, pode **desvincular o paciente** (remover da conta), com confirmação em duas etapas (explicação e o
+   nome do paciente digitado). Remédios, horários e mensagens são apagados; as doses já registradas ficam sem o nome do
+   paciente; o celular dele sai da conta. Não pode ser desfeito.
 
 **Paciente:**
-1. Entra com o código que o cuidador gerou e cria um **PIN** de 4 números (pedido ao abrir o app).
+1. Entra com o código que o cuidador gerou e cria um **PIN** de 4 números, pedido ao abrir o app quando passaram mais
+   de 10 minutos desde o último uso (em **Ajustes**, "Pedir o PIN ao abrir o app": Sempre, Depois de 10 minutos ou
+   Nunca neste celular, este com confirmação do PIN). Trocar do perfil do cuidador para o do paciente sempre pede o PIN.
 2. Vê o próximo remédio em destaque e confirma em dois toques ("Tomar remédio agora" → "Tomei o remédio").
-3. Lê e responde as mensagens do cuidador; pode ligar o **alto contraste**.
+3. Lê e responde as mensagens do cuidador; pode ligar o **alto contraste** e escolher o **tema** (Automático, Claro ou
+   Escuro, o mesmo seletor do cuidador; a escolha vale para as duas visões no mesmo celular).
 4. Em **Ajustes**, "Sair da conta" envia o pedido ao cuidador e mostra "Aguardando autorização" (a tela se atualiza
    sozinha enquanto está aberta). Autorizado: o celular sai da conta e volta ao pareamento; recusado ou expirado: continua
    conectado, com a explicação na tela.
@@ -142,7 +149,10 @@ docs/             APK de release, qualidade, desempenho, acessibilidade e plano 
   configuração inválida, e o Android sai com `usesCleartextTraffic=false`. Teste: `tests/configuracaoRelease.test.ts`.
 - **PIN do paciente:** só o hash fica no aparelho, com PBKDF2-HMAC-SHA256, sal aleatório de 16 bytes e comparação em
   tempo constante. A cada 5 erros seguidos o teclado bloqueia por 30 s, 2 min e 10 min, contados pelo relógio
-  monotônico (adiantar o relógio não destrava); o bloqueio continua se o app for fechado.
+  monotônico (adiantar o relógio não destrava); o bloqueio continua se o app for fechado. Tolerância de 10 minutos
+  (`src/lib/pinGrace.ts`): o instante do último uso desbloqueado fica no SecureStore, junto do PIN, gravado ao
+  desbloquear, ao ir para o segundo plano e nos toques (no máximo uma vez por minuto); relógio que voltou para trás pede o
+  PIN. Desconexão, saída da conta e "Esqueci meu PIN" apagam o carimbo junto do PIN.
 - **Armazenamento local:** só a sessão, o PIN e as preferências, no SecureStore (Keystore do Android). Nenhum dado de
   saúde fica gravado no aparelho.
 - **Permissões mínimas:** internet, estado da rede, notificações, vibração, wake lock e o recebimento do FCM. Câmera,

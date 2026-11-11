@@ -61,6 +61,8 @@ anote o que falhou (tela e passo).
 
 - [ ] Lado do paciente → botão de alto contraste: textos e bordas ficam mais fortes, e nada some.
 - [ ] *Configurações do Android → Tema escuro*: o app acompanha, sem texto escuro sobre fundo escuro.
+- [ ] Seletor **Tema** (Automático, Claro, Escuro) nas Configurações do cuidador e nos Ajustes do paciente: cada opção é
+      anunciada como "opção", com a escolhida marcada; Escuro deixa as telas do paciente com as mesmas cores do cuidador.
 
 ### Alvos de toque
 
