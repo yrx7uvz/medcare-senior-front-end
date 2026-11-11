@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import AlarmClockCheck from 'lucide-react-native/icons/alarm-clock-check';
 import CheckCircle2 from 'lucide-react-native/icons/circle-check';
 import Home from 'lucide-react-native/icons/house';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { PatientScreen } from '../../components/layout/PatientScreen';
@@ -21,8 +21,8 @@ export function DoseConfirmedScreen({ route, navigation }: RootScreenProps<'Pati
   const { colors } = useTheme();
   const patientId = useAppStore((s) => s.patientSession?.patientId ?? '');
   const now = useNow(60_000);
-  const { doseId } = route.params;
-  const dose = useQuery(['dose', doseId], () => services.doses.get(doseId));
+  const { doseId, preview } = route.params;
+  const dose = useQuery(['dose', doseId], () => services.doses.get(doseId), { initialData: preview });
   const today = appTodayKey(now);
   const day = useQuery(['patient-day', patientId, today], () => services.doses.listForDay(patientId, today));
   const profile = useQuery(['patient-profile', patientId], () => services.patients.getProfile(patientId));
@@ -31,8 +31,12 @@ export function DoseConfirmedScreen({ route, navigation }: RootScreenProps<'Pati
   const late = d?.status === 'CONFIRMADA_COM_ATRASO';
   const caregiver = profile.data?.caregiverFirstName ?? 'quem cuida de você';
 
+  // A celebração (vibração, anúncio e animação) acontece uma vez, mesmo quando a conferência com o servidor traz a
+  // dose de novo
+  const celebrated = useRef(false);
   useEffect(() => {
-    if (!d) return;
+    if (!d || celebrated.current) return;
+    celebrated.current = true;
     // Feedback tátil + "som" simulado pelo anúncio do leitor de tela.
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
     AccessibilityInfo.announceForAccessibility(late ? 'Remédio confirmado com atraso' : 'Remédio confirmado');

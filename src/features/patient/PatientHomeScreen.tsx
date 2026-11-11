@@ -85,7 +85,7 @@ export function PatientHomeScreen({ navigation }: RootScreenProps<'PatientHome'>
                 <BigActionButton
                   title="TOMAR REMÉDIO AGORA"
                   icon={Pill}
-                  onPress={() => navigation.navigate('PatientConfirmDose', { doseId: next.id })}
+                  onPress={() => navigation.navigate('PatientConfirmDose', { doseId: next.id, preview: next })}
                   accessibilityHint="Abre a confirmação. Depois é só tocar em Tomei o remédio."
                 />
               ) : (
@@ -109,7 +109,7 @@ export function PatientHomeScreen({ navigation }: RootScreenProps<'PatientHome'>
           </AppText>
           <View style={styles.list}>
             {list.map((d) => (
-              <PatientDoseRow key={d.id} dose={d} onPress={() => navigation.navigate('PatientConfirmDose', { doseId: d.id })} />
+              <PatientDoseRow key={d.id} dose={d} onPress={() => navigation.navigate('PatientConfirmDose', { doseId: d.id, preview: d })} />
             ))}
           </View>
         </>

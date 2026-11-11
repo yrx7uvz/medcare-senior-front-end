@@ -20,8 +20,9 @@ export function ConfirmDoseScreen({ route, navigation }: RootScreenProps<'Patien
   const { colors } = useTheme();
   const patientId = useAppStore((s) => s.patientSession?.patientId ?? '');
   const now = useNow(10_000);
-  const { doseId } = route.params;
-  const dose = useQuery(['dose', doseId], () => services.doses.get(doseId), { silentKey: minuteStamp(now) });
+  const { doseId, preview } = route.params;
+  // Abre com a dose que já estava na lista (sem skeleton nem rodapé surgindo depois) e confere com o servidor em silêncio
+  const dose = useQuery(['dose', doseId], () => services.doses.get(doseId), { silentKey: minuteStamp(now), initialData: preview });
   const profile = useQuery(['patient-profile', patientId], () => services.patients.getProfile(patientId));
   const confirm = useMutation(services.doses.confirm);
   const caregiver = profile.data?.caregiverFirstName ?? 'quem cuida de você';
@@ -31,7 +32,7 @@ export function ConfirmDoseScreen({ route, navigation }: RootScreenProps<'Patien
   async function onConfirm() {
     const result = await confirm.mutate(doseId);
     if (result) {
-      navigation.replace('PatientDoseConfirmed', { doseId });
+      navigation.replace('PatientDoseConfirmed', { doseId, preview: result });
       return;
     }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => undefined);
@@ -129,7 +130,7 @@ export function ConfirmDoseScreen({ route, navigation }: RootScreenProps<'Patien
         </AppText>
       </View>
       <Card style={styles.timeCard}>
-        <View style={styles.flex}>
+        <View style={styles.time}>
           <AppText variant="patientBody" muted>Horário</AppText>
           <AppText variant="patientHuge">{formatTime(d.scheduledAt)}</AppText>
         </View>
@@ -149,6 +150,8 @@ export function ConfirmDoseScreen({ route, navigation }: RootScreenProps<'Patien
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   center: { alignItems: 'center', gap: spacing.sm },
-  timeCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  // Com fonte ampliada, o status desce para a linha de baixo em vez de espremer (e cortar) o horário
+  timeCard: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.md },
+  time: { flexGrow: 1 },
   message: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start', borderRadius: radius.lg, padding: spacing.lg },
 });

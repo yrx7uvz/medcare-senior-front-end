@@ -1,6 +1,7 @@
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { CompositeScreenProps, NavigatorScreenParams } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { DoseView } from '../../types/views';
 
 export type CaregiverTabParamList = {
   Painel: undefined;
@@ -37,8 +38,10 @@ export type RootStackParamList = {
   PatientCreatePin: { patientId: string; patientName: string; token: string };
   PatientPinUnlock: undefined;
   PatientHome: undefined;
-  PatientConfirmDose: { doseId: string };
-  PatientDoseConfirmed: { doseId: string };
+  // preview: a dose como estava na lista do início, para a tela abrir sem esperar a busca (sem salto)
+  PatientConfirmDose: { doseId: string; preview?: DoseView };
+  // preview: a dose devolvida pela confirmação (a tela abre já com ela)
+  PatientDoseConfirmed: { doseId: string; preview?: DoseView };
   PatientMessages: undefined;
   PatientSettings: undefined;
   // Saída da conta com autorização do cuidador (explicação, espera e resultado)
