@@ -54,12 +54,19 @@ export function hasDoseOn(schedule: TreatmentSchedule, dateKey: DateKey, weekday
 
 /**
  * Horários de `checked` recusados agora: os de hoje entre o minuto atual (inclusive) e agora + 5 minutos. Vazio se
- * hoje não tem dose do tratamento. No cadastro, `checked` são todos os horários; na edição, só os novos.
+ * hoje não tem dose do tratamento, ou com `advanceMinutes` 0 (modo de teste). No cadastro, `checked` são todos os
+ * horários; na edição, só os novos.
  */
-export function tooSoonTimes(schedule: TreatmentSchedule, checked: readonly string[], now: LocalNow): string[] {
-  if (!hasDoseOn(schedule, now.dateKey, now.weekday)) return [];
+export function tooSoonTimes(
+  schedule: TreatmentSchedule,
+  checked: readonly string[],
+  now: LocalNow,
+  advanceMinutes: number = MIN_ADVANCE_MINUTES,
+): string[] {
+  // Modo de teste: sem antecedência mínima, qualquer horário entra
+  if (advanceMinutes <= 0 || !hasDoseOn(schedule, now.dateKey, now.weekday)) return [];
   const minuteStart = Math.floor(now.secondsOfDay / 60) * 60;
-  const limit = now.secondsOfDay + MIN_ADVANCE_MINUTES * 60;
+  const limit = now.secondsOfDay + advanceMinutes * 60;
   return checked.filter((t) => secondsOf(t) >= minuteStart && secondsOf(t) < limit);
 }
 

@@ -12,6 +12,7 @@ Definido no `eas.json`:
 | Formato | `apk` (o perfil `production` continua gerando `app-bundle`, para a loja no futuro) |
 | Ambiente do EAS | `production`: `EXPO_PUBLIC_API_URL` e o arquivo `GOOGLE_SERVICES_JSON` vêm de lá, nunca do código |
 | Modo demonstração | desligado (`EXPO_PUBLIC_DEMO=false`) |
+| Modo de teste | **ligado** (`EXPO_PUBLIC_MODO_TESTE=true`): tolerância de 1 minuto e qualquer horário; para o APK normal, tire a variável do perfil `apk-final` |
 | Texto claro (http://) | proibido: sem `ANDROID_ALLOW_CLEARTEXT`, o app sai com `usesCleartextTraffic=false` |
 | Minificação (R8) | `enableMinifyInReleaseBuilds` e `enableShrinkResourcesInReleaseBuilds` ligados no `expo-build-properties` |
 

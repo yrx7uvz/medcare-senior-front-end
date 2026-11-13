@@ -103,6 +103,7 @@ de produção, e o `npm run check:mocks` confere isso.
 |---|---|
 | `EXPO_PUBLIC_API_URL` | Endereço da API. Em desenvolvimento aceita `http://` da rede local; **no release, só `https://`** (senão o app mostra "App com configuração inválida" e não chama a API). No EAS, vem do ambiente `production`. |
 | `EXPO_PUBLIC_DEMO` | `true` liga o modo demonstração. Ao trocar, reinicie com `npx expo start -c`. |
+| `EXPO_PUBLIC_MODO_TESTE` | `true` liga o modo de teste: opção de tolerância de 1 minuto e qualquer horário no cadastro do remédio (sem a antecedência de 5 minutos). Precisa do servidor com `APP_MODO_TESTE=true`. Ligado no perfil `apk-final` enquanto durarem os testes no aparelho. |
 | `GOOGLE_SERVICES_JSON` | Só no build: caminho do `google-services.json` do Firebase, sempre fora do repositório (segredo de arquivo no EAS). Sem ele, o app compila sem push. |
 | `ANDROID_ALLOW_CLEARTEXT` | Só no perfil `development` do EAS: permite `http://` para falar com o backend na rede local. |
 

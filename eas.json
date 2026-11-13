@@ -31,7 +31,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_DEMO": "false"
+        "EXPO_PUBLIC_DEMO": "false",
+        "EXPO_PUBLIC_MODO_TESTE": "true"
       }
     },
     "production": {

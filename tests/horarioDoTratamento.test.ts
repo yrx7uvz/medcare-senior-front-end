@@ -44,6 +44,11 @@ describe('antecedência mínima do horário de hoje', () => {
     expect(tooSoonTimes(tratamento(['10:06']), ['10:06'], agora(10, 0, 59))).toEqual([]);
   });
 
+  it('modo de teste (antecedência 0): qualquer horário entra, até o do minuto seguinte', () => {
+    expect(tooSoonTimes(tratamento(['10:01', '10:04']), ['10:01', '10:04'], agora(10, 0), 0)).toEqual([]);
+    expect(tooSoonTimes(tratamento(['10:00']), ['10:00'], agora(10, 0, 30), 0)).toEqual([]);
+  });
+
   it('horário que já passou hoje é aceito', () => {
     expect(tooSoonTimes(tratamento(['09:59']), ['09:59'], agora(10, 0))).toEqual([]);
   });

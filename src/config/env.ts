@@ -9,6 +9,13 @@ import { configError } from '../services/errors';
 /** Modo demonstração: dados fictícios em memória, relógio simulado e menu do protótipo. Padrão: desligado. */
 export const IS_DEMO = process.env.EXPO_PUBLIC_DEMO === 'true';
 
+/**
+ * Modo de teste (só para testar o app no aparelho; desligado por padrão): libera a tolerância de 1 minuto e qualquer
+ * horário no cadastro do remédio, sem a antecedência mínima de 5 minutos. Precisa do servidor também em modo de teste
+ * (APP_MODO_TESTE=true). Para voltar ao normal, gere o app sem EXPO_PUBLIC_MODO_TESTE.
+ */
+export const IS_TEST_MODE = process.env.EXPO_PUBLIC_MODO_TESTE === 'true';
+
 /** URL da API Spring Boot, como veio do ambiente (sem validação). */
 export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? '';
 

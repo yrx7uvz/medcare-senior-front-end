@@ -3,7 +3,8 @@ import type { MedicationInput } from '../../types/views';
 import { dateBRToKey, formatDateBR } from '../../lib/date';
 import { DEFAULT_PRIMARY } from '../../lib/medicationMeta';
 import type { MedicationFormValues } from '../../lib/schemas';
-import { TOO_SOON_MESSAGE, firstDoseNotice, firstDoseWhen, newTimes, tooSoonTimes, type LocalNow, type TreatmentSchedule } from '../../lib/treatmentTime';
+import { IS_TEST_MODE } from '../../config/env';
+import { MIN_ADVANCE_MINUTES, TOO_SOON_MESSAGE, firstDoseNotice, firstDoseWhen, newTimes, tooSoonTimes, type LocalNow, type TreatmentSchedule } from '../../lib/treatmentTime';
 
 export function emptyMedicationValues(patientId: string, today: Date): MedicationFormValues {
   return {
@@ -79,7 +80,9 @@ export function scheduleTiming(
     times: v.times.map((t) => t.time),
   };
   return {
-    error: tooSoonTimes(schedule, newTimes(schedule.times, savedTimes), now).length ? TOO_SOON_MESSAGE : null,
+    error: tooSoonTimes(schedule, newTimes(schedule.times, savedTimes), now, IS_TEST_MODE ? 0 : MIN_ADVANCE_MINUTES).length
+      ? TOO_SOON_MESSAGE
+      : null,
     notice: firstDoseNotice(schedule, now),
   };
 }
