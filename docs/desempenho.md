@@ -57,7 +57,8 @@ registro de 5 fontes em vez de 30. Para repetir no aparelho:
 | Remédios e lista de conversas | Uma linha por remédio ou paciente. | Já eram `FlatList` com `keyExtractor`. |
 
 `getItemLayout` não foi usado: a altura das linhas varia com a fonte do sistema (até 1,8×) e com a quebra de
-linha, e um valor fixo erraria a rolagem. O Painel continua em `ScrollView`, porque mostra as doses de um dia (poucas
+linha, e um valor fixo erraria a rolagem. A exceção é o seletor de horário: a altura da linha é calculada a partir
+da escala da fonte (sem quebra de linha), e a roda é montada de novo quando a escala muda. O Painel continua em `ScrollView`, porque mostra as doses de um dia (poucas
 dezenas no máximo); a conversa também, porque carrega 20 mensagens por página e precisa rolar até a última.
 
 ## Dispositivo fraco: fonte no máximo e animações reduzidas

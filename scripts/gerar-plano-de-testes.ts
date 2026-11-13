@@ -250,8 +250,9 @@ const MANUAIS = [
   { caso: 'Seletor de horário', roteiro: [
     'Remédios → Novo remédio → Adicionar horário.',
     'Arraste a coluna das horas e a dos minutos: só a coluna rola, a tela não.',
-    'Segure o "+" dos minutos: depois de um instante repete, cada vez mais rápido; ao soltar, para.',
-    'Toque nos atalhos (ex.: 08 e :30): o horário muda na hora.',
+    'Arremesse a coluna dos minutos: passa vários valores, para encaixado numa linha e vibra de leve a cada número.',
+    'Toque no número logo abaixo do escolhido: a roda vai até ele. Role as horas além do 23: aparece 00 (dá a volta).',
+    'No tema claro e no escuro, a faixa da linha escolhida vai de ponta a ponta atrás das duas colunas e do ":".',
     'Escolha um horário de hoje daqui a 2 minutos e salve: aparece a mensagem dos 5 minutos no campo dos horários.',
     'Escolha um horário de hoje que já passou: aparece o aviso de que a primeira dose será no próximo dia.',
   ] },

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import { createElement, type ReactElement } from 'react';
 import { TimeWheelPicker } from '../src/components/ui/TimeWheelPicker';
+import { startRow } from '../src/lib/timeWheel';
 
 /** O pacote não traz tipos: só o que este teste usa. */
 interface NoDaArvore {
@@ -42,7 +43,12 @@ function montar(hora = 8, minuto = 0) {
     if (!no) throw new Error(`sem elemento "${rotulo}"`);
     return no.props as Record<string, (...args: unknown[]) => void>;
   };
-  return { tela, mudancas, porRotulo };
+  const porTestId = (id: string) => {
+    const no = tela.root.findAll((n) => n.props.testID === id && typeof n.props.onPress === 'function')[0];
+    if (!no) throw new Error(`sem elemento "${id}"`);
+    return no.props as Record<string, (...args: unknown[]) => void>;
+  };
+  return { tela, mudancas, porRotulo, porTestId };
 }
 
 afterEach(() => {
@@ -52,13 +58,17 @@ afterEach(() => {
 });
 
 describe('seletor de horário', () => {
-  it('"−" fica acima e "+" abaixo de cada coluna', () => {
+  it('sem botões − e + nem atalhos: só as duas rodas ajustáveis', () => {
     const { tela } = montar();
-    const rotulos = tela.root
-      .findAll((n) => typeof n.props.accessibilityLabel === 'string' && /^(Aumentar|Diminuir) /.test(n.props.accessibilityLabel as string) && typeof n.props.onPressIn === 'function')
-      .map((n) => n.props.accessibilityLabel as string)
+    const botoes = tela.root.findAll(
+      (n) => typeof n.props.accessibilityLabel === 'string' && /^(Aumentar|Diminuir|Horas:|Minutos:)/.test(n.props.accessibilityLabel as string),
+    );
+    expect(botoes).toEqual([]);
+    const rodas = tela.root
+      .findAll((n) => n.props.accessibilityRole === 'adjustable' && typeof n.props.onAccessibilityAction === 'function')
+      .map((n) => n.props.accessibilityLabel)
       .filter((r, i, todos) => todos.indexOf(r) === i);
-    expect(rotulos).toEqual(['Diminuir horas', 'Aumentar horas', 'Diminuir minutos', 'Aumentar minutos']);
+    expect(rodas).toEqual(['Horas', 'Minutos']);
   });
 
   it('a ação acessível increment aumenta e decrement diminui, com volta', () => {
@@ -68,44 +78,10 @@ describe('seletor de horário', () => {
     expect(mudancas).toEqual([[0, 0], [0, 59]]);
   });
 
-  it('atalhos de horas e minutos, com rótulo falado e o escolhido marcado', () => {
-    const { porRotulo, mudancas, tela } = montar(8, 0);
-    act(() => porRotulo('Horas: vinte e duas').onPress());
-    act(() => porRotulo('Minutos: quinze').onPress());
-    expect(mudancas).toEqual([[22, 0], [22, 15]]);
-    const marcados = tela.root
-      .findAll((n) => (n.props.accessibilityState as { selected?: boolean } | undefined)?.selected === true && typeof n.props.onPress === 'function')
-      .map((n) => n.props.accessibilityLabel)
-      .filter((r, i, todos) => todos.indexOf(r) === i);
-    expect(marcados).toEqual(['Horas: vinte e duas', 'Minutos: quinze']);
-  });
-
-  it('tocar dá um passo; segurar repete depois de 400 ms e acelera; soltar para', () => {
-    jest.useFakeTimers();
-    const { porRotulo, mudancas } = montar(8, 0);
-    const mais = () => porRotulo('Aumentar minutos');
-    act(() => mais().onPressIn());
-    expect(mudancas).toEqual([[8, 1]]);
-    act(() => jest.advanceTimersByTime(399));
-    expect(mudancas).toHaveLength(1);
-    act(() => jest.advanceTimersByTime(1));
-    expect(mudancas).toHaveLength(2);
-    act(() => jest.advanceTimersByTime(2000));
-    const segurando = mudancas.length;
-    // 2 s depois de começar a repetir, já passou de 12 passos
-    expect(segurando).toBeGreaterThan(14);
-    act(() => mais().onPressOut());
-    act(() => mais().onPress());
-    act(() => jest.advanceTimersByTime(2000));
-    expect(mudancas).toHaveLength(segurando);
-    expect(mudancas[mudancas.length - 1]).toEqual([8, segurando]);
-  });
-
-  it('leitor de tela: ativar o botão (só onPress) dá um passo', () => {
-    jest.useFakeTimers();
-    const { porRotulo, mudancas } = montar(8, 0);
-    act(() => porRotulo('Diminuir horas').onPress());
-    act(() => jest.advanceTimersByTime(1000));
-    expect(mudancas).toEqual([[7, 0]]);
+  it('tocar numa linha vizinha escolhe aquele valor, dando a volta', () => {
+    const { porTestId, mudancas } = montar(23, 59);
+    act(() => porTestId(`Horas-linha-${startRow(23, 24) + 1}`).onPress());
+    act(() => porTestId(`Minutos-linha-${startRow(59, 60) + 2}`).onPress());
+    expect(mudancas).toEqual([[0, 59], [0, 1]]);
   });
 });

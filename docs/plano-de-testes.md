@@ -89,10 +89,11 @@ Estes itens dependem de aparelho real, de serviço externo ou de percepção hum
 
 1. Remédios → Novo remédio → Adicionar horário.
 2. Arraste a coluna das horas e a dos minutos: só a coluna rola, a tela não.
-3. Segure o "+" dos minutos: depois de um instante repete, cada vez mais rápido; ao soltar, para.
-4. Toque nos atalhos (ex.: 08 e :30): o horário muda na hora.
-5. Escolha um horário de hoje daqui a 2 minutos e salve: aparece a mensagem dos 5 minutos no campo dos horários.
-6. Escolha um horário de hoje que já passou: aparece o aviso de que a primeira dose será no próximo dia.
+3. Arremesse a coluna dos minutos: passa vários valores, para encaixado numa linha e vibra de leve a cada número.
+4. Toque no número logo abaixo do escolhido: a roda vai até ele. Role as horas além do 23: aparece 00 (dá a volta).
+5. No tema claro e no escuro, a faixa da linha escolhida vai de ponta a ponta atrás das duas colunas e do ":".
+6. Escolha um horário de hoje daqui a 2 minutos e salve: aparece a mensagem dos 5 minutos no campo dos horários.
+7. Escolha um horário de hoje que já passou: aparece o aviso de que a primeira dose será no próximo dia.
 
 | Aparelho e Android | Data | Resultado | Observação |
 |---|---|---|---|

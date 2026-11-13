@@ -15,7 +15,8 @@ Um mesmo app tem dois perfis, escolhidos na primeira tela:
 1. Cria a conta (senha forte e aceite do termo LGPD) e entra.
 2. Cadastra o paciente e gera o **código de vínculo** de 6 números, válido por 24 horas.
 3. Cadastra os remédios (formato, cor, dosagem) e o tratamento (horários, dias da semana, início e fim). Os horários
-   saem de um seletor em rolagem com botões "−" e "+" (segurar repete) e atalhos. Um horário de hoje precisa de pelo
+   saem de um seletor em rolagem que dá a volta (23 → 00), com faixa de seleção larga e um toque no número vizinho
+   para ir até ele. Um horário de hoje precisa de pelo
    menos 5 minutos de antecedência; se os horários de hoje já passaram, o app avisa quando será a primeira dose.
 4. No **Painel**, vê as doses de hoje: pendentes, atrasadas, confirmadas e não confirmadas. Toca numa dose para ver os
    detalhes e, dentro da janela, **confirmar por ele**.

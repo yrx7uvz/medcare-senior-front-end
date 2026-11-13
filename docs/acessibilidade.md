@@ -52,8 +52,8 @@ anote o que falhou (tela e passo).
 - [ ] **Alternâncias:** "Alto contraste" e as notificações anunciam o estado ("ligado"/"desligado") e a mudança.
 - [ ] **Mensagens:** o campo anuncia "Mensagem para ..."; uma mensagem nova é lida ao chegar ao fim da lista.
 - [ ] **Seletor de horário:** cada coluna anuncia "Horas" ou "Minutos", ajustável, com o valor por extenso; deslizar
-      para cima aumenta e para baixo diminui. Os botões são "Diminuir horas" (acima) e "Aumentar horas" (abaixo), e os
-      atalhos são lidos como "Horas: oito" e "Minutos: quinze", com o escolhido marcado.
+      para cima aumenta e para baixo diminui, dando a volta (23 → zero horas). Sem botões nem atalhos: as linhas da roda
+      ficam escondidas do leitor de tela (só a coluna ajustável é anunciada).
 - [ ] **Horário a menos de 5 minutos:** ao salvar, a mensagem do campo dos horários é anunciada.
 - [ ] **Notificações desligadas:** no Painel e nos Ajustes, o aviso é anunciado como alerta, seguido do botão
       "Ativar notificações".
