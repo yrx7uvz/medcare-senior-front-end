@@ -37,7 +37,9 @@ interface Props {
  */
 export function TimeWheelPicker({ hour, minute, onChange, label = 'Horário' }: Props) {
   const { colors } = useTheme();
-  const itemHeight = wheelItemHeight(PixelRatio.getFontScale());
+  // Altura com um número inteiro de pixels: com fração, o encaixe do Android arredonda a cada linha e, em milhares de
+  // linhas, a roda para fora do centro da faixa
+  const itemHeight = PixelRatio.roundToNearestPixel(wheelItemHeight(PixelRatio.getFontScale()));
   return (
     <View style={styles.wrap} accessibilityLabel={`${label}: ${spokenTime(hour, minute)}`}>
       <View style={styles.wheel}>
@@ -137,6 +139,8 @@ function WheelColumn({ count, rows, value, itemHeight, name, spoken, onChange }:
   const settle = (y: number) => {
     const r = indexFromOffset(y, itemHeight, rows.length);
     row.current = r;
+    // Parou fora do centro (arraste lento sem encaixe, arredondamento): completa até a linha
+    if (Math.abs(y - r * itemHeight) > 0.5) list.current?.scrollToOffset({ offset: r * itemHeight, animated: true });
     emit(valueAtRow(r, count));
   };
 
