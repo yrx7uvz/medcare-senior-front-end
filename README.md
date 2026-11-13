@@ -38,6 +38,11 @@ Um mesmo app tem dois perfis, escolhidos na primeira tela:
    de 10 minutos desde o último uso (em **Ajustes**, "Pedir o PIN ao abrir o app": Sempre, Depois de 10 minutos ou
    Nunca neste celular, este com confirmação do PIN). Trocar do perfil do cuidador para o do paciente sempre pede o PIN.
 2. Vê o próximo remédio em destaque e confirma em dois toques ("Tomar remédio agora" → "Tomei o remédio").
+   **Na hora do remédio o celular toca e vibra**, mesmo fechado, bloqueado e sem internet ("Hora do remédio — Tomar
+   Losartana às 08:00"); se não confirmar, insiste 10 minutos depois. O toque abre a dose (pedindo o PIN se for a vez
+   dele). Se as notificações ou os alarmes estiverem desligados, o início e os Ajustes mostram um aviso grande com o
+   botão para ativar; os Ajustes também orientam a tirar o app da economia de bateria. Detalhes em
+   [docs/lembrete-do-paciente.md](docs/lembrete-do-paciente.md).
 3. Lê e responde as mensagens do cuidador; pode ligar o **alto contraste** e escolher o **tema** (Automático, Claro ou
    Escuro, o mesmo seletor do cuidador; a escolha vale para as duas visões no mesmo celular).
 4. Em **Ajustes**, "Sair da conta" envia o pedido ao cuidador e mostra "Aguardando autorização" (a tela se atualiza
@@ -109,8 +114,8 @@ As variáveis `EXPO_PUBLIC_*` vão embutidas no app: nunca coloque segredo nelas
 | `npm run check:core` | Verificações do núcleo sem rede (adaptadores HTTP com `fetch` falso, configuração do app e do EAS) |
 | `npm run check:a11y` | Todo botão, campo e alternância com rótulo e papel acessíveis |
 | `npm run check:contrast` | Contraste WCAG dos cinco temas |
-| `npm run check:permissions` | Permissões do Android (prebuild numa pasta temporária); `-- --apk arquivo.apk` confere o APK real |
-| `npm run check:mocks` | Mocks do demo fora do bundle de produção |
+| `npm run check:permissions` (ou `check:android-permissions`) | Permissões do Android (prebuild numa pasta temporária); `-- --apk arquivo.apk` confere o APK real |
+| `npm run check:mocks` | Mocks do demo fora do bundle de produção; lembretes agendados a partir dos dados do demo |
 | `npm run smoke` | Fluxo de ponta a ponta contra a API (`EXPO_PUBLIC_API_URL`); cria e exclui uma conta de teste |
 | `npm run plano:testes` | Gera `docs/plano-de-testes.md` conferindo que cada teste citado existe nos dois repositórios |
 | `npm run gerar:icones` | Gera ícone, ícone adaptativo e splash a partir de SVG, com as cores do tema |
@@ -155,15 +160,20 @@ docs/             APK de release, qualidade, desempenho, acessibilidade e plano 
   PIN. Desconexão, saída da conta e "Esqueci meu PIN" apagam o carimbo junto do PIN.
 - **Armazenamento local:** só a sessão, o PIN e as preferências, no SecureStore (Keystore do Android). Nenhum dado de
   saúde fica gravado no aparelho.
-- **Permissões mínimas:** internet, estado da rede, notificações, vibração, wake lock e o recebimento do FCM. Câmera,
-  microfone, localização, contatos, armazenamento, contador no ícone e o identificador de publicidade ficam
-  bloqueados em `app.config.ts`. O `check:permissions -- --apk` confere o APK de verdade.
-- **Push sem dado de saúde:** a notificação traz o nome do paciente e o horário, nunca o nome do remédio.
+- **Permissões mínimas:** internet, estado da rede, notificações, vibração, wake lock, o recebimento do FCM e, para o
+  lembrete do paciente, alarme exato (`SCHEDULE_EXACT_ALARM`, que o paciente libera) e reagendar ao ligar o celular
+  (`RECEIVE_BOOT_COMPLETED`). Câmera, microfone, localização, contatos, armazenamento, serviço em primeiro plano,
+  `USE_EXACT_ALARM`, contador no ícone e o identificador de publicidade ficam bloqueados em `app.config.ts`. O
+  `check:permissions -- --apk` confere o APK de verdade.
+- **Push sem dado de saúde para o cuidador:** o aviso traz o nome do paciente e o horário, nunca o nome do remédio. O
+  lembrete do paciente, no aparelho dele, traz só o nome do remédio e o horário.
 - **Sem segredo no repositório:** `google-services.json`, keystores e `.env` estão no `.gitignore`; os valores do
   build ficam no EAS.
 
 ## Mais documentação
 
+- [docs/lembrete-do-paciente.md](docs/lembrete-do-paciente.md): as duas camadas do lembrete de dose, os limites do
+  Android e as decisões.
 - [docs/apk-de-release.md](docs/apk-de-release.md): gerar, assinar e validar o APK.
 - [docs/qualidade.md](docs/qualidade.md): SonarQube, `npm audit` e cobertura mínima.
 - [docs/desempenho.md](docs/desempenho.md): tamanho do bundle, listas e dispositivo fraco.

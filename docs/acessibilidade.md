@@ -9,7 +9,8 @@ abaixo.
 | Verificação | Como | Resultado atual |
 |---|---|---|
 | Contraste WCAG dos cinco temas (claro, escuro, paciente claro, paciente escuro e alto contraste do paciente): 4,5:1 para texto, 3:1 para texto grande, bordas e ícones, 7:1 nos textos principais do alto contraste | `npm run check:contrast` e `tests/acessibilidade.test.ts` | passa |
-| Rótulo e papel acessíveis em todo elemento interativo nativo (`Pressable`, `Touchable*`, `Switch`: papel **e** rótulo; `TextInput`: rótulo) | `npm run check:a11y` (lê os `.tsx` com o compilador do TypeScript) | passa: 30 elementos. Dois links de texto estavam sem rótulo explícito (login e ajustes) e foram corrigidos |
+| Rótulo e papel acessíveis em todo elemento interativo nativo (`Pressable`, `Touchable*`, `Switch`: papel **e** rótulo; `TextInput`: rótulo) | `npm run check:a11y` (lê os `.tsx` com o compilador do TypeScript) | passa: 31 elementos. Dois links de texto estavam sem rótulo explícito (login e ajustes) e foram corrigidos |
+| Aviso do lembrete do paciente (notificações ou alarmes desligados) e orientação de bateria: texto ≥ 20 sp (`patientStrong`, 22 sp), botão ≥ 88 dp (`BigActionButton`), papel `alert` no aviso e tokens de cor do tema (`warningSoft`/`warningText`) | `npm run check:contrast`, `npm run check:a11y` e `tests/acessibilidade.test.ts` | passa |
 | Tamanho mínimo de fonte (cuidador: corpo ≥ 16 sp e rótulos ≥ 14 sp; paciente ≥ 20 sp) e respeito à fonte do sistema | `tests/acessibilidade.test.ts` | passa |
 | Alvos de toque ≥ 48 dp nos componentes-base (botões, ícones, caixas, chips) | `tests/acessibilidade.test.ts` (área mínima e `hitSlop` que completa até 48 dp) | passa |
 | Ícone do app com contraste ≥ 3:1 e dentro da área segura | `npm run gerar:icones` | passa (5,27:1 e 4,65:1) |
@@ -68,5 +69,13 @@ anote o que falhou (tela e passo).
 
 - [ ] Todos os botões, caixas e ícones são fáceis de tocar com um dedo, sem acertar o vizinho, inclusive os dias da
       semana, as cores e formatos do remédio e o "olho" da senha.
+
+### Lembrete do paciente
+
+- [ ] Com as notificações desligadas, o início do paciente mostra o aviso amarelo grande e o TalkBack o anuncia como
+      alerta; o botão "Ativar o lembrete" ocupa a largura toda.
+- [ ] Com a fonte do sistema no máximo, o aviso e o botão "Abrir ajuste de bateria" quebram linha sem cortar.
+- [ ] A notificação "Hora do remédio" aparece na tela bloqueada, toca e vibra; o TalkBack lê o título e o texto.
+- [ ] Nos três temas do paciente (claro, escuro e alto contraste), o aviso continua legível.
 
 Resultado: anote em [plano-de-testes.md](plano-de-testes.md), na seção de testes manuais.

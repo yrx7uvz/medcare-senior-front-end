@@ -103,6 +103,30 @@ direto não há recuperação. Enquanto ela estiver no EAS, a cópia é a garant
 6. **PDF:** Histórico → Exportar PDF → compartilhar pelo menu do Android.
 7. Feche e abra de novo: a sessão continua. O paciente entra direto se usou o app há até 10 minutos; depois disso,
    pede o PIN (em Ajustes do paciente dá para escolher "Sempre" ou "Nunca neste celular").
+8. **Lembrete do paciente** (roteiro abaixo).
+
+### Teste do lembrete no celular do paciente
+
+Preparação: na apresentação, `deploy\apresentacao\preparar-demonstracao.ps1` (no repositório do backend) cria uma dose
+da Dona Maria daqui a 4 minutos. Em outro ambiente, cadastre no cuidador um remédio com horário daqui a 6 minutos.
+
+1. Paciente pareado, PIN criado. Se o início mostrar o aviso amarelo "O lembrete do remédio está desligado", toque em
+   "Ativar o lembrete" e permita as notificações.
+2. Em **Ajustes do paciente**, "Lembrete do remédio" não pode mostrar aviso amarelo. Se mostrar "O lembrete pode
+   atrasar", toque e ligue "Permitir alarmes e lembretes" para o MedCare Sênior. Em "Economia de bateria", toque em
+   "Abrir ajuste de bateria" → Bateria → **Sem restrições**.
+3. Com a dose criada, abra o app do paciente uma vez (ele agenda os lembretes) e **bloqueie a tela**.
+4. Na hora: o celular **toca, vibra e mostra na tela bloqueada** "Hora do remédio — Tomar Dipirona às HH:MM".
+5. Toque na notificação: abre a dose (pede o PIN se passaram mais de 10 minutos do último uso).
+6. Confirme ("Tomei o remédio"). Espere 10 minutos: o segundo lembrete ("Você ainda não confirmou o remédio") **não**
+   pode aparecer.
+7. Repita com uma dose nova: feche o app à força (Configurações → Apps → MedCare Sênior → Forçar parada) e ligue o
+   **modo avião** antes da hora. O lembrete local toca do mesmo jeito.
+8. Repita sem confirmar e com internet: 2 minutos depois do horário chega o reforço do servidor (substitui o lembrete
+   na tela, não empilha); 10 minutos depois, a insistência; no fim da tolerância, o **cuidador** recebe o aviso dele.
+
+Para conferir as permissões do APK: `npm run check:android-permissions -- --apk caminho\do\app.apk` (precisa listar
+`SCHEDULE_EXACT_ALARM` e `RECEIVE_BOOT_COMPLETED`, e nada fora da lista mínima).
 
 **No emulador do Android Studio** (sem push real: o emulador precisa de imagem com Google Play):
 ```powershell
