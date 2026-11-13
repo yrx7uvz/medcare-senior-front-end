@@ -17,12 +17,17 @@ export const DEFAULT_TOLERANCE_MIN = 30;
 export const TOLERANCE_MIN = 5;
 export const TOLERANCE_MAX = 120;
 export const TOLERANCE_STEP = 5;
+/** Menor tolerância no modo de teste (EXPO_PUBLIC_MODO_TESTE, com o servidor também em modo de teste). */
+export const TEST_MODE_TOLERANCE_MIN = 1;
 
-/** Mesma regra da API (PUT /api/configuracoes/tolerancia): inteiro de 5 a 120, inclusive. Null = válido. */
-export function toleranceError(minutes: number): string | null {
-  return Number.isInteger(minutes) && minutes >= TOLERANCE_MIN && minutes <= TOLERANCE_MAX
+/**
+ * Mesma regra da API (PUT /api/configuracoes/tolerancia): inteiro de 5 a 120, inclusive (de `min` a 120 no modo de
+ * teste). Null = válido.
+ */
+export function toleranceError(minutes: number, min: number = TOLERANCE_MIN): string | null {
+  return Number.isInteger(minutes) && minutes >= min && minutes <= TOLERANCE_MAX
     ? null
-    : `A tolerância deve ficar entre ${TOLERANCE_MIN} e ${TOLERANCE_MAX} minutos`;
+    : `A tolerância deve ficar entre ${min} e ${TOLERANCE_MAX} minutos`;
 }
 
 /** Minutos depois do horário em que a dose deixa de poder ser confirmada: tolerância + margem depois do aviso. */

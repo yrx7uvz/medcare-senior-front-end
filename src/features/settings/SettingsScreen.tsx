@@ -13,11 +13,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TabScreenProps } from '../../app/navigation/types';
 import { CaregiverScreen } from '../../components/layout/CaregiverScreen';
 import { AppSwitch, AppText, Avatar, Button, Card, ConfirmDialog, ErrorState, LoadingSkeleton, NotificationsOffBanner, TextField, ThemeToggle, type IconComponent } from '../../components/ui';
-import { toleranceError } from '../../lib/doseRules';
+import { TEST_MODE_TOLERANCE_MIN, TOLERANCE_MIN, toleranceError } from '../../lib/doseRules';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import { getDemo } from '../../config/demo';
-import { IS_DEMO } from '../../config/env';
+import { IS_DEMO, IS_TEST_MODE } from '../../config/env';
 import { push } from '../../lib/push';
 import { pushRegistration } from '../../lib/pushSession';
 import { logoutCaregiver } from '../../lib/session';
@@ -25,6 +25,9 @@ import { useNotificationsOff } from '../../lib/useNotificationsOff';
 import { useMutation, useQuery } from '../../lib/useQuery';
 import { spacing, useTheme } from '../../theme';
 import { ToleranceSelector } from './ToleranceSelector';
+
+// Modo de teste: aceita a tolerância de 1 minuto (o servidor em modo de teste também aceita)
+const MIN_TOLERANCE = IS_TEST_MODE ? TEST_MODE_TOLERANCE_MIN : TOLERANCE_MIN;
 
 // Prazo de remoção dos dados pessoais: a API apaga na hora (0 dias); o modo demonstração simula até 30 dias
 const EXPECTED_REMOVAL_DAYS = IS_DEMO ? 30 : 0;
@@ -57,7 +60,7 @@ export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
 
   const changed = draft !== null && tolerance.data !== undefined && draft !== tolerance.data;
   // Mesma faixa da API (5 a 120): fora dela não envia
-  const draftError = draft !== null ? toleranceError(draft) : null;
+  const draftError = draft !== null ? toleranceError(draft, MIN_TOLERANCE) : null;
 
   async function doDelete() {
     // Tira o token do aparelho da conta antes de excluí-la (melhor esforço; a exclusão apaga o token de qualquer jeito)
@@ -101,7 +104,7 @@ export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
             disabled={!changed || !!draftError}
             loading={saveTolerance.loading}
             onPress={async () => {
-              if (draft === null || toleranceError(draft)) return;
+              if (draft === null || toleranceError(draft, MIN_TOLERANCE)) return;
               const v = await saveTolerance.mutate(draft);
               // A escrita atualiza o painel e as doses abertas (nova janela de aviso)
               if (v !== undefined) showToast(`Tolerância ajustada para ${v} minutos. Vale para os próximos avisos.`);
