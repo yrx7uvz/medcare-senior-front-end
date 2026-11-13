@@ -224,6 +224,7 @@ const CASOS: Item[] = [
     ['app', 'tests/seletorDeHorario.test.ts', 'a ação acessível increment aumenta e decrement diminui, com volta'],
     ['app', 'tests/tema.test.ts', 'lê o alto contraste gravado com o nome antigo (elderHighContrast) por versões anteriores'],
     ['app', 'tests/tema.test.ts', 'alterna entre claro e escuro; no alto contraste (fundo preto), vai para o claro'],
+    ['app', 'tests/teclado.test.ts', 'sobe exatamente o que o teclado cobre da área'],
   ] },
 ];
 

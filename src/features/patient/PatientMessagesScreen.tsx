@@ -1,5 +1,6 @@
-import { KeyboardAvoidingView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
+import { KeyboardAwareView } from '../../components/layout/KeyboardAwareView';
 import { PatientScreen } from '../../components/layout/PatientScreen';
 import { AppText, ChatThread, ErrorState, LoadingSkeleton } from '../../components/ui';
 import { services } from '../../services';
@@ -33,7 +34,7 @@ export function PatientMessagesScreen(_: RootScreenProps<'PatientMessages'>) {
       ) : thread.error ? (
         <ErrorState error={thread.error} onRetry={thread.reload} />
       ) : (
-        <KeyboardAvoidingView style={styles.flex}>
+        <KeyboardAwareView>
           <ChatThread
             large
             messages={thread.messages}
@@ -49,14 +50,13 @@ export function PatientMessagesScreen(_: RootScreenProps<'PatientMessages'>) {
             olderError={thread.olderError?.message}
             onLoadOlder={thread.loadOlder}
           />
-        </KeyboardAvoidingView>
+        </KeyboardAwareView>
       )}
     </PatientScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
   head: { paddingHorizontal: spacing.lg },
   pad: { padding: spacing.lg },
 });

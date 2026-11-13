@@ -1,6 +1,6 @@
 import Send from 'lucide-react-native/icons/send';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import type { Message, MessageAuthor } from '../../types/domain';
 import { formatDayHeader } from '../../lib/date';
 import { MESSAGE_MAX_LENGTH, messageCounter, messageError, messageLength } from '../../lib/messages';
@@ -61,6 +61,12 @@ export function ChatThread({
     const t = setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 60);
     return () => clearTimeout(t);
   }, [lastId]);
+
+  // Teclado aberto: a conversa desce até a última mensagem, logo acima da caixa de texto
+  useEffect(() => {
+    const sub = Keyboard.addListener('keyboardDidShow', () => scrollRef.current?.scrollToEnd({ animated: true }));
+    return () => sub.remove();
+  }, []);
 
   async function send(value: string) {
     const problem = messageError(value);
