@@ -11,6 +11,7 @@ import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import { formatTime } from '../../lib/date';
 import { liveAt } from '../../lib/doseLive';
+import { cancelarLembretesDaDose } from '../../lib/reminders';
 import { useMutation, useQuery } from '../../lib/useQuery';
 import { minuteStamp, useNow } from '../../lib/useNow';
 import { radius, spacing, useTheme } from '../../theme';
@@ -20,9 +21,11 @@ export function ConfirmDoseScreen({ route, navigation }: RootScreenProps<'Patien
   const { colors } = useTheme();
   const patientId = useAppStore((s) => s.patientSession?.patientId ?? '');
   const now = useNow(10_000);
-  const { doseId, preview } = route.params;
+  const { doseId, preview, day } = route.params;
+  // Aberta pelo lembrete, a tela sabe o dia da dose (a lista do início pode nem ter sido carregada)
+  const hint = day && patientId ? { patientId, day } : undefined;
   // Abre com a dose que já estava na lista (sem skeleton nem rodapé surgindo depois) e confere com o servidor em silêncio
-  const dose = useQuery(['dose', doseId], () => services.doses.get(doseId), { silentKey: minuteStamp(now), initialData: preview });
+  const dose = useQuery(['dose', doseId], () => services.doses.get(doseId, hint), { silentKey: minuteStamp(now), initialData: preview });
   const profile = useQuery(['patient-profile', patientId], () => services.patients.getProfile(patientId));
   const confirm = useMutation(services.doses.confirm);
   const caregiver = profile.data?.caregiverFirstName ?? 'quem cuida de você';
@@ -32,6 +35,8 @@ export function ConfirmDoseScreen({ route, navigation }: RootScreenProps<'Patien
   async function onConfirm() {
     const result = await confirm.mutate(doseId);
     if (result) {
+      // O segundo lembrete ("Você ainda não confirmou") não pode tocar, e o que estiver na tela sai
+      void cancelarLembretesDaDose(doseId);
       navigation.replace('PatientDoseConfirmed', { doseId, preview: result });
       return;
     }

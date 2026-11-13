@@ -1,0 +1,7 @@
+{
+  "name": "medcare-alarmes",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Módulo nativo local: alarme exato e otimização de bateria para o lembrete de dose do paciente",
+  "main": "index.ts"
+}

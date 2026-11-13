@@ -7,6 +7,7 @@ export const endpoints = {
   patients: '/api/pacientes',
   patient: (id: string) => `/api/pacientes/${id}`,
   patientMe: '/api/pacientes/me',
+  patientFcmToken: '/api/pacientes/me/fcm-token',
   patientDoses: (patientId: string, day: string) => `/api/pacientes/${patientId}/doses?data=${day}`,
   myDoses: (day: string) => `/api/pacientes/me/doses?data=${day}`,
   generateLinkCode: (patientId: string) => `/api/pacientes/${patientId}/gerar-codigo`,

@@ -26,6 +26,7 @@
     "plugins": [
       "expo-font",
       "expo-secure-store",
+      "expo-background-task",
       [
         "expo-build-properties",
         {

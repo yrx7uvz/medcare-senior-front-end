@@ -11,20 +11,29 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
  * - Permissões: lista mínima explícita e bloqueio do que bibliotecas ou o modelo do Expo acrescentam sem o app usar.
  */
 
-/** Só o que o app usa: rede (API), notificações e o que o push do FCM exige; VIBRATE para expo-haptics. */
+/**
+ * Só o que o app usa: rede (API), notificações e o que o push do FCM exige; VIBRATE para expo-haptics e para o
+ * lembrete. O lembrete de dose do paciente é um alarme agendado no aparelho:
+ * - SCHEDULE_EXACT_ALARM: alarme exato no Android 12+ (sem ele o expo-notifications agenda como inexato e o Android
+ *   pode atrasar o lembrete). O paciente libera em "Alarmes e lembretes"; o app mostra o aviso e abre a tela certa.
+ *   USE_EXACT_ALARM fica bloqueada: a política do Google Play a reserva a apps de despertador e agenda.
+ * - RECEIVE_BOOT_COMPLETED: o Android apaga os alarmes ao reiniciar; o expo-notifications os agenda de novo ao ligar.
+ */
 export const ANDROID_PERMISSIONS = [
   'android.permission.INTERNET',
   'android.permission.ACCESS_NETWORK_STATE',
   'android.permission.POST_NOTIFICATIONS',
   'android.permission.VIBRATE',
   'android.permission.WAKE_LOCK',
+  'android.permission.SCHEDULE_EXACT_ALARM',
+  'android.permission.RECEIVE_BOOT_COMPLETED',
   'com.google.android.c2dm.permission.RECEIVE',
 ];
 
 /**
  * Removidas do manifesto final mesmo se uma biblioteca as declarar: o app não lê arquivos, não grava áudio nem usa
- * câmera, localização, telefone, biometria, sobreposição de tela, nem agenda notificações locais (os avisos vêm
- * do servidor pelo FCM).
+ * câmera, localização, telefone, biometria, sobreposição de tela nem serviço em primeiro plano (a renovação dos
+ * lembretes em segundo plano é uma tarefa curta do WorkManager, sem serviço em primeiro plano).
  */
 export const ANDROID_BLOCKED_PERMISSIONS = [
   'android.permission.READ_EXTERNAL_STORAGE',
@@ -42,8 +51,6 @@ export const ANDROID_BLOCKED_PERMISSIONS = [
   'android.permission.READ_CONTACTS',
   'android.permission.USE_BIOMETRIC',
   'android.permission.USE_FINGERPRINT',
-  'android.permission.RECEIVE_BOOT_COMPLETED',
-  'android.permission.SCHEDULE_EXACT_ALARM',
   'android.permission.USE_EXACT_ALARM',
   'android.permission.FOREGROUND_SERVICE',
   'android.permission.REQUEST_INSTALL_PACKAGES',

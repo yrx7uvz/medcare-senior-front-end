@@ -13,7 +13,7 @@ module.exports = {
     'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|react-native-svg|lucide-react-native)',
   ],
   collectCoverageFrom: [
-    'src/lib/{apiTime,dailyReport,date,doseLive,doseRules,formErrors,history,jwt,masks,medicationMeta,password,notificationsOff,schemas,serverClock,timeWheel,treatmentTime}.ts',
+    'src/lib/{apiTime,dailyReport,date,doseLive,doseRules,formErrors,history,jwt,masks,medicationMeta,password,notificationsOff,reminderCore,reminderHealth,reminderPlan,schemas,serverClock,timeWheel,treatmentTime}.ts',
     'src/features/patient/nextDose.ts',
     'src/features/medications/formValues.ts',
     'src/adapters/http/{apiError,ids}.ts',

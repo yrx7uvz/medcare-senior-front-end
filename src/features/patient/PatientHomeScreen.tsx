@@ -6,13 +6,25 @@ import Settings from 'lucide-react-native/icons/settings';
 import { StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { PatientScreen } from '../../components/layout/PatientScreen';
-import { AppText, BigActionButton, Card, DoseStatusBadge, EmptyState, ErrorState, LoadingSkeleton, PillVisual, RefreshFailedBanner } from '../../components/ui';
+import {
+  AppText,
+  BigActionButton,
+  Card,
+  DoseStatusBadge,
+  EmptyState,
+  ErrorState,
+  LoadingSkeleton,
+  NotificationsOffBanner,
+  PillVisual,
+  RefreshFailedBanner,
+} from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import { firstName, formatLongDate, formatTime, greeting } from '../../lib/date';
 import { liveAt } from '../../lib/doseLive';
 import { appTodayKey } from '../../lib/serverClock';
 import { useQuery } from '../../lib/useQuery';
+import { useReminderHealth } from '../../lib/useReminderHealth';
 import { minuteStamp, useNow } from '../../lib/useNow';
 import { useRefreshOnFocus } from '../../lib/useScreenActivity';
 import { radius, spacing, useTheme } from '../../theme';
@@ -31,6 +43,9 @@ export function PatientHomeScreen({ navigation }: RootScreenProps<'PatientHome'>
   // Contador de mensagens: ao voltar para esta tela (ex.: da conversa) e ao voltar ao app, sem atualização periódica
   const unread = useQuery(['patient-unread', patientId], () => services.messages.unreadCount(patientId, 'PACIENTE'));
   useRefreshOnFocus(unread.refresh);
+  // Notificações ou alarme exato desligados: o lembrete do remédio não toca (ou atrasa). O aviso fica no topo
+  const reminder = useReminderHealth();
+  const reminderWarning = reminder.warning;
 
   const caregiver = profile.data?.caregiverFirstName ?? 'quem cuida de você';
   // Status entre as atualizações: só compara agora com a janela que veio do servidor
@@ -48,6 +63,16 @@ export function PatientHomeScreen({ navigation }: RootScreenProps<'PatientHome'>
           {formatLongDate(now)}
         </AppText>
       </View>
+
+      {reminderWarning ? (
+        <NotificationsOffBanner
+          variant="patient"
+          message={reminderWarning.message}
+          actionLabel={reminderWarning.action}
+          alarm={reminderWarning.issue === 'ALARME_INEXATO'}
+          onEnable={() => void reminder.fix(reminderWarning.issue)}
+        />
+      ) : null}
 
       {doses.refreshError ? <RefreshFailedBanner onRetry={doses.refresh} /> : null}
 

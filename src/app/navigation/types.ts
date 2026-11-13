@@ -39,7 +39,8 @@ export type RootStackParamList = {
   PatientPinUnlock: undefined;
   PatientHome: undefined;
   // preview: a dose como estava na lista do início, para a tela abrir sem esperar a busca (sem salto)
-  PatientConfirmDose: { doseId: string; preview?: DoseView };
+  // day: dia da dose (AAAA-MM-DD), quando a tela é aberta pelo toque num lembrete (sem a lista do início carregada)
+  PatientConfirmDose: { doseId: string; preview?: DoseView; day?: string };
   // preview: a dose devolvida pela confirmação (a tela abre já com ela)
   PatientDoseConfirmed: { doseId: string; preview?: DoseView };
   PatientMessages: undefined;

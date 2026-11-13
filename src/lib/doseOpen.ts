@@ -1,5 +1,5 @@
 import type { ViewAs } from '../store/appStore';
-import { parseDosePayload, type DoseOpenTarget } from './pushPayload';
+import { parseDosePayload, type DoseOpenTarget, type ReminderOpenTarget } from './pushPayload';
 
 /**
  * Para onde levar quem tocou num aviso de dose não confirmada. Função pura: as telas e a navegação só executam a
@@ -48,4 +48,35 @@ export const resolveDoseOpen = (data: unknown, ctx: DoseOpenContext): DoseOpenDe
 export function doseOpenFailure(error: { status?: number; code?: string } | null | undefined): { notice: string } | null {
   if (!error) return null;
   return error.status === 404 || error.code === 'RECURSO_NAO_ENCONTRADO' ? { notice: MISSING_DOSE_NOTICE } : null;
+}
+
+/**
+ * Para onde levar quem tocou num lembrete de dose. Função pura:
+ *
+ * - ignorar: payload inválido, aparelho no perfil do cuidador (o lembrete é só do paciente), sem paciente pareado ou
+ *   lembrete de outro paciente (aparelho pareado de novo com outra pessoa);
+ * - aguardar: o boot ainda não leu o perfil, ou o PIN precisa ser digitado antes (a regra de tolerância do PIN vale
+ *   também para o toque no lembrete: o destino espera o desbloqueio);
+ * - abrir-dose: abre a dose do paciente, com o início por baixo.
+ */
+export type PatientDoseOpenDecision =
+  | { action: 'ignorar' }
+  | { action: 'aguardar' }
+  | { action: 'abrir-dose'; target: ReminderOpenTarget };
+
+export interface PatientDoseOpenContext {
+  viewAs: ViewAs | null;
+  profileLoaded: boolean;
+  /** Paciente pareado neste aparelho (null = sem sessão). */
+  patientId: string | null;
+  unlocked: boolean;
+}
+
+export function decidePatientDoseOpen(target: ReminderOpenTarget | null, ctx: PatientDoseOpenContext): PatientDoseOpenDecision {
+  if (!target) return { action: 'ignorar' };
+  if (!ctx.profileLoaded) return { action: 'aguardar' };
+  if (ctx.viewAs !== 'PATIENT' || !ctx.patientId) return { action: 'ignorar' };
+  if (target.patientId && target.patientId !== ctx.patientId) return { action: 'ignorar' };
+  if (!ctx.unlocked) return { action: 'aguardar' };
+  return { action: 'abrir-dose', target };
 }

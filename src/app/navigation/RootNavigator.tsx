@@ -24,7 +24,7 @@ import { ExportPdfScreen } from '../../features/history/ExportPdfScreen';
 import { LegalScreen } from '../../features/legal/LegalScreen';
 import { MedicationFormScreen } from '../../features/medications/MedicationFormScreen';
 import { ProfileChoiceScreen } from '../../features/profile/ProfileChoiceScreen';
-import { decideDoseOpen } from '../../lib/doseOpen';
+import { decideDoseOpen, decidePatientDoseOpen } from '../../lib/doseOpen';
 import { markPatientActivity } from '../../lib/pinSession';
 import { bootSession } from '../../lib/session';
 import { navigationRef } from './navigationRef';
@@ -89,6 +89,7 @@ export function RootNavigator() {
   const highContrast = useAppStore((s) => s.patientHighContrast);
   const pendingDoseOpen = useAppStore((s) => s.pendingDoseOpen);
   const pendingLeaveOpen = useAppStore((s) => s.pendingLeaveOpen);
+  const pendingPatientDoseOpen = useAppStore((s) => s.pendingPatientDoseOpen);
   const [navReady, setNavReady] = useState(false);
 
   // Toque num aviso de dose (app fechado, em segundo plano ou aberto em qualquer tela): abre a dose assim que houver
@@ -116,6 +117,34 @@ export function RootNavigator() {
     }, 0);
     return () => clearTimeout(id);
   }, [navReady, viewAs, session, pendingDoseOpen]);
+
+  // Toque num lembrete de dose (local ou do servidor), no perfil do paciente: abre a dose com o início por baixo. Com o
+  // PIN pedido (regra de tolerância), o destino espera o desbloqueio: o lembrete nunca contorna o PIN
+  useEffect(() => {
+    if (!navReady || !pendingPatientDoseOpen) return;
+    const decision = decidePatientDoseOpen(pendingPatientDoseOpen, {
+      viewAs,
+      profileLoaded,
+      patientId: patientSession?.patientId ?? null,
+      unlocked: patientUnlocked,
+    });
+    if (decision.action === 'aguardar') return;
+    if (decision.action === 'ignorar') {
+      useAppStore.getState().setPendingPatientDoseOpen(null);
+      return;
+    }
+    const id = setTimeout(() => {
+      if (!navigationRef.isReady()) return;
+      useAppStore.getState().setPendingPatientDoseOpen(null);
+      navigationRef.dispatch(
+        CommonActions.reset({
+          index: 1,
+          routes: [{ name: 'PatientHome' }, { name: 'PatientConfirmDose', params: { doseId: decision.target.doseId, day: decision.target.day } }],
+        }),
+      );
+    }, 0);
+    return () => clearTimeout(id);
+  }, [navReady, viewAs, profileLoaded, patientSession, patientUnlocked, pendingPatientDoseOpen]);
 
   // Toque no aviso de pedido de saída: mesmo caminho da dose (espera o login; perfil do paciente ignora), com o Painel
   // por baixo

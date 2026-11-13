@@ -17,6 +17,7 @@ const KEYS = {
   notificationPrefs: 'medcare.notification.prefs',
   pushPendingRemoval: 'medcare.push.pendingRemoval',
   pushPromptAnswered: 'medcare.push.promptAnswered',
+  patientPushPendingRemoval: 'medcare.patientPush.pendingRemoval',
   themePrefs: 'medcare.theme.prefs',
 } as const;
 const memory = new Map<string, string>();
@@ -193,6 +194,17 @@ export const pushStorage = {
   },
   async setPromptAnswered() {
     await setItem(KEYS.pushPromptAnswered, '1');
+  },
+};
+
+/** Remoção pendente do token do aparelho do paciente (troca de perfil sem rede). */
+export const patientPushStorage = {
+  async getPendingRemoval() {
+    return (await getItem(KEYS.patientPushPendingRemoval)) === '1';
+  },
+  async setPendingRemoval(pending: boolean) {
+    if (pending) await setItem(KEYS.patientPushPendingRemoval, '1');
+    else await removeItem(KEYS.patientPushPendingRemoval);
   },
 };
 

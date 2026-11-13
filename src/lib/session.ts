@@ -6,7 +6,7 @@ import { useAppStore, type ViewAs } from '../store/appStore';
 import { resolveStoredSessions, SESSION_EXPIRED_MESSAGE } from './bootRules';
 import { patientDisconnectedFlash } from './leaveRequest';
 import { invalidateQueries } from './queryBus';
-import { pushRegistration } from './pushSession';
+import { patientPushRegistration, pushRegistration } from './pushSession';
 import { DEFAULT_PIN_ASK_MODE } from './pinGrace';
 import { forgetPatientActivity, patientStartsUnlocked } from './pinSession';
 import { caregiverSessionStorage, patientDeviceStorage, notificationPrefsStorage, profileStorage, type DeviceProfile } from './secureStorage';
@@ -82,11 +82,16 @@ export async function chooseProfile(viewAs: ViewAs) {
   useAppStore.getState().setViewAs(viewAs);
 }
 
-/** "Não é você? Trocar perfil": limpa SÓ o perfil (a sessão do paciente já pareada fica no aparelho). */
+/**
+ * "Não é você? Trocar perfil": limpa SÓ o perfil (a sessão do paciente já pareada fica no aparelho). Os lembretes de
+ * dose saem do aparelho junto (reminders.ts cancela tudo fora do perfil do paciente).
+ */
 export async function switchProfile() {
-  // Aparelho deixa de ser do cuidador: para de receber os avisos dele (melhor esforço, antes de sair do perfil)
+  // Aparelho deixa de ser do cuidador (ou do paciente): para de receber os avisos dele (melhor esforço, antes de sair
+  // do perfil, enquanto o token da sessão ainda vai nas chamadas)
   const s = useAppStore.getState();
   if (s.viewAs === 'CAREGIVER' && s.session) await pushRegistration.unregister();
+  if (s.viewAs === 'PATIENT' && s.patientSession) await patientPushRegistration.unregister();
   await safely(() => profileStorage.clear(), undefined);
   useAppStore.getState().setViewAs(null);
 }
@@ -103,11 +108,13 @@ export async function logoutCaregiver(flash: string | null = null) {
 
 /**
  * Aparelho do paciente desconectado pela API: apaga sessão e PIN e volta ao pareamento. Se ele tinha pedido para sair,
- * é a autorização do cuidador chegando, e a mensagem diz isso. O paciente não tem token de push no servidor (o push é
- * só do cuidador): não há registro a desfazer.
+ * é a autorização do cuidador chegando, e a mensagem diz isso. O servidor já apagou o token de push do aparelho junto
+ * com a desconexão (ou com o paciente): aqui só se para de ouvir a troca de token. Os lembretes agendados saem pelo
+ * reminders.ts, que vê a sessão sumir.
  */
 async function disconnectPatient() {
   const flash = patientDisconnectedFlash(useAppStore.getState().patientLeaveRequested, PATIENT_DISCONNECTED_MESSAGE);
+  void patientPushRegistration.forget();
   useAppStore.setState({ patientSession: null, patientUnlocked: false, patientLeaveRequested: false, pinAskMode: DEFAULT_PIN_ASK_MODE, flash });
   // Junto com o PIN, vão o último uso desbloqueado e a escolha de quando pedir o PIN
   await safely(() => patientDeviceStorage.clear(), undefined);
@@ -121,11 +128,27 @@ export async function leavePatientAccount() {
   await disconnectPatient();
 }
 
+let unsubscribeHandlers: (() => void) | null = null;
+
 /**
  * Liga a sessão ao cliente HTTP (uma vez, no boot): token conforme o perfil do aparelho,
- * persistência da sessão do cuidador e tratamento de 401 com token.
+ * persistência da sessão do cuidador e tratamento de 401 com token. Idempotente: a tarefa de segundo plano do lembrete
+ * (reminderTask.ts) também liga, quando o app nem foi aberto, e uma segunda chamada não duplica nada.
  */
 export function registerSessionHandlers() {
+  if (unsubscribeHandlers) return unsubscribeHandlers;
+  const unsubscribe = bindSessionHandlers();
+  unsubscribeHandlers = () => {
+    unsubscribe();
+    unsubscribeHandlers = null;
+  };
+  return unsubscribeHandlers;
+}
+
+/** O boot já leu o perfil e as sessões (a tarefa de segundo plano só roda o boot se o app ainda não rodou). */
+export const sessionBooted = () => useAppStore.getState().profileLoaded;
+
+function bindSessionHandlers() {
   setViewerProvider(() => useAppStore.getState().viewAs);
   setTokenProvider(() => {
     const s = useAppStore.getState();
@@ -145,6 +168,11 @@ export function registerSessionHandlers() {
     if (state.notificationPrefs !== prev.notificationPrefs) {
       void safely(() => notificationPrefsStorage.save(state.notificationPrefs), undefined);
     }
+    // Paciente pareado (pareamento, app aberto já pareado ou volta ao perfil do paciente): liga o token do aparelho ao
+    // paciente, para o servidor reforçar o lembrete de dose. No demo não há servidor
+    const patientNow = state.viewAs === 'PATIENT' ? state.patientSession?.token : undefined;
+    const patientBefore = prev.viewAs === 'PATIENT' ? prev.patientSession?.token : undefined;
+    if (!IS_DEMO && patientNow && patientNow !== patientBefore) void patientPushRegistration.register();
     if (IS_DEMO || state.session === prev.session) return;
     const next = state.session;
     void safely(() => (next ? caregiverSessionStorage.save(next) : caregiverSessionStorage.clear()), undefined);

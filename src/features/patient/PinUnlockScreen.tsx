@@ -9,6 +9,7 @@ import { useAppStore } from '../../store/appStore';
 import { formatLockRemaining } from '../../lib/pinCore';
 import { DEFAULT_PIN_ASK_MODE } from '../../lib/pinGrace';
 import { forgetPatientActivity } from '../../lib/pinSession';
+import { patientPushRegistration } from '../../lib/pushSession';
 import { patientDeviceStorage } from '../../lib/secureStorage';
 import { radius, spacing, useTheme } from '../../theme';
 
@@ -138,6 +139,9 @@ export function PinUnlockScreen(_: RootScreenProps<'PatientPinUnlock'>) {
         confirmLabel="Desconectar este celular"
         onCancel={() => setForgot(false)}
         onConfirm={async () => {
+          // Tira o aparelho do lembrete do servidor enquanto o token da sessão ainda vale (melhor esforço, com tempo
+          // limite: sem rede, a desconexão acontece mesmo assim)
+          await patientPushRegistration.unregister();
           try {
             await patientDeviceStorage.clear();
           } catch {

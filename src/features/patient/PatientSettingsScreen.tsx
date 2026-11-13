@@ -1,3 +1,5 @@
+import AlarmClockCheck from 'lucide-react-native/icons/alarm-clock-check';
+import BatteryCharging from 'lucide-react-native/icons/battery-charging';
 import Contrast from 'lucide-react-native/icons/contrast';
 import LockKeyhole from 'lucide-react-native/icons/lock-keyhole';
 import LogOut from 'lucide-react-native/icons/log-out';
@@ -6,19 +8,31 @@ import { useEffect, useRef, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { PatientScreen } from '../../components/layout/PatientScreen';
-import { AppSwitch, AppText, BigActionButton, Card, DigitBoxes, OptionList, PinPad, ThemeToggle } from '../../components/ui';
+import {
+  AppSwitch,
+  AppText,
+  BigActionButton,
+  Card,
+  DigitBoxes,
+  NotificationsOffBanner,
+  OptionList,
+  PinPad,
+  ThemeToggle,
+} from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import { formatLockRemaining } from '../../lib/pinCore';
 import { PIN_ASK_OPTIONS, PIN_NEVER_WARNING, type PinAskMode } from '../../lib/pinGrace';
 import { setPinAskMode } from '../../lib/pinSession';
+import { BATTERY_ACTION, BATTERY_OK, BATTERY_TIP, BATTERY_TITLE } from '../../lib/reminderHealth';
 import { patientDeviceStorage } from '../../lib/secureStorage';
 import { useQuery } from '../../lib/useQuery';
+import { useReminderHealth } from '../../lib/useReminderHealth';
 import { radius, spacing, useTheme } from '../../theme';
 
 /**
- * Ajustes do paciente: tema (o mesmo seletor do cuidador), alto contraste, quando pedir o PIN e a saída da conta (que
- * depende da autorização do cuidador).
+ * Ajustes do paciente: lembrete do remédio (notificações, alarme exato e bateria), tema (o mesmo seletor do cuidador),
+ * alto contraste, quando pedir o PIN e a saída da conta (que depende da autorização do cuidador).
  */
 export function PatientSettingsScreen({ navigation }: RootScreenProps<'PatientSettings'>) {
   const { colors, highContrast } = useTheme();
@@ -31,6 +45,8 @@ export function PatientSettingsScreen({ navigation }: RootScreenProps<'PatientSe
   // "Nunca neste celular" só depois de confirmar o PIN atual
   const [confirmNever, setConfirmNever] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const reminder = useReminderHealth();
+  const reminderWarning = reminder.warning;
 
   const choose = async (mode: PinAskMode) => {
     if (mode === askMode) return;
@@ -68,6 +84,48 @@ export function PatientSettingsScreen({ navigation }: RootScreenProps<'PatientSe
           </View>
         </View>
       </Card>
+
+      {reminder.supported ? (
+        <Card style={styles.card}>
+          <View style={styles.row}>
+            <AlarmClockCheck color={colors.primary} size={28} />
+            <AppText variant="patientStrong" style={styles.flex} accessibilityRole="header">
+              Lembrete do remédio
+            </AppText>
+          </View>
+          {reminderWarning ? (
+            <NotificationsOffBanner
+              variant="patient"
+              message={reminderWarning.message}
+              actionLabel={reminderWarning.action}
+              alarm={reminderWarning.issue === 'ALARME_INEXATO'}
+              onEnable={() => void reminder.fix(reminderWarning.issue)}
+            />
+          ) : (
+            <AppText variant="patientBody">O celular vai tocar e vibrar na hora de cada remédio, mesmo bloqueado e sem internet.</AppText>
+          )}
+        </Card>
+      ) : null}
+
+      {reminder.supported ? (
+        <Card style={styles.card}>
+          <View style={styles.row}>
+            <BatteryCharging color={colors.primary} size={28} />
+            <AppText variant="patientStrong" style={styles.flex} accessibilityRole="header">
+              {BATTERY_TITLE}
+            </AppText>
+          </View>
+          <AppText variant="patientBody">{reminder.batteryUnrestricted ? BATTERY_OK : BATTERY_TIP}</AppText>
+          {reminder.batteryUnrestricted ? null : (
+            <BigActionButton
+              title={BATTERY_ACTION}
+              variant="outline"
+              onPress={() => void reminder.openBattery()}
+              accessibilityHint="Abre as configurações do celular para este app"
+            />
+          )}
+        </Card>
+      ) : null}
 
       <Card style={styles.card}>
         <ThemeToggle />

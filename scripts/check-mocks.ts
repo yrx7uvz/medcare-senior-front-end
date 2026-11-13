@@ -110,10 +110,42 @@ async function main() {
   const ok = await services.patients.validateLinkCode('482913');
   console.log('Código válido →', ok.patientName);
   try { await services.patients.validateLinkCode('482913'); } catch (e) { console.log('Reuso →', (e as Error).message); }
+  await conferirLembretesDoDemo();
   await conferirHorarioDoTratamento();
   await conferirSaidaDaConta();
   await conferirDesvinculo();
   process.exit(0);
+}
+
+/**
+ * Lembrete de dose no demo: agendado a partir dos dados de demonstração, como no modo real. O relógio do demo é
+ * simulado (sexta, 05/06, 14:02), então o alarme é levado para o relógio do aparelho: toca daqui a (horário da dose -
+ * agora do demo).
+ */
+async function conferirLembretesDoDemo() {
+  const { getNow, useClockStore } = await import('../src/lib/clock');
+  const { appNowMs, appTodayKey, doseInstantMs } = await import('../src/lib/serverClock');
+  const { reminderDays } = await import('../src/lib/reminderHealth');
+  const { planReminders } = await import('../src/lib/reminderPlan');
+  useClockStore.getState().setTime(new Date(2026, 5, 5, 14, 2, 0));
+  const dias = reminderDays(appTodayKey(getNow()));
+  assert.deepEqual(dias, ['2026-06-05', '2026-06-06', '2026-06-07', '2026-06-08']);
+  const doses = (await Promise.all(dias.map((d) => services.doses.listForDay('e-jose', d)))).flat();
+  const deviceNowMs = Date.now();
+  const demoNowMs = appNowMs(getNow());
+  const plano = planReminders(doses, { appNowMs: demoNowMs, deviceNowMs }, doseInstantMs);
+
+  assert.ok(plano.length > 0 && plano.length <= 60, 'o demo agenda lembretes (no máximo 60)');
+  assert.ok(plano.every((p) => p.data.pacienteId === 'e-jose' && /^dose-.+-[12]$/.test(p.id)));
+  // Nenhuma dose já confirmada ou encerrada no demo vira lembrete
+  const registradas = new Set(doses.filter((d) => d.storedStatus !== 'PENDENTE').map((d) => d.id));
+  assert.ok(plano.every((p) => !registradas.has(p.doseId)));
+  // O primeiro toca no relógio do aparelho na mesma distância em que a dose está do relógio do demo
+  const primeiro = plano[0];
+  const instante = doseInstantMs(doses.find((d) => d.id === primeiro.doseId)!.scheduledAt)! + (primeiro.kind === 2 ? 10 * 60_000 : 0);
+  assert.equal(primeiro.triggerAtMs - deviceNowMs, instante - demoNowMs);
+  assert.ok(primeiro.triggerAtMs > deviceNowMs);
+  console.log(`Lembretes   : ${plano.length} agendados a partir do demo; o primeiro "${primeiro.body}" em ${Math.round((primeiro.triggerAtMs - deviceNowMs) / 60_000)} min`);
 }
 
 /** Saída da conta do paciente no demo: as mesmas regras da API (um pendente, decisão única, 401 depois de autorizado). */

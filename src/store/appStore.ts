@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { LeaveOpenTarget } from '../lib/leaveRequest';
 import { DEFAULT_PIN_ASK_MODE, type PinAskMode } from '../lib/pinGrace';
-import type { DoseOpenTarget } from '../lib/pushPayload';
+import type { DoseOpenTarget, ReminderOpenTarget } from '../lib/pushPayload';
 import type { ThemeMode, ThemePrefs } from '../lib/themePrefs';
 import type { CaregiverSession, PatientFilter } from '../types/views';
 
@@ -48,6 +48,9 @@ interface AppState {
   /** Dose a abrir vinda de um toque em notificação (espera o login, se a sessão tiver expirado). */
   pendingDoseOpen: DoseOpenTarget | null;
   setPendingDoseOpen: (target: DoseOpenTarget | null) => void;
+  /** Dose do paciente a abrir, vinda do toque num lembrete (espera o boot e o PIN, se for a vez dele). */
+  pendingPatientDoseOpen: ReminderOpenTarget | null;
+  setPendingPatientDoseOpen: (target: ReminderOpenTarget | null) => void;
   /** Pedido de saída a abrir, vindo de um toque no aviso (espera o login, como a dose). */
   pendingLeaveOpen: LeaveOpenTarget | null;
   setPendingLeaveOpen: (target: LeaveOpenTarget | null) => void;
@@ -108,6 +111,8 @@ export const useAppStore = create<AppState>()((set) => ({
 
   pendingDoseOpen: null,
   setPendingDoseOpen: (pendingDoseOpen) => set({ pendingDoseOpen }),
+  pendingPatientDoseOpen: null,
+  setPendingPatientDoseOpen: (pendingPatientDoseOpen) => set({ pendingPatientDoseOpen }),
   pendingLeaveOpen: null,
   setPendingLeaveOpen: (pendingLeaveOpen) => set({ pendingLeaveOpen }),
 

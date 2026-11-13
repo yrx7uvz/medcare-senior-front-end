@@ -159,6 +159,32 @@ const CASOS: Item[] = [
     ['backend', 'SegurancaApiTest', 'cuidadorConfirmaDoseDoProprioPacienteENaoADoPacienteDeOutroCuidador'],
     ['app', 'tests/confirmacaoCuidador.test.ts', 'pendente dentro da janela: pode confirmar até o limite que veio do servidor'],
   ] },
+  { id: 'UC-06 Lembrete no aparelho do paciente', descricao: 'Lembrete local no horário e 10 minutos depois, mesmo offline (72 h, até 60, relógio do servidor), cancelado ao confirmar e ao sair', testes: [
+    ['app', 'tests/lembrete.test.ts', 'duas notificações por dose pendente: no horário e 10 minutos depois, com o texto do paciente'],
+    ['app', 'tests/lembrete.test.ts', 'janela de 72 horas: o que passa dela fica para a próxima sincronização'],
+    ['app', 'tests/lembrete.test.ts', 'nunca mais de 60 notificações, das mais próximas para as mais distantes'],
+    ['app', 'tests/lembrete.test.ts', 'relógio do servidor: com o aparelho 5 minutos adiantado, o alarme é agendado 5 minutos mais tarde no relógio dele'],
+    ['app', 'tests/lembrete.test.ts', 'rodar duas vezes não duplica nem reagenda; cada alarme vai para o canal do lembrete na hora certa'],
+    ['app', 'tests/lembrete.test.ts', 'confirmar a dose cancela os dois lembretes dela e tira da tela o que já apareceu; as outras doses continuam'],
+    ['app', 'tests/lembrete.test.ts', 'desbloqueado abre a dose; com o PIN pedido, espera o desbloqueio (o lembrete não contorna o PIN)'],
+    ['app', 'tests/lembreteSessao.test.ts', 'sem internet: os lembretes já agendados continuam (o paciente é lembrado mesmo offline)'],
+    ['app', 'tests/lembreteSessao.test.ts', 'sair da conta, desconexão ou troca de perfil: cancela tudo'],
+    ['app', 'tests/lembreteSessao.test.ts', 'o aparelho do cuidador nunca agenda lembrete de dose (nem consulta as doses para isso)'],
+  ] },
+  { id: 'UC-06 Reforço do lembrete pelo servidor', descricao: 'Push ao paciente 2 min depois do horário, só com a dose PENDENTE e antes do aviso ao cuidador, uma vez por dose', testes: [
+    ['backend', 'LembrarPacienteDaDoseUseCaseTest', 'naoEnviaAntesDoAtrasoMinimoDeDoisMinutos'],
+    ['backend', 'LembreteDoPacientePostgresTest', 'jobRodandoAoMesmoTempoEDepoisEnviaUmLembreteSoComOTextoECanalDoPaciente'],
+    ['backend', 'LembreteDoPacientePostgresTest', 'naoEnviaAntesDeDoisMinutosNemParaDoseConfirmadaNemParaPacienteSemAparelho'],
+    ['backend', 'LembreteDoPacientePostgresTest', 'paraNoAvisoAoCuidadorConformeAToleranciaDeCadaCuidador'],
+    ['backend', 'LembreteDoPacientePostgresTest', 'tokenInvalidoApagaOTokenDoPacienteEEncerraOLembrete'],
+    ['backend', 'LembreteDoPacientePostgresTest', 'falhaTemporariaEhReenviadaPelaRetentativaDentroDaJanela'],
+    ['backend', 'LembreteDoPacientePostgresTest', 'avisoAoCuidadorELembreteAoPacienteDaMesmaDoseConvivemUmDeCadaTipo'],
+    ['backend', 'MigracoesDoZeroPostgresTest', 'aV18PreservaOsAvisosExistentesComoAvisoAoCuidadorEAUnicidadePassaASerPorDoseETipo'],
+    ['backend', 'TokenDoPacienteApiTest', 'oPacienteVemDoJwtEOCorpoNaoEscolheOutroPaciente'],
+    ['backend', 'TokenDoPacienteApiTest', 'semTokenResponde401ComPerfilErradoResponde403ETokenInvalidoResponde400'],
+    ['backend', 'TokenDoPacienteApiTest', 'desconectarOAparelhoApagaOTokenEOAparelhoNaoConsegueRegistrarDeNovo'],
+    ['app', 'tests/lembrete.test.ts', 'o lembrete local e o do servidor têm o mesmo payload e abrem a mesma dose'],
+  ] },
   { id: 'UC-07 Aviso por push', descricao: 'Cuidador recebe o aviso de dose não confirmada, sem o nome do remédio', testes: [
     ['backend', 'PushNotificadorDeDoseNaoTomadaAdapterTest', 'enviaMensagemEmPortuguesComPacienteEHorarioSemOMedicamento'],
     ['backend', 'PushNotificadorDeDoseNaoTomadaAdapterTest', 'tokenInvalidoEhDescartadoDoCuidador'],
@@ -201,6 +227,16 @@ const CASOS: Item[] = [
 ];
 
 const MANUAIS = [
+  { caso: 'Lembrete do paciente', roteiro: [
+    'Paciente pareado, PIN criado; em Ajustes do paciente, nenhum aviso amarelo (notificações e alarmes liberados; bateria "Sem restrições").',
+    'No cuidador, cadastre uma dose para daqui a 6 minutos.',
+    'No paciente, abra o app uma vez e bloqueie a tela.',
+    'Na hora: toca, vibra e aparece na tela bloqueada "Hora do remédio — Tomar ... às HH:MM".',
+    'Toque na notificação: abre a dose (pede o PIN se passaram mais de 10 minutos de uso).',
+    'Confirme: o segundo lembrete ("Você ainda não confirmou o remédio") não aparece 10 minutos depois.',
+    'Repita com o app fechado à força e com o modo avião: o lembrete local toca do mesmo jeito.',
+    'Não confirme: 2 minutos depois chega o reforço do servidor (com internet), sem empilhar; no fim da tolerância o cuidador recebe o aviso dele.',
+  ] },
   { caso: 'Push real', roteiro: [
     'APK de release instalado no celular do cuidador, com o FCM ligado no servidor.',
     'Entre como cuidador e aceite a permissão de notificações.',

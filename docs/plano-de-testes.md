@@ -2,7 +2,7 @@
 
 Gerado por `npm run plano:testes` (repositório do app, com o do backend ao lado). O script **confere que cada teste
 citado existe** (método no backend, título no app) e falha se algum sumir ou mudar de nome: a matriz não fica
-desatualizada. São 113 referências a testes automatizados, todas conferidas.
+desatualizada. São 135 referências a testes automatizados, todas conferidas.
 
 Como rodar todos os testes automatizados:
 - **backend:** `.\mvnw.cmd verify` (com as variáveis `POSTGRES_*`);
@@ -42,6 +42,8 @@ Como rodar todos os testes automatizados:
 | Tratamentos e doses | Horários e dias da semana; as doses são geradas numa janela rolante | backend: `SalvarTratamentoUseCaseTest` › deveSalvarTratamentoValido<br>backend: `GeradorDeDosesServiceTest` › deveGerarSomenteNosDiasDaSemanaDoTratamento<br>backend: `GeradorDeDosesServiceTest` › naoDeveDuplicarDosesJaExistentes<br>backend: `PersistenciaPostgresTest` › indiceUnicoDeixaUmaSoDoseNoMesmoHorarioDoMesmoTratamento<br>app: `tests/mapeadores.test.ts` › tratamento: horários únicos e ordenados, dias em inglês; resposta vira HH:mm e índice |
 | Horário do tratamento | Horário de hoje com pelo menos 5 minutos de antecedência (na edição, só os novos); o que já passou fica para o próximo dia | backend: `AntecedenciaDoHorarioTest` › menosDeCincoMinutosAFrenteEhRecusado<br>backend: `EditarTratamentoUseCaseTest` › edicaoSemMudarOsHorariosNaoEhBloqueadaPorHorarioQueJaExistia<br>backend: `TratamentoApiTest` › horarioAgoraOuAMenosDeCincoMinutosResponde400ComAMensagemNoTopoENoCampo<br>app: `tests/horarioDoTratamento.test.ts` › a menos de 5 minutos é recusado; com 5 minutos ou mais, aceito<br>app: `tests/horarioDoTratamento.test.ts` › horário de hoje passou: amanhã, com o texto do aviso |
 | Confirmação de dose | Paciente confirma as próprias doses; cuidador, as dos pacientes dele | backend: `ConfirmarDoseUseCaseTest` › noPrazoGravaConfirmadaNoHorarioComAHoraDoServidor<br>backend: `SegurancaApiTest` › confirmarDoseNoPrazoDevolveConfirmadaNoHorarioEDuasVezesResponde409<br>backend: `SegurancaApiTest` › cuidadorConfirmaDoseDoProprioPacienteENaoADoPacienteDeOutroCuidador<br>app: `tests/confirmacaoCuidador.test.ts` › pendente dentro da janela: pode confirmar até o limite que veio do servidor |
+| UC-06 Lembrete no aparelho do paciente | Lembrete local no horário e 10 minutos depois, mesmo offline (72 h, até 60, relógio do servidor), cancelado ao confirmar e ao sair | app: `tests/lembrete.test.ts` › duas notificações por dose pendente: no horário e 10 minutos depois, com o texto do paciente<br>app: `tests/lembrete.test.ts` › janela de 72 horas: o que passa dela fica para a próxima sincronização<br>app: `tests/lembrete.test.ts` › nunca mais de 60 notificações, das mais próximas para as mais distantes<br>app: `tests/lembrete.test.ts` › relógio do servidor: com o aparelho 5 minutos adiantado, o alarme é agendado 5 minutos mais tarde no relógio dele<br>app: `tests/lembrete.test.ts` › rodar duas vezes não duplica nem reagenda; cada alarme vai para o canal do lembrete na hora certa<br>app: `tests/lembrete.test.ts` › confirmar a dose cancela os dois lembretes dela e tira da tela o que já apareceu; as outras doses continuam<br>app: `tests/lembrete.test.ts` › desbloqueado abre a dose; com o PIN pedido, espera o desbloqueio (o lembrete não contorna o PIN)<br>app: `tests/lembreteSessao.test.ts` › sem internet: os lembretes já agendados continuam (o paciente é lembrado mesmo offline)<br>app: `tests/lembreteSessao.test.ts` › sair da conta, desconexão ou troca de perfil: cancela tudo<br>app: `tests/lembreteSessao.test.ts` › o aparelho do cuidador nunca agenda lembrete de dose (nem consulta as doses para isso) |
+| UC-06 Reforço do lembrete pelo servidor | Push ao paciente 2 min depois do horário, só com a dose PENDENTE e antes do aviso ao cuidador, uma vez por dose | backend: `LembrarPacienteDaDoseUseCaseTest` › naoEnviaAntesDoAtrasoMinimoDeDoisMinutos<br>backend: `LembreteDoPacientePostgresTest` › jobRodandoAoMesmoTempoEDepoisEnviaUmLembreteSoComOTextoECanalDoPaciente<br>backend: `LembreteDoPacientePostgresTest` › naoEnviaAntesDeDoisMinutosNemParaDoseConfirmadaNemParaPacienteSemAparelho<br>backend: `LembreteDoPacientePostgresTest` › paraNoAvisoAoCuidadorConformeAToleranciaDeCadaCuidador<br>backend: `LembreteDoPacientePostgresTest` › tokenInvalidoApagaOTokenDoPacienteEEncerraOLembrete<br>backend: `LembreteDoPacientePostgresTest` › falhaTemporariaEhReenviadaPelaRetentativaDentroDaJanela<br>backend: `LembreteDoPacientePostgresTest` › avisoAoCuidadorELembreteAoPacienteDaMesmaDoseConvivemUmDeCadaTipo<br>backend: `MigracoesDoZeroPostgresTest` › aV18PreservaOsAvisosExistentesComoAvisoAoCuidadorEAUnicidadePassaASerPorDoseETipo<br>backend: `TokenDoPacienteApiTest` › oPacienteVemDoJwtEOCorpoNaoEscolheOutroPaciente<br>backend: `TokenDoPacienteApiTest` › semTokenResponde401ComPerfilErradoResponde403ETokenInvalidoResponde400<br>backend: `TokenDoPacienteApiTest` › desconectarOAparelhoApagaOTokenEOAparelhoNaoConsegueRegistrarDeNovo<br>app: `tests/lembrete.test.ts` › o lembrete local e o do servidor têm o mesmo payload e abrem a mesma dose |
 | UC-07 Aviso por push | Cuidador recebe o aviso de dose não confirmada, sem o nome do remédio | backend: `PushNotificadorDeDoseNaoTomadaAdapterTest` › enviaMensagemEmPortuguesComPacienteEHorarioSemOMedicamento<br>backend: `PushNotificadorDeDoseNaoTomadaAdapterTest` › tokenInvalidoEhDescartadoDoCuidador<br>app: `tests/notificacao.test.ts` › payload válido com cuidador logado abre a dose (app aberto, em segundo plano ou fechado: mesma decisão)<br>app: `tests/avisoNotificacoes.test.ts` › aparece com a permissão negada ou ainda não pedida, só onde o push existe |
 | UC-08 Relatório diário | Doses do dia de um paciente, com totais | backend: `GerarRelatorioDiarioUseCaseTest` › semDataUsaHojeNoFusoDaAplicacaoEMontaTotaisEDoses<br>backend: `GerarRelatorioDiarioUseCaseTest` › segundaChamadaDoMesmoDiaVemDoCacheMasODonoEhConferidoSempre<br>app: `tests/mapeadores.test.ts` › RelatorioDiarioResponse vira DailyReport com totais e doses |
 | UC-10 Mensagens | Conversa entre o cuidador e cada paciente | backend: `MensagemApiTest` › cuidadorEnviaParaUmPacienteSeuEPacienteEnviaParaOCuidador<br>backend: `MensagemApiTest` › conteudoVazioSoEspacosAusenteOuMaiorQue500Eh400NoCampoConteudo<br>backend: `AcessoAConversaServiceTest` › pacienteInformandoOutroPacienteEhAcessoNegado<br>app: `tests/mensagens.test.ts` › vazio ou só espaços não envia; até 500 caracteres envia; 501 não |
@@ -54,6 +56,21 @@ Como rodar todos os testes automatizados:
 
 Estes itens dependem de aparelho real, de serviço externo ou de percepção humana. Preencha a coluna **Resultado**
 (ok / falhou, com data e aparelho) e, se falhar, descreva o passo.
+
+### Lembrete do paciente
+
+1. Paciente pareado, PIN criado; em Ajustes do paciente, nenhum aviso amarelo (notificações e alarmes liberados; bateria "Sem restrições").
+2. No cuidador, cadastre uma dose para daqui a 6 minutos.
+3. No paciente, abra o app uma vez e bloqueie a tela.
+4. Na hora: toca, vibra e aparece na tela bloqueada "Hora do remédio — Tomar ... às HH:MM".
+5. Toque na notificação: abre a dose (pede o PIN se passaram mais de 10 minutos de uso).
+6. Confirme: o segundo lembrete ("Você ainda não confirmou o remédio") não aparece 10 minutos depois.
+7. Repita com o app fechado à força e com o modo avião: o lembrete local toca do mesmo jeito.
+8. Não confirme: 2 minutos depois chega o reforço do servidor (com internet), sem empilhar; no fim da tolerância o cuidador recebe o aviso dele.
+
+| Aparelho e Android | Data | Resultado | Observação |
+|---|---|---|---|
+| | | | |
 
 ### Push real
 

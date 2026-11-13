@@ -545,10 +545,13 @@ async function main() {
       const tokenDeVolta = await pareiaOutro();
       token = tokenDeVolta;
       await request('GET', '/api/pacientes/me');
+      // Aparelho registrado para o lembrete do servidor; a desconexão apaga o token, e a sessão antiga não registra de novo
+      await request('PUT', '/api/pacientes/me/fcm-token', { token: `smoke-fcm-paciente-${Date.now()}` });
       token = tokenCuidadorAtivo;
       await httpLeaveRequestService.disconnectDevice(outroPaciente.id);
       token = tokenDeVolta;
       await expectError(() => request('GET', '/api/pacientes/me'), 401, 'SESSAO_INVALIDA');
+      await expectError(() => request('PUT', '/api/pacientes/me/fcm-token', { token: 'smoke-fcm-antigo' }), 401, 'SESSAO_INVALIDA');
       token = tokenCuidadorAtivo;
     });
 
@@ -577,6 +580,33 @@ async function main() {
       await request('PUT', '/api/cuidadores/me/fcm-token', { token: `smoke-fcm-${Date.now()}` });
       await request('DELETE', '/api/cuidadores/me/fcm-token');
       await request('DELETE', '/api/cuidadores/me/fcm-token');
+    });
+
+    await step('lembrete do paciente: registrar o token do aparelho (PUT /api/pacientes/me/fcm-token, JWT do paciente) -> 204', async () => {
+      token = tokenPaciente;
+      await request('PUT', '/api/pacientes/me/fcm-token', { token: `smoke-fcm-paciente-${Date.now()}` });
+      // Trocar o token (o FCM renova) também responde 204
+      await request('PUT', '/api/pacientes/me/fcm-token', { token: `smoke-fcm-paciente-novo-${Date.now()}` });
+      await expectError(() => request('PUT', '/api/pacientes/me/fcm-token', { token: '   ' }), 400, 'VALIDACAO');
+      await expectError(() => request('PUT', '/api/pacientes/me/fcm-token', { token: 'x'.repeat(513) }), 400, 'VALIDACAO');
+    });
+
+    await step('lembrete do paciente: rota só do PACIENTE (cuidador -> 403 ACESSO_NEGADO; sem token -> 401 NAO_AUTENTICADO)', async () => {
+      token = tokenCuidadorAtivo;
+      await expectError(() => request('PUT', '/api/pacientes/me/fcm-token', { token: 'do-cuidador' }), 403, 'ACESSO_NEGADO');
+      await expectError(() => request('DELETE', '/api/pacientes/me/fcm-token'), 403, 'ACESSO_NEGADO');
+      token = null;
+      await expectError(() => request('PUT', '/api/pacientes/me/fcm-token', { token: 'sem-sessao' }), 401, 'NAO_AUTENTICADO');
+      token = tokenCuidadorAtivo;
+    });
+
+    await step('lembrete do paciente: remover o token ao sair (DELETE /api/pacientes/me/fcm-token) -> 204, idempotente', async () => {
+      token = tokenPaciente;
+      await request('DELETE', '/api/pacientes/me/fcm-token');
+      await request('DELETE', '/api/pacientes/me/fcm-token');
+      // Registrado de novo: a exclusão da conta, a seguir, apaga o token junto com o paciente
+      await request('PUT', '/api/pacientes/me/fcm-token', { token: `smoke-fcm-paciente-final-${Date.now()}` });
+      token = tokenCuidadorAtivo;
     });
 
     const tokenCuidador = sessao.token;

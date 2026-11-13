@@ -9,8 +9,11 @@ import { Toast } from '../components/layout/Toast';
 import { API_CONFIG_PROBLEM, IS_DEMO } from '../config/env';
 import { startPinGrace } from '../lib/pinSession';
 import { startPush } from '../lib/pushSession';
+import { sincronizarLembretesDoPaciente, startPatientReminders } from '../lib/reminders';
+import { startReminderTask } from '../lib/reminderTask';
 import { bootSession, registerSessionHandlers } from '../lib/session';
 import { hydrateTheme, persistTheme } from '../lib/themeSession';
+import { useRefreshOnAppActive } from '../lib/useScreenActivity';
 import { useAppStore } from '../store/appStore';
 import { ThemeProvider, bootColors } from '../theme';
 import { RootNavigator } from './navigation/RootNavigator';
@@ -45,12 +48,21 @@ export default function App() {
     const stopPush = startPush();
     // PIN do paciente com tolerância: último uso desbloqueado e novo bloqueio ao voltar do segundo plano
     const stopPinGrace = startPinGrace();
+    // Lembrete de dose no aparelho do paciente (alarme local, funciona sem internet) e a renovação em segundo plano
+    const stopReminders = startPatientReminders();
+    const stopReminderTask = startReminderTask();
     return () => {
       unsubscribe();
       stopPush();
       stopPinGrace();
+      stopReminders();
+      stopReminderTask();
     };
   }, []);
+  // Ao voltar ao primeiro plano, os lembretes são conferidos de novo (remédio novo, dose confirmada pelo cuidador)
+  useRefreshOnAppActive(() => {
+    if (!API_CONFIG_PROBLEM) void sincronizarLembretesDoPaciente();
+  });
 
   // Até as fontes e a aparência carregarem, só a cor da marca (igual nos dois temas: o claro nunca pisca)
   if (!fontsLoaded || !themeLoaded) {

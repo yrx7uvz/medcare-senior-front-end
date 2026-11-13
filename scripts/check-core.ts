@@ -43,7 +43,9 @@ import { httpMessageService } from '../src/adapters/http/HttpMessageService';
 import { toleranceError } from '../src/lib/doseRules';
 import { isTreatmentActive, pickCurrentTreatment } from '../src/lib/medicationMeta';
 import { createPushService, isPushSupported, type NotificationsModule } from '../src/lib/pushCore';
-import { parseDosePayload } from '../src/lib/pushPayload';
+import { parseDosePayload, parseReminderPayload } from '../src/lib/pushPayload';
+import { REMINDER_CHANNEL_ID, diffReminders, planReminders } from '../src/lib/reminderPlan';
+import { endpoints } from '../src/adapters/http/endpoints';
 import { createPushRegistration } from '../src/lib/pushRegistrationCore';
 import { useQueryBus } from '../src/lib/queryBus';
 import { medicationFormSchema } from '../src/lib/schemas';
@@ -1168,11 +1170,15 @@ check('Texto claro só no perfil development; release com usesCleartextTraffic=f
   assert.equal(eas.build['apk-final'].environment, 'production');
   assert.equal(eas.build['apk-final'].android.buildType, 'apk');
   assert.equal(eas.build['apk-final'].developmentClient, undefined);
+  // Lembrete do paciente: alarme exato (SCHEDULE_EXACT_ALARM, que o paciente libera) e reagendar depois de reiniciar
   assert.deepEqual([...ANDROID_PERMISSIONS].sort((a, b) => a.localeCompare(b)), [
     'android.permission.ACCESS_NETWORK_STATE', 'android.permission.INTERNET', 'android.permission.POST_NOTIFICATIONS',
+    'android.permission.RECEIVE_BOOT_COMPLETED', 'android.permission.SCHEDULE_EXACT_ALARM',
     'android.permission.VIBRATE', 'android.permission.WAKE_LOCK', 'com.google.android.c2dm.permission.RECEIVE',
   ]);
-  for (const p of ['android.permission.CAMERA', 'android.permission.RECORD_AUDIO', 'android.permission.READ_EXTERNAL_STORAGE', 'android.permission.SYSTEM_ALERT_WINDOW']) {
+  // USE_EXACT_ALARM (reservada pela loja a despertadores e agendas) e serviço em primeiro plano continuam bloqueados
+  for (const p of ['android.permission.CAMERA', 'android.permission.RECORD_AUDIO', 'android.permission.READ_EXTERNAL_STORAGE', 'android.permission.SYSTEM_ALERT_WINDOW',
+    'android.permission.USE_EXACT_ALARM', 'android.permission.FOREGROUND_SERVICE']) {
     assert.ok(ANDROID_BLOCKED_PERMISSIONS.includes(p), p);
   }
   assert.equal(ANDROID_PERMISSIONS.some((p) => ANDROID_BLOCKED_PERMISSIONS.includes(p)), false);
@@ -1261,6 +1267,73 @@ check('Mensagens: atualização automática só na tela de mensagens; contadores
   assert.match(ler('adapters/http/index.ts'), /messages: httpMessageService/);
   assert.match(ler('adapters/mock/demo.ts'), /messages: mockMessageService/);
   assert.equal(MESSAGE_POLL_MS, 10_000);
+});
+
+// --- Lembrete de dose no aparelho do paciente ------------------------------------------------------------------------
+check('Lembrete: dois por dose pendente, só nas próximas 72 h, no máximo 60, com o relógio do servidor', () => {
+  const t = (key: string) => Date.parse(`${key}:00Z`);
+  const agora = t('2026-11-13T07:30');
+  const d = (id: string, at: string, status = 'PENDENTE') => ({
+    id, patientId: '12', scheduledAt: at, storedStatus: status as 'PENDENTE', confirmUntil: '2026-11-20T00:00', medication: { name: 'Losartana' },
+  });
+  const plano = planReminders(
+    [d('1', '2026-11-13T08:00'), d('2', '2026-11-13T09:00', 'CONFIRMADA_NO_HORARIO'), d('3', '2026-11-17T08:00')],
+    // Aparelho 2 minutos adiantado em relação ao servidor
+    { appNowMs: agora, deviceNowMs: agora + 2 * 60_000 },
+    t,
+  );
+  assert.deepEqual(plano.map((p) => [p.id, p.title, p.body]), [
+    ['dose-1-1', 'Hora do remédio', 'Tomar Losartana às 08:00'],
+    ['dose-1-2', 'Você ainda não confirmou o remédio', 'Tomar Losartana às 08:00. Toque para confirmar.'],
+  ]);
+  assert.equal(plano[0].triggerAtMs, t('2026-11-13T08:02'));
+  assert.equal(plano[0].data.tipo, 'LEMBRETE_DOSE');
+  assert.equal(REMINDER_CHANNEL_ID, 'lembrete-dose');
+  // Rodar de novo com tudo agendado não muda nada
+  const agendados = plano.map((p) => ({ id: p.id, signature: p.data.assinatura }));
+  assert.deepEqual(diffReminders(plano, agendados, { complete: true }), { toCancel: [], toSchedule: [], kept: ['dose-1-1', 'dose-1-2'] });
+  assert.deepEqual(parseReminderPayload(plano[0].data), { doseId: '1', patientId: '12', day: '2026-11-13' });
+});
+
+checkAsync('Token do aparelho do paciente: PUT e DELETE em /api/pacientes/me/fcm-token; 401 só para de ouvir', async () => {
+  const chamadas = fakeFetch([{ status: 204 }, { status: 204 }]);
+  const { push, ouvintes } = pushParaRegistro();
+  const pend = pendencia();
+  const reg = createPushRegistration({
+    push,
+    putToken: (token) => request<void>('PUT', endpoints.patientFcmToken, { token }),
+    deleteToken: () => request<void>('DELETE', endpoints.patientFcmToken),
+    pending: pend,
+  });
+  assert.equal(await reg.register(), 'REGISTERED');
+  assert.equal(await reg.unregister(), 'REMOVED');
+  // O paciente vem do JWT: o corpo só leva o token do aparelho
+  assert.deepEqual(chamadas, [
+    { method: 'PUT', path: '/api/pacientes/me/fcm-token', body: { token: 'fcm-aparelho' } },
+    { method: 'DELETE', path: '/api/pacientes/me/fcm-token', body: undefined },
+  ]);
+  // Desconectado pela API (o servidor já apagou o token): sem nova chamada, e a troca de token não é mais ouvida
+  await reg.register().catch(() => undefined);
+  fakeFetch([]);
+  await reg.forget();
+  assert.equal(ouvintes.length, 0);
+  assert.equal(pend.valor(), false);
+});
+
+checkAsync('Notificação com o app aberto: a decisão recebe os dados e se veio do servidor ou do próprio aparelho', async () => {
+  const falso = notificacoesFalsas();
+  const servico = createPushService({ os: 'android', isExpoGo: false, isDemo: false }, () => falso.mod);
+  const vistos: { data: Record<string, unknown>; remote: boolean }[] = [];
+  servico.showInForeground(async (n) => {
+    vistos.push(n);
+    return !n.remote;
+  });
+  const handler = falso.handler() as { handleNotification: (n: unknown) => Promise<{ shouldShowBanner: boolean }> };
+  const remoto = await handler.handleNotification({ request: { content: { data: { tipo: 'LEMBRETE_DOSE' } }, trigger: { type: 'push' } } });
+  const local = await handler.handleNotification({ request: { content: { data: { tipo: 'LEMBRETE_DOSE' } }, trigger: { type: 'date' } } });
+  assert.equal(remoto.shouldShowBanner, false);
+  assert.equal(local.shouldShowBanner, true);
+  assert.deepEqual(vistos.map((v) => v.remote), [true, false]);
 });
 
 void (async () => {
