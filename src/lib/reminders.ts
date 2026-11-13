@@ -14,7 +14,8 @@ import { appNowMs, appTodayKey, doseInstantMs } from './serverClock';
  * paciente (camada principal, funciona sem internet) e as mantém em dia. O plano é puro (reminderPlan.ts) e o
  * agendamento fica em reminderCore.ts.
  *
- * Quando sincroniza: ao abrir o app e ao voltar ao primeiro plano, a cada 15 minutos com o app aberto, quando a sessão
+ * Quando sincroniza: ao abrir o app e ao voltar ao primeiro plano, a cada 5 minutos com o app aberto, quando o início
+ * do paciente vê a lista de doses do dia mudar (remédio novo ou horário alterado pelo cuidador), quando a sessão
  * muda (pareou, saiu, desconectou, trocou de perfil), quando chega o reforço do servidor e em segundo plano
  * (reminderTask.ts). Ao confirmar a dose, os dois lembretes dela são cancelados na hora.
  */
@@ -126,10 +127,10 @@ export async function reminderInForeground(data: Record<string, unknown>, remote
   return !shown;
 }
 
-const PERIODIC_SYNC_MS = 15 * 60_000;
+const PERIODIC_SYNC_MS = 5 * 60_000;
 
 /**
- * Liga o lembrete no boot: canal, sincronização a cada mudança de sessão e a cada 15 minutos com o app aberto. Onde o
+ * Liga o lembrete no boot: canal, sincronização a cada mudança de sessão e a cada 5 minutos com o app aberto. Onde o
  * push não existe (demo, Expo Go), o toque e o banner em primeiro plano são tratados aqui; com o push, pelo pushSession.
  */
 export function startPatientReminders(): () => void {

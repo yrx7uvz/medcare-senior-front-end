@@ -90,6 +90,18 @@ export const toDeviceMs = (instantMs: number, clock: ReminderClock) => instantMs
  *
  * @param toInstantMs horário da dose ('AAAA-MM-DDTHH:mm', fuso do servidor) para instante (serverClock.doseInstantMs)
  */
+/**
+ * Assinatura de uma lista de doses para o lembrete: muda quando entra ou sai uma dose, quando o horário muda ou quando o
+ * status guardado muda. Serve para sincronizar os lembretes assim que a tela vê uma mudança (remédio cadastrado pelo
+ * cuidador com o app do paciente aberto), sem esperar a sincronização periódica.
+ */
+export function reminderDosesSignature(doses: readonly Pick<ReminderDose, 'id' | 'scheduledAt' | 'storedStatus'>[]): string {
+  return doses
+    .map((d) => `${d.id}@${d.scheduledAt}:${d.storedStatus}`)
+    .sort()
+    .join('|');
+}
+
 export function planReminders(
   doses: readonly ReminderDose[],
   clock: ReminderClock,

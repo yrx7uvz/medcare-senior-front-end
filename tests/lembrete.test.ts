@@ -20,6 +20,7 @@ import {
   doseIdOfReminder,
   isReminderId,
   planReminders,
+  reminderDosesSignature,
   reminderId,
   reminderIdsOf,
   type ReminderClock,
@@ -444,5 +445,23 @@ describe('lembrete: toque na notificação', () => {
     expect(decidePatientDoseOpen(ALVO, { ...PACIENTE, patientId: null })).toEqual({ action: 'ignorar' });
     expect(decidePatientDoseOpen(ALVO, { ...PACIENTE, patientId: '99' })).toEqual({ action: 'ignorar' });
     expect(decidePatientDoseOpen(null, PACIENTE)).toEqual({ action: 'ignorar' });
+  });
+});
+
+describe('mudança na lista de doses do dia (sincroniza na hora com o app aberto)', () => {
+  const base = [
+    { id: '1', scheduledAt: '2026-11-13T19:42:00', storedStatus: 'PENDENTE' as const },
+    { id: '2', scheduledAt: '2026-11-13T19:45:00', storedStatus: 'PENDENTE' as const },
+  ];
+
+  it('a mesma lista, em qualquer ordem, tem a mesma assinatura', () => {
+    expect(reminderDosesSignature([...base].reverse())).toBe(reminderDosesSignature(base));
+  });
+
+  it('remédio novo, horário alterado ou dose confirmada mudam a assinatura', () => {
+    const sig = reminderDosesSignature(base);
+    expect(reminderDosesSignature([...base, { id: '3', scheduledAt: '2026-11-13T19:47:00', storedStatus: 'PENDENTE' }])).not.toBe(sig);
+    expect(reminderDosesSignature([base[0], { ...base[1], scheduledAt: '2026-11-13T19:50:00' }])).not.toBe(sig);
+    expect(reminderDosesSignature([base[0], { ...base[1], storedStatus: 'CONFIRMADA_NO_HORARIO' }])).not.toBe(sig);
   });
 });

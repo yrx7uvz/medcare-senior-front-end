@@ -43,7 +43,9 @@ sequenceDiagram
   servidor, não às 08:00 dele. No demo, o relógio simulado é a referência.
 - **Quando sincroniza** (`sincronizarLembretesDoPaciente()` em `src/lib/reminders.ts`, única e idempotente):
   - ao abrir o app e ao voltar ao primeiro plano (`useRefreshOnAppActive`, de `useScreenActivity`);
-  - a cada 15 minutos com o app aberto;
+  - a cada 5 minutos com o app aberto;
+  - quando o início do paciente (que atualiza a lista do dia a cada minuto) vê a lista mudar: um remédio cadastrado ou
+    um horário alterado pelo cuidador com o app do paciente aberto ganha o alarme na hora, sem esperar os 5 minutos;
   - quando a sessão muda: pareamento, saída, desconexão, troca de perfil (fora do perfil do paciente, cancela tudo);
   - quando chega o reforço do servidor com o app aberto;
   - em segundo plano, pelo `expo-background-task` (WorkManager), com o intervalo mínimo do Android (15 minutos), para

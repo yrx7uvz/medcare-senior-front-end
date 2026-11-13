@@ -3,6 +3,7 @@ import CheckCircle2 from 'lucide-react-native/icons/circle-check';
 import MessageCircle from 'lucide-react-native/icons/message-circle';
 import Pill from 'lucide-react-native/icons/pill';
 import Settings from 'lucide-react-native/icons/settings';
+import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { PatientScreen } from '../../components/layout/PatientScreen';
@@ -22,6 +23,8 @@ import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import { firstName, formatLongDate, formatTime, greeting } from '../../lib/date';
 import { liveAt } from '../../lib/doseLive';
+import { reminderDosesSignature } from '../../lib/reminderPlan';
+import { sincronizarLembretesDoPaciente } from '../../lib/reminders';
 import { appTodayKey } from '../../lib/serverClock';
 import { useQuery } from '../../lib/useQuery';
 import { useReminderHealth } from '../../lib/useReminderHealth';
@@ -43,6 +46,12 @@ export function PatientHomeScreen({ navigation }: RootScreenProps<'PatientHome'>
   // Contador de mensagens: ao voltar para esta tela (ex.: da conversa) e ao voltar ao app, sem atualização periódica
   const unread = useQuery(['patient-unread', patientId], () => services.messages.unreadCount(patientId, 'PACIENTE'));
   useRefreshOnFocus(unread.refresh);
+  // A lista do dia (atualizada a cada minuto) mudou: um remédio novo ou um horário alterado pelo cuidador ganha o
+  // alarme na hora, mesmo com o app aberto nesta tela (a sincronização é idempotente; nada muda se já está agendado)
+  const doseSignature = doses.data ? reminderDosesSignature(doses.data) : null;
+  useEffect(() => {
+    if (doseSignature !== null) void sincronizarLembretesDoPaciente();
+  }, [doseSignature]);
   // Notificações ou alarme exato desligados: o lembrete do remédio não toca (ou atrasa). O aviso fica no topo
   const reminder = useReminderHealth();
   const reminderWarning = reminder.warning;
