@@ -147,7 +147,7 @@ export function PatientHomeScreen({ navigation }: RootScreenProps<'PatientHome'>
         variant="primary"
         onPress={() => navigation.navigate('PatientMessages')}
       />
-      <BigActionButton title="AJUSTES" icon={Settings} variant="outline" onPress={() => navigation.navigate('PatientSettings')} accessibilityHint="Alto contraste e sair da conta" />
+      <BigActionButton title="AJUSTES" icon={Settings} variant="outline" onPress={() => navigation.navigate('PatientSettings')} accessibilityHint="Tema, alto contraste e sair da conta" />
     </PatientScreen>
   );
 }

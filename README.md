@@ -44,7 +44,9 @@ Um mesmo app tem dois perfis, escolhidos na primeira tela:
    botão para ativar; os Ajustes também orientam a tirar o app da economia de bateria. Detalhes em
    [docs/lembrete-do-paciente.md](docs/lembrete-do-paciente.md).
 3. Lê e responde as mensagens do cuidador; pode ligar o **alto contraste** e escolher o **tema** (Automático, Claro ou
-   Escuro, o mesmo seletor do cuidador; a escolha vale para as duas visões no mesmo celular).
+   Escuro, o mesmo seletor do cuidador; a escolha vale para as duas visões no mesmo celular). No topo das telas do
+   paciente (inclusive a primeira, "Quem vai usar este celular?"), o botão com sol/lua alterna entre claro e escuro;
+   o alto contraste fica nos Ajustes.
 4. Em **Ajustes**, "Sair da conta" envia o pedido ao cuidador e mostra "Aguardando autorização" (a tela se atualiza
    sozinha enquanto está aberta). Autorizado: o celular sai da conta e volta ao pareamento; recusado ou expirado: continua
    conectado, com a explicação na tela.

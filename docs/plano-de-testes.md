@@ -2,7 +2,7 @@
 
 Gerado por `npm run plano:testes` (repositório do app, com o do backend ao lado). O script **confere que cada teste
 citado existe** (método no backend, título no app) e falha se algum sumir ou mudar de nome: a matriz não fica
-desatualizada. São 135 referências a testes automatizados, todas conferidas.
+desatualizada. São 136 referências a testes automatizados, todas conferidas.
 
 Como rodar todos os testes automatizados:
 - **backend:** `.\mvnw.cmd verify` (com as variáveis `POSTGRES_*`);
@@ -50,7 +50,7 @@ Como rodar todos os testes automatizados:
 | UC-11 Histórico | Histórico de doses filtrável e paginado | backend: `ConsultarHistoricoUseCaseTest` › semFiltrosBuscaTodosOsPacientesDoCuidadorAteHojeEAvaliaAsDoses<br>backend: `ConsultarHistoricoUseCaseTest` › pacienteDeOutroCuidadorEhNaoEncontrado<br>app: `tests/mapeadores.test.ts` › HistoricoResponse vira HistoryPage; caminho com filtros e junção das páginas |
 | UC-12 PDF de adesão | Exportação do histórico em PDF; período sem doses não gera arquivo | backend: `GerarRelatorioPdfUseCaseTest` › periodoSemDosesNaoGeraArquivo<br>backend: `RelatorioPdfApiTest` › periodoSemDosesEh422ComCodigo<br>app: `tests/relatorioPdf.test.ts` › nome sem dado pessoal, igual ao do servidor |
 | Segurança e contrato | Perfil exigido em cada rota, HTTPS obrigatório no app de release, contrato da API | backend: `OpenApiContratoTest` › perfilAnotadoBateComOSecurityConfigEmTodasAsRotas<br>backend: `SwaggerDesligadoEmProducaoTest` › semAVariavelADocumentacaoResponde404<br>app: `tests/configuracaoRelease.test.ts` › recusa http:// no release: há problema de configuração e o cliente HTTP não recebe o endereço<br>app: `tests/configuracaoRelease.test.ts` › a tela de configuração mostra o motivo, como alerta acessível |
-| Acessibilidade | Contraste, tamanho de fonte e alvos de toque | app: `tests/acessibilidade.test.ts` › cuidador: corpo ≥ 16 sp e rótulos ≥ 14 sp; paciente ≥ 20 sp<br>app: `tests/acessibilidade.test.ts` › cada componente-base usa a área mínima<br>app: `tests/seletorDeHorario.test.ts` › a ação acessível increment aumenta e decrement diminui, com volta<br>app: `tests/tema.test.ts` › lê o alto contraste gravado com o nome antigo (elderHighContrast) por versões anteriores |
+| Acessibilidade | Contraste, tamanho de fonte e alvos de toque | app: `tests/acessibilidade.test.ts` › cuidador: corpo ≥ 16 sp e rótulos ≥ 14 sp; paciente ≥ 20 sp<br>app: `tests/acessibilidade.test.ts` › cada componente-base usa a área mínima<br>app: `tests/seletorDeHorario.test.ts` › a ação acessível increment aumenta e decrement diminui, com volta<br>app: `tests/tema.test.ts` › lê o alto contraste gravado com o nome antigo (elderHighContrast) por versões anteriores<br>app: `tests/tema.test.ts` › alterna entre claro e escuro; no alto contraste (fundo preto), vai para o claro |
 
 ## O que só se testa à mão
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import { checkTheme, contrastRatio } from '../src/lib/contrast';
-import { DEFAULT_THEME_PREFS, parseThemePrefs, resolveThemeMode, serializeThemePrefs, THEME_CHOICES } from '../src/lib/themePrefs';
+import { DEFAULT_THEME_PREFS, nextPatientTheme, parseThemePrefs, resolveThemeMode, serializeThemePrefs, THEME_CHOICES } from '../src/lib/themePrefs';
 import { useAppStore } from '../src/store/appStore';
 import { patientColorsFor } from '../src/theme/ThemeProvider';
 import { darkColors, patientColors, patientDarkColors, patientHighContrastColors, lightColors, type ThemeColors } from '../src/theme/colors';
@@ -29,6 +29,25 @@ describe('preferências de aparência guardadas', () => {
     expect(resolveThemeMode(null, 'dark')).toBe('dark');
     expect(resolveThemeMode(null, 'light')).toBe('light');
     expect(resolveThemeMode(null, null)).toBe('light');
+  });
+});
+
+describe('alternador claro/escuro do topo das telas do paciente', () => {
+  it('alterna entre claro e escuro; no alto contraste (fundo preto), vai para o claro', () => {
+    expect(nextPatientTheme('light', false)).toBe('dark');
+    expect(nextPatientTheme('dark', false)).toBe('light');
+    expect(nextPatientTheme('dark', true)).toBe('light');
+    expect(nextPatientTheme('light', true)).toBe('light');
+  });
+
+  it('grava o tema escolhido e desliga o alto contraste', () => {
+    useAppStore.setState({ themeChoice: null, patientHighContrast: true });
+    useAppStore.getState().switchPatientTheme('light');
+    expect(useAppStore.getState()).toMatchObject({ themeChoice: 'light', patientHighContrast: false });
+    useAppStore.getState().switchPatientTheme('dark');
+    expect(useAppStore.getState()).toMatchObject({ themeChoice: 'dark', patientHighContrast: false });
+    expect(patientColorsFor('dark', false)).toBe(patientDarkColors);
+    expect(patientColorsFor('light', false)).toBe(patientColors);
   });
 });
 

@@ -33,6 +33,15 @@ export function resolveThemeMode(choice: ThemeMode | null, system: string | null
   return system === 'dark' ? 'dark' : 'light';
 }
 
+/**
+ * Próximo tema do alternador claro/escuro do topo das telas do paciente. O alto contraste (fundo preto) conta como
+ * escuro: tocar nele leva ao claro.
+ */
+export function nextPatientTheme(current: ThemeMode, highContrast: boolean): ThemeMode {
+  if (highContrast) return 'light';
+  return current === 'dark' ? 'light' : 'dark';
+}
+
 /** Opções do seletor de tema (cuidador e paciente): Automático = seguir o tema do celular (sem escolha salva). */
 export type ThemeChoice = 'AUTO' | ThemeMode;
 export const THEME_CHOICES: readonly { value: ThemeChoice; label: string }[] = [

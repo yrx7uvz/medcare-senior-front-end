@@ -57,6 +57,8 @@ interface AppState {
 
   patientHighContrast: boolean;
   togglePatientHighContrast: () => void;
+  /** Alternador claro/escuro do topo das telas do paciente: grava o tema e sai do alto contraste. */
+  switchPatientTheme: (mode: ThemeMode) => void;
 
   /** Sessão do paciente carregada do SecureStore (o token fica em memória para as chamadas à API). */
   patientSession: { patientId: string; token: string } | null;
@@ -118,6 +120,7 @@ export const useAppStore = create<AppState>()((set) => ({
 
   patientHighContrast: false,
   togglePatientHighContrast: () => set((s) => ({ patientHighContrast: !s.patientHighContrast })),
+  switchPatientTheme: (themeChoice) => set({ themeChoice, patientHighContrast: false }),
 
   patientSession: null,
   patientSessionLoaded: false,

@@ -60,7 +60,10 @@ anote o que falhou (tela e passo).
 
 ### Alto contraste e tema escuro
 
-- [ ] Lado do paciente → botão de alto contraste: textos e bordas ficam mais fortes, e nada some.
+- [ ] Topo das telas do paciente (inclusive "Quem vai usar este celular?") → botão com lua/sol, anunciado como "Modo
+      escuro, interruptor, ligado/desligado": alterna entre o claro e o escuro de verdade (não outro tom de escuro).
+      Com o alto contraste ligado, o toque volta ao claro.
+- [ ] Ajustes do paciente → "Alto contraste": textos e bordas ficam mais fortes, e nada some.
 - [ ] *Configurações do Android → Tema escuro*: o app acompanha, sem texto escuro sobre fundo escuro.
 - [ ] Seletor **Tema** (Automático, Claro, Escuro) nas Configurações do cuidador e nos Ajustes do paciente: cada opção é
       anunciada como "opção", com a escolhida marcada; Escuro deixa as telas do paciente com as mesmas cores do cuidador.
