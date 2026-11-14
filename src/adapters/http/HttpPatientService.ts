@@ -71,6 +71,8 @@ const digitsOnly = (phone?: string) => phone?.replace(/\D/g, '') || undefined;
  */
 const lastCodes = new Map<string, LinkCode>();
 export const forgetLinkCodes = () => lastCodes.clear();
+/** Desconexão do aparelho: os códigos não usados do paciente deixam de valer na API. */
+export const forgetLinkCode = (patientId: string) => lastCodes.delete(patientId);
 
 export const httpPatientService: PatientService = {
   async list() {
@@ -89,6 +91,12 @@ export const httpPatientService: PatientService = {
       telefone: digitsOnly(input.phone),
     });
     return toPatient(dto);
+  },
+
+  /** 204; 404 (já desvinculado ou de outra conta) chega como AppError. */
+  async remove(id) {
+    await request<void>('DELETE', endpoints.patient(String(toApiId(id))));
+    forgetLinkCode(id);
   },
 
   async generateLinkCode(patientId) {

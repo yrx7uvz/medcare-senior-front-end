@@ -1,6 +1,8 @@
 import { describe, expect, it } from '@jest/globals';
 import { checkTheme, contrastRatio } from '../src/lib/contrast';
-import { DEFAULT_THEME_PREFS, parseThemePrefs, resolveThemeMode, serializeThemePrefs } from '../src/lib/themePrefs';
+import { DEFAULT_THEME_PREFS, nextPatientTheme, parseThemePrefs, resolveThemeMode, serializeThemePrefs, THEME_CHOICES } from '../src/lib/themePrefs';
+import { useAppStore } from '../src/store/appStore';
+import { patientColorsFor } from '../src/theme/ThemeProvider';
 import { darkColors, patientColors, patientDarkColors, patientHighContrastColors, lightColors, type ThemeColors } from '../src/theme/colors';
 
 describe('preferências de aparência guardadas', () => {
@@ -30,6 +32,25 @@ describe('preferências de aparência guardadas', () => {
   });
 });
 
+describe('alternador claro/escuro do topo das telas do paciente', () => {
+  it('alterna entre claro e escuro; no alto contraste (fundo preto), vai para o claro', () => {
+    expect(nextPatientTheme('light', false)).toBe('dark');
+    expect(nextPatientTheme('dark', false)).toBe('light');
+    expect(nextPatientTheme('dark', true)).toBe('light');
+    expect(nextPatientTheme('light', true)).toBe('light');
+  });
+
+  it('grava o tema escolhido e desliga o alto contraste', () => {
+    useAppStore.setState({ themeChoice: null, patientHighContrast: true });
+    useAppStore.getState().switchPatientTheme('light');
+    expect(useAppStore.getState()).toMatchObject({ themeChoice: 'light', patientHighContrast: false });
+    useAppStore.getState().switchPatientTheme('dark');
+    expect(useAppStore.getState()).toMatchObject({ themeChoice: 'dark', patientHighContrast: false });
+    expect(patientColorsFor('dark', false)).toBe(patientDarkColors);
+    expect(patientColorsFor('light', false)).toBe(patientColors);
+  });
+});
+
 describe('paleta e seletores', () => {
   it.each([
     ['claro', lightColors, false],
@@ -55,5 +76,53 @@ describe('paleta e seletores', () => {
     expect(contrastRatio(patientHighContrastColors.text, patientHighContrastColors.background)).toBeGreaterThanOrEqual(7);
     expect(contrastRatio(patientHighContrastColors.primary, patientHighContrastColors.background)).toBeGreaterThanOrEqual(7);
     expect(contrastRatio(patientHighContrastColors.onPrimary, patientHighContrastColors.primary)).toBeGreaterThanOrEqual(7);
+  });
+});
+
+describe('tema escuro do paciente igual ao do cuidador', () => {
+  /** Todos os tokens (inclusive status e chave liga/desliga), em "caminho": valor. */
+  const achatar = (o: object, prefixo = ''): Record<string, string> =>
+    Object.entries(o).reduce<Record<string, string>>((acc, [k, v]) => {
+      if (v && typeof v === 'object') Object.assign(acc, achatar(v as object, `${prefixo}${k}.`));
+      else acc[`${prefixo}${k}`] = String(v);
+      return acc;
+    }, {});
+
+  it('só o texto secundário (documentado) difere entre paciente escuro e cuidador escuro', () => {
+    const cuidador = achatar(darkColors);
+    const paciente = achatar(patientDarkColors);
+    expect(Object.keys(paciente).sort()).toEqual(Object.keys(cuidador).sort());
+    const diferentes = Object.keys(cuidador).filter((k) => cuidador[k] !== paciente[k]);
+    expect(diferentes).toEqual(['textMuted']);
+  });
+
+  it('no claro, também só o texto secundário difere', () => {
+    const cuidador = achatar(lightColors);
+    const paciente = achatar(patientColors);
+    expect(Object.keys(cuidador).filter((k) => cuidador[k] !== paciente[k])).toEqual(['textMuted']);
+  });
+});
+
+describe('seletor de tema (Automático / Claro / Escuro) no paciente e no cuidador', () => {
+  it('mesmas opções e nomes nas duas visões', () => {
+    expect(THEME_CHOICES.map((o) => o.label)).toEqual(['Automático', 'Claro', 'Escuro']);
+  });
+
+  it('escolher Escuro muda as cores do paciente mesmo com o celular no claro; Automático volta a seguir o celular', () => {
+    const coresDoPaciente = () => patientColorsFor(resolveThemeMode(useAppStore.getState().themeChoice, 'light'), false);
+    useAppStore.getState().setThemeChoice(null);
+    expect(coresDoPaciente()).toBe(patientColors);
+    useAppStore.getState().setThemeChoice('dark');
+    expect(coresDoPaciente()).toBe(patientDarkColors);
+    useAppStore.getState().setThemeChoice('light');
+    expect(coresDoPaciente()).toBe(patientColors);
+    useAppStore.getState().setThemeChoice(null);
+    expect(patientColorsFor(resolveThemeMode(useAppStore.getState().themeChoice, 'dark'), false)).toBe(patientDarkColors);
+  });
+
+  it('o alto contraste continua independente do tema', () => {
+    useAppStore.getState().setThemeChoice('light');
+    expect(patientColorsFor(resolveThemeMode(useAppStore.getState().themeChoice, 'light'), true)).toBe(patientHighContrastColors);
+    useAppStore.getState().setThemeChoice(null);
   });
 });

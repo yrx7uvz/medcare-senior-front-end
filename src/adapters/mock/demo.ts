@@ -6,6 +6,7 @@ import { mockDoseService } from './MockDoseService';
 import { mockPatientService, resetPairingAttempts } from './MockPatientService';
 import { mockMedicationInfoService } from './MockMedicationInfoService';
 import { mockMedicationService } from './MockMedicationService';
+import { mockLeaveRequestService } from './MockLeaveRequestService';
 import { mockMessageService } from './MockMessageService';
 import { mockReportService } from './MockReportService';
 
@@ -22,6 +23,7 @@ export const mockServices: Services = {
   messages: mockMessageService,
   reports: mockReportService,
   medicationInfo: mockMedicationInfoService,
+  leaveRequests: mockLeaveRequestService,
 };
 
 /** Volta o "banco" em memória ao seed e zera as tentativas de pareamento. */

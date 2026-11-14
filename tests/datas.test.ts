@@ -1,3 +1,10 @@
+/*
+ * Testes automatizados (Jest) de datas (11 casos). Cobre: chaves AAAA-MM-DD e AAAA-MM-DDTHH:mm vão e voltam sem
+ * mudar; DD/MM/AAAA válida vira chave; data impossível é recusada; cabeçalhos de dia, idade, contagem regressiva e
+ * nomes; soma de dias atravessa mês e ano; respeita o fuso explícito e recusa formato ou data impossível;
+ * LocalTime vira HH:mm e DayOfWeek vira índice (0 = domingo); mede a diferença pelo header Date e ignora ruído de
+ * até 2 s; o dia de hoje é o de São Paulo com o relógio corrigido; entre outros.
+ */
 import { afterEach, describe, expect, it } from '@jest/globals';
 import { apiDateTimeToEpochMs, apiTimeToHHmm, apiWeekdayToIndex, indexToApiWeekday, saoPauloDateKey } from '../src/lib/apiTime';
 import {

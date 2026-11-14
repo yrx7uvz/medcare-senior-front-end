@@ -130,3 +130,27 @@ export interface LinkCode {
   expiresAt: number;
   used: boolean;
 }
+
+/** Pedido do paciente para sair da conta no aparelho; só o cuidador vinculado autoriza ou recusa. */
+export type LeaveRequestStatus = 'PENDENTE' | 'AUTORIZADO' | 'RECUSADO' | 'EXPIRADO' | 'CANCELADO';
+
+export interface LeaveRequest {
+  id: ID;
+  patientId: ID;
+  status: LeaveRequestStatus;
+  /** Epoch em ms. */
+  createdAt: number;
+  /** Prazo para o cuidador decidir (epoch em ms). */
+  expiresAt: number;
+  /** Quando deixou de estar pendente (epoch em ms). */
+  decidedAt?: number;
+}
+
+/** Pedido aguardando a decisão do cuidador, com o nome do paciente. */
+export interface PendingLeaveRequest {
+  id: ID;
+  patientId: ID;
+  patientName: string;
+  createdAt: number;
+  expiresAt: number;
+}

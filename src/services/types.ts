@@ -1,4 +1,4 @@
-import type { DateKey, Dose, Patient, ID, LinkCode, Message, MessageAuthor, Treatment, Medication } from '../types/domain';
+import type { DateKey, Dose, Patient, ID, LeaveRequest, LinkCode, Message, MessageAuthor, PendingLeaveRequest, Treatment, Medication } from '../types/domain';
 import type {
   AdherenceReport,
   AlertView,
@@ -27,16 +27,24 @@ import type {
  * src/services/index.ts, sem mexer nas telas.
  */
 
-/** POST /api/cuidadores, POST /api/auth/login, DELETE /api/cuidadores/me */
+/** POST /api/cuidadores, POST /api/auth/login, DELETE /api/cuidadores/me, confirmação do e-mail e troca de senha */
 export interface AuthService {
   login(email: string, password: string): Promise<CaregiverSession>;
   /** Somente protótipo: entra na conta de demonstração sem senha no código. */
   loginDemo(): Promise<CaregiverSession>;
   signUp(input: SignUpInput): Promise<CaregiverSession>;
   deleteAccount(): Promise<{ removalDeadlineDays: number }>;
+  /** POST /api/cuidadores/me/verificacao-email/confirmar: o código de 6 dígitos enviado ao e-mail. */
+  confirmEmail(code: string): Promise<void>;
+  /** POST /api/cuidadores/me/verificacao-email/reenviar: outro código (429 antes de 1 minuto, com Retry-After). */
+  resendEmailCode(): Promise<void>;
+  /** POST /api/auth/esqueci-senha: envia um código se o e-mail tiver conta (a resposta é a mesma sem conta). */
+  requestPasswordReset(email: string): Promise<void>;
+  /** POST /api/auth/redefinir-senha: senha nova com o código do e-mail. */
+  resetPassword(input: { email: string; code: string; newPassword: string }): Promise<void>;
 }
 
-/** POST /api/pacientes, POST /api/pacientes/{id}/gerar-codigo, POST /api/vinculo/validar */
+/** POST /api/pacientes, DELETE /api/pacientes/{id}, POST /api/pacientes/{id}/gerar-codigo, POST /api/vinculo/validar */
 export interface PatientService {
   list(): Promise<Patient[]>;
   get(id: ID): Promise<Patient>;
@@ -45,6 +53,8 @@ export interface PatientService {
   getActiveLinkCode(patientId: ID): Promise<LinkCode | null>;
   validateLinkCode(code: string): Promise<PatientPairing>;
   getProfile(patientId: ID): Promise<PatientProfile>;
+  /** Cuidador: DELETE /api/pacientes/{id}. Apaga o paciente e os dados dele (doses registradas ficam sem o nome); 404 se já não existir. */
+  remove(id: ID): Promise<void>;
 }
 
 /** /api/medicamentos e /api/medicamentos/{id}/tratamentos */
@@ -102,6 +112,27 @@ export interface ReportService {
 }
 
 /**
+ * Saída da conta do paciente com autorização do cuidador. Do lado do paciente, quem pede vem do token na API:
+ * `patientId` só serve ao demo.
+ */
+export interface LeaveRequestService {
+  /** Paciente: POST /api/pacientes/me/pedido-desconexao (devolve o pendente se já houver um). */
+  request(patientId: ID): Promise<LeaveRequest>;
+  /** Paciente: GET do pedido mais recente; null se nunca pediu. Depois de autorizado, a API responde 401. */
+  current(patientId: ID): Promise<LeaveRequest | null>;
+  /** Paciente: DELETE (idempotente). */
+  cancel(patientId: ID): Promise<void>;
+  /** Cuidador: pedidos pendentes dos pacientes dele. */
+  listPending(): Promise<PendingLeaveRequest[]>;
+  /** Cuidador: autoriza (desconecta o aparelho). 409 PEDIDO_ENCERRADO se já decidido de outro jeito ou vencido. */
+  approve(patientId: ID, requestId: ID): Promise<LeaveRequest>;
+  /** Cuidador: recusa (o paciente continua conectado). */
+  deny(patientId: ID, requestId: ID): Promise<LeaveRequest>;
+  /** Cuidador: desconecta o aparelho do paciente sem pedido. */
+  disconnectDevice(patientId: ID): Promise<void>;
+}
+
+/**
  * Fonte de aparência do remédio (formato, cor, tamanho, imprint). Interface
  * única para trocar depois por DailyMed/SPL, base própria ou API da ANVISA.
  */
@@ -117,6 +148,7 @@ export interface Services {
   messages: MessageService;
   reports: ReportService;
   medicationInfo: MedicationInfoService;
+  leaveRequests: LeaveRequestService;
 }
 
 export type { Dose };

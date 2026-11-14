@@ -5,6 +5,8 @@ import { getNow } from '../../lib/clock';
 import { firstName } from '../../lib/date';
 import { uid } from '../../lib/ids';
 import { getDb, mutateDb } from '../../mocks/db';
+import { reconnectDemoPatient } from './MockLeaveRequestService';
+import { reportUnauthorized } from '../http/httpClient';
 import { simulate } from './simulate';
 import { avatarColors } from '../../theme/colors';
 
@@ -60,6 +62,27 @@ export const mockPatientService: PatientService = {
       return patient;
     }, 300),
 
+  /**
+   * DELETE /api/pacientes/{id}: mesma política da API. Some o paciente com remédios, tratamentos, doses, mensagens,
+   * códigos e pedidos. As doses registradas, na API, ficam anonimizadas e não aparecem em lugar nenhum; aqui, sem
+   * estatística a guardar, saem junto. O aparelho do paciente passa a receber 401 SESSAO_INVALIDA.
+   */
+  remove: (id) =>
+    simulate(() => {
+      if (!getDb().patients.some((p) => p.id === id)) throw httpError(404, 'Paciente não encontrado.');
+      mutateDb((d) => {
+        const medicationIds = new Set(d.medications.filter((m) => m.patientId === id).map((m) => m.id));
+        d.patients = d.patients.filter((p) => p.id !== id);
+        d.medications = d.medications.filter((m) => m.patientId !== id);
+        d.treatments = d.treatments.filter((t) => !medicationIds.has(t.medicationId));
+        d.doses = d.doses.filter((x) => x.patientId !== id);
+        d.messages = d.messages.filter((m) => m.patientId !== id);
+        d.linkCodes = d.linkCodes.filter((c) => c.patientId !== id);
+        d.leaveRequests = d.leaveRequests.filter((r) => r.patientId !== id);
+        if (!d.disconnectedPatientIds.includes(id)) d.disconnectedPatientIds.push(id);
+      });
+    }, 300),
+
   generateLinkCode: (patientId) =>
     simulate(() => {
       const db = getDb();
@@ -98,6 +121,8 @@ export const mockPatientService: PatientService = {
       mutateDb(() => {
         link.used = true;
       });
+      // Código novo depois de uma desconexão: o aparelho volta a valer
+      reconnectDemoPatient(link.patientId);
       const patient = db.patients.find((e) => e.id === link.patientId)!;
       return { patientId: patient.id, patientName: patient.name, token: `mock.jwt.paciente.${patient.id}` };
     }, 300),
@@ -106,7 +131,11 @@ export const mockPatientService: PatientService = {
     simulate(() => {
       const db = getDb();
       const patient = db.patients.find((e) => e.id === patientId);
-      if (!patient) throw httpError(404, 'Paciente não encontrado.');
+      // Lado do paciente: aparelho desvinculado ou desconectado recebe 401, como na API, e o app volta ao pareamento
+      if (!patient || db.disconnectedPatientIds.includes(patientId)) {
+        reportUnauthorized();
+        throw httpError(401, 'Sessão inválida. Conecte este aparelho de novo.', 'SESSAO_INVALIDA');
+      }
       const caregiver = db.accounts.find((a) => a.id === db.activeCaregiverId);
       return { patient, caregiverFirstName: firstName(caregiver?.name ?? 'Cuidador') };
     }),

@@ -2,6 +2,7 @@ import type { AuthService } from '../../services/types';
 import type { CaregiverSession } from '../../types/views';
 import { httpError } from '../../services/errors';
 import { getNow } from '../../lib/clock';
+import { DEMO_EMAIL_CODE } from '../../lib/emailCode';
 import { toDateTimeKey } from '../../lib/date';
 import { uid } from '../../lib/ids';
 import { meetsPasswordPolicy } from '../../lib/password';
@@ -17,6 +18,7 @@ function mockHash(value: string): string {
 }
 
 const GENERIC_LOGIN_ERROR = 'E-mail ou senha incorretos.';
+
 
 function toSession(a: CaregiverAccount): CaregiverSession {
   return { caregiverId: a.id, name: a.name, email: a.email, token: `mock.jwt.${a.id}` };
@@ -80,4 +82,27 @@ export const mockAuthService: AuthService = {
     }, 400),
 
   deleteAccount: () => simulate(() => ({ removalDeadlineDays: 30 }), 600),
+
+  // No demo as contas já nascem confirmadas; a confirmação aceita o código fixo
+  confirmEmail: (code) =>
+    simulate(() => {
+      if (code.trim() !== DEMO_EMAIL_CODE) throw httpError(400, 'Código incorreto. Você tem mais 4 tentativas.', 'CODIGO_EMAIL_INVALIDO');
+    }),
+
+  resendEmailCode: () => simulate(() => undefined),
+
+  requestPasswordReset: () => simulate(() => undefined, 400),
+
+  resetPassword: ({ email, code, newPassword }) =>
+    simulate(() => {
+      if (!meetsPasswordPolicy(newPassword)) throw httpError(400, 'A senha não atende aos requisitos.', 'SENHA_FRACA');
+      const account = getDb().accounts.find((a) => a.email === email.trim().toLowerCase());
+      if (!account || code.trim() !== DEMO_EMAIL_CODE) {
+        throw httpError(400, 'Este código não vale mais. Peça um novo código.', 'CODIGO_EMAIL_INVALIDO');
+      }
+      mutateDb((db) => {
+        const target = db.accounts.find((a) => a.id === account.id);
+        if (target) target.passwordHash = mockHash(newPassword);
+      });
+    }, 400),
 };

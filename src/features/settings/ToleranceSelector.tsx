@@ -2,11 +2,13 @@ import Minus from 'lucide-react-native/icons/minus';
 import Plus from 'lucide-react-native/icons/plus';
 import { StyleSheet, View } from 'react-native';
 import { AppText, Chip, IconButton } from '../../components/ui';
+import { IS_TEST_MODE } from '../../config/env';
 import { TOLERANCE_MAX, TOLERANCE_MIN, TOLERANCE_STEP, closesAfterMinutes } from '../../lib/doseRules';
 import { pad } from '../../lib/date';
 import { radius, spacing, useTheme } from '../../theme';
 
-const PRESETS = [15, 30, 45, 60, 90, 120];
+// Modo de teste: a opção de 1 minuto entra antes das de sempre (o servidor em modo de teste aceita de 1 a 120)
+const PRESETS = [...(IS_TEST_MODE ? [1] : []), 15, 30, 45, 60, 90, 120];
 
 const at = (h: number, addMin: number) => {
   const total = h * 60 + addMin;

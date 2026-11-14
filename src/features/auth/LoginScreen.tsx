@@ -24,7 +24,7 @@ export function LoginScreen({ navigation, route }: RootScreenProps<'Login'>) {
   const setSession = useAppStore((s) => s.setSession);
   const flash = useAppStore((s) => s.flash);
   const setFlash = useAppStore((s) => s.setFlash);
-  const { control, handleSubmit } = useForm<LoginValues>({ resolver: zodResolver(loginSchema), defaultValues: { email: route.params?.email ?? '', password: '' } });
+  const { control, handleSubmit, getValues } = useForm<LoginValues>({ resolver: zodResolver(loginSchema), defaultValues: { email: route.params?.email ?? '', password: '' } });
   const login = useMutation(services.auth.login);
   const demo = useMutation(services.auth.loginDemo);
 
@@ -68,6 +68,20 @@ export function LoginScreen({ navigation, route }: RootScreenProps<'Login'>) {
               </View>
             ) : null}
             <Button title="Entrar" icon={LogIn} onPress={onSubmit} loading={login.loading} size="lg" />
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Esqueci minha senha"
+              onPress={() => {
+                setFlash(null);
+                navigation.navigate('ForgotPassword', { email: getValues('email').trim() });
+              }}
+              hitSlop={10}
+              style={styles.forgot}
+            >
+              <AppText variant="bodyStrong" color={colors.primary}>
+                Esqueci minha senha
+              </AppText>
+            </Pressable>
           </Card>
 
           {IS_DEMO ? (
@@ -120,6 +134,7 @@ const styles = StyleSheet.create({
   card: { gap: spacing.md },
   flash: { marginBottom: -spacing.sm },
   link: { alignSelf: 'flex-start', minHeight: 32, justifyContent: 'center' },
+  forgot: { alignSelf: 'center', minHeight: 40, justifyContent: 'center' },
   error: { borderRadius: radius.md, padding: spacing.md },
   signup: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
   lgpd: { flexDirection: 'row', alignSelf: 'center', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: 6 },

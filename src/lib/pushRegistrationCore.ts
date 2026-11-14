@@ -76,5 +76,15 @@ export function createPushRegistration(deps: Deps) {
     },
 
     hasPendingRemoval: () => deps.pending.get().catch(() => false),
+
+    /**
+     * A conta deste aparelho deixou de valer no servidor (401: desconectado, desvinculado ou conta excluída): o
+     * servidor já apagou o token junto. Só para de ouvir a troca de token, sem chamar a API (que responderia 401 de novo).
+     */
+    async forget(): Promise<void> {
+      stopListening?.();
+      stopListening = null;
+      await deps.pending.set(false).catch(() => undefined);
+    },
   };
 }

@@ -1,3 +1,7 @@
+/*
+ * Botão só de ícone, com tamanho padrão de 48 e rótulo de acessibilidade obrigatório. Aceita eventos de pressionar
+ * e soltar para repetir a ação enquanto é segurado (por exemplo, o mais e o menos do seletor de horário).
+ */
 import { Pressable, StyleSheet } from 'react-native';
 import { hitSlopFor, useTheme } from '../../theme';
 import type { IconComponent } from './icons';
@@ -5,6 +9,9 @@ import type { IconComponent } from './icons';
 interface Props {
   icon: IconComponent;
   onPress: () => void;
+  /** Para repetir enquanto o botão é segurado (ex.: "+" do seletor de horário). */
+  onPressIn?: () => void;
+  onPressOut?: () => void;
   accessibilityLabel: string;
   color?: string;
   background?: string;
@@ -12,7 +19,7 @@ interface Props {
   disabled?: boolean;
 }
 
-export function IconButton({ icon: Icon, onPress, accessibilityLabel, color, background, size = 48, disabled }: Props) {
+export function IconButton({ icon: Icon, onPress, onPressIn, onPressOut, accessibilityLabel, color, background, size = 48, disabled }: Props) {
   const { colors } = useTheme();
   return (
     <Pressable
@@ -21,6 +28,8 @@ export function IconButton({ icon: Icon, onPress, accessibilityLabel, color, bac
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
       onPress={onPress}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
       hitSlop={hitSlopFor(size)}
       style={({ pressed }) => [
         styles.btn,

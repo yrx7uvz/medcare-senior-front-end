@@ -3,6 +3,8 @@ import type { MedicationInput } from '../../types/views';
 import { dateBRToKey, formatDateBR } from '../../lib/date';
 import { DEFAULT_PRIMARY } from '../../lib/medicationMeta';
 import type { MedicationFormValues } from '../../lib/schemas';
+import { IS_TEST_MODE } from '../../config/env';
+import { MIN_ADVANCE_MINUTES, TOO_SOON_MESSAGE, firstDoseNotice, firstDoseWhen, newTimes, tooSoonTimes, type LocalNow, type TreatmentSchedule } from '../../lib/treatmentTime';
 
 export function emptyMedicationValues(patientId: string, today: Date): MedicationFormValues {
   return {
@@ -58,4 +60,36 @@ export function toMedicationInput(v: MedicationFormValues): MedicationInput {
       times: v.times.map((t) => ({ time: t.time })).sort((a, b) => a.time.localeCompare(b.time)),
     },
   };
+}
+
+/**
+ * Horários do formulário em relação a agora, com a regra da API: `error` quando algum horário de hoje fica a menos
+ * de 5 minutos (na edição, só os que não estavam salvos) e `notice` quando os horários de hoje já passaram.
+ */
+export function scheduleTiming(
+  v: Pick<MedicationFormValues, 'startDate' | 'endDate' | 'weekdays' | 'times'>,
+  savedTimes: readonly string[],
+  now: LocalNow,
+): { error: string | null; notice: string | null } {
+  const startDate = dateBRToKey(v.startDate);
+  if (!startDate) return { error: null, notice: null };
+  const schedule: TreatmentSchedule = {
+    startDate,
+    endDate: (v.endDate && dateBRToKey(v.endDate)) || undefined,
+    weekdays: v.weekdays,
+    times: v.times.map((t) => t.time),
+  };
+  return {
+    error: tooSoonTimes(schedule, newTimes(schedule.times, savedTimes), now, IS_TEST_MODE ? 0 : MIN_ADVANCE_MINUTES).length
+      ? TOO_SOON_MESSAGE
+      : null,
+    notice: firstDoseNotice(schedule, now),
+  };
+}
+
+/** Aviso depois de salvar; quando a primeira dose (da resposta) não é hoje, diz quando ela será. */
+export function savedMessage(isEdit: boolean, firstDose: { dateKey: string; time: string } | undefined, now: LocalNow): string {
+  const base = isEdit ? 'Remédio e tratamento atualizados' : 'Remédio salvo e doses geradas';
+  if (!firstDose || firstDose.dateKey === now.dateKey) return base;
+  return `${isEdit ? base : 'Remédio salvo'}. A primeira dose será ${firstDoseWhen(firstDose, now)}.`;
 }

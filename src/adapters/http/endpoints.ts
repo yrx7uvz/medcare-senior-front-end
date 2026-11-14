@@ -2,11 +2,16 @@
 export const endpoints = {
   signUp: '/api/cuidadores',
   login: '/api/auth/login',
+  forgotPassword: '/api/auth/esqueci-senha',
+  resetPassword: '/api/auth/redefinir-senha',
+  confirmEmail: '/api/cuidadores/me/verificacao-email/confirmar',
+  resendEmailCode: '/api/cuidadores/me/verificacao-email/reenviar',
   deleteAccount: '/api/cuidadores/me',
   fcmToken: '/api/cuidadores/me/fcm-token',
   patients: '/api/pacientes',
   patient: (id: string) => `/api/pacientes/${id}`,
   patientMe: '/api/pacientes/me',
+  patientFcmToken: '/api/pacientes/me/fcm-token',
   patientDoses: (patientId: string, day: string) => `/api/pacientes/${patientId}/doses?data=${day}`,
   myDoses: (day: string) => `/api/pacientes/me/doses?data=${day}`,
   generateLinkCode: (patientId: string) => `/api/pacientes/${patientId}/gerar-codigo`,
@@ -28,4 +33,9 @@ export const endpoints = {
   markMessagesRead: (patientId: string) => `/api/mensagens/lidas?pacienteId=${patientId}`,
   unreadMessages: '/api/mensagens/nao-lidas',
   pdfReport: (patientId: string, from: string, to: string) => `/api/relatorios/pdf?pacienteId=${patientId}&de=${from}&ate=${to}`,
+  myLeaveRequest: '/api/pacientes/me/pedido-desconexao',
+  pendingLeaveRequests: '/api/pacientes/pedidos-desconexao',
+  decideLeaveRequest: (patientId: string, requestId: string, action: 'autorizar' | 'recusar') =>
+    `/api/pacientes/${patientId}/pedidos-desconexao/${requestId}/${action}`,
+  disconnectDevice: (patientId: string) => `/api/pacientes/${patientId}/desconectar-aparelho`,
 } as const;

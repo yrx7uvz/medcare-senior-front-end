@@ -8,22 +8,26 @@ import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal';
 import Trash2 from 'lucide-react-native/icons/trash';
 import UserPlus from 'lucide-react-native/icons/user-plus';
 import { useEffect, useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TabScreenProps } from '../../app/navigation/types';
 import { CaregiverScreen } from '../../components/layout/CaregiverScreen';
-import { AppSwitch, AppText, Avatar, Button, Card, ConfirmDialog, ErrorState, LoadingSkeleton, TextField, ThemeToggle, type IconComponent } from '../../components/ui';
-import { toleranceError } from '../../lib/doseRules';
+import { AppSwitch, AppText, Avatar, Button, Card, ConfirmDialog, ErrorState, LoadingSkeleton, NotificationsOffBanner, TextField, ThemeToggle, type IconComponent } from '../../components/ui';
+import { TEST_MODE_TOLERANCE_MIN, TOLERANCE_MIN, toleranceError } from '../../lib/doseRules';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import { getDemo } from '../../config/demo';
-import { IS_DEMO } from '../../config/env';
-import { push, type PushPermission } from '../../lib/push';
+import { IS_DEMO, IS_TEST_MODE } from '../../config/env';
+import { push } from '../../lib/push';
 import { pushRegistration } from '../../lib/pushSession';
 import { logoutCaregiver } from '../../lib/session';
+import { useNotificationsOff } from '../../lib/useNotificationsOff';
 import { useMutation, useQuery } from '../../lib/useQuery';
 import { spacing, useTheme } from '../../theme';
 import { ToleranceSelector } from './ToleranceSelector';
+
+// Modo de teste: aceita a tolerância de 1 minuto (o servidor em modo de teste também aceita)
+const MIN_TOLERANCE = IS_TEST_MODE ? TEST_MODE_TOLERANCE_MIN : TOLERANCE_MIN;
 
 // Prazo de remoção dos dados pessoais: a API apaga na hora (0 dias); o modo demonstração simula até 30 dias
 const EXPECTED_REMOVAL_DAYS = IS_DEMO ? 30 : 0;
@@ -56,7 +60,7 @@ export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
 
   const changed = draft !== null && tolerance.data !== undefined && draft !== tolerance.data;
   // Mesma faixa da API (5 a 120): fora dela não envia
-  const draftError = draft !== null ? toleranceError(draft) : null;
+  const draftError = draft !== null ? toleranceError(draft, MIN_TOLERANCE) : null;
 
   async function doDelete() {
     // Tira o token do aparelho da conta antes de excluí-la (melhor esforço; a exclusão apaga o token de qualquer jeito)
@@ -100,7 +104,7 @@ export function SettingsScreen({ navigation }: TabScreenProps<'Config'>) {
             disabled={!changed || !!draftError}
             loading={saveTolerance.loading}
             onPress={async () => {
-              if (draft === null || toleranceError(draft)) return;
+              if (draft === null || toleranceError(draft, MIN_TOLERANCE)) return;
               const v = await saveTolerance.mutate(draft);
               // A escrita atualiza o painel e as doses abertas (nova janela de aviso)
               if (v !== undefined) showToast(`Tolerância ajustada para ${v} minutos. Vale para os próximos avisos.`);
@@ -183,19 +187,10 @@ function SectionTitle({ icon: Icon, title }: { icon: IconComponent; title: strin
   );
 }
 
-/** estado da permissão de notificações neste aparelho, com a ação que cabe. */
+/** Estado da permissão de notificações neste aparelho (lido de novo ao voltar ao app), com a ação que cabe. */
 function PushStatus() {
   const { colors } = useTheme();
-  const [permission, setPermission] = useState<PushPermission | null>(null);
-  useEffect(() => {
-    let active = true;
-    void push.getPermission().then((p) => {
-      if (active) setPermission(p);
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
+  const { permission, show, enable } = useNotificationsOff();
 
   if (!push.supported) {
     return (
@@ -207,18 +202,7 @@ function PushStatus() {
   if (permission === 'granted') {
     return <AppText variant="caption" color={colors.status.CONFIRMADA_NO_HORARIO.fg}>Avisos ativados neste celular.</AppText>;
   }
-  if (permission === 'denied') {
-    return (
-      <View style={styles.gapSm}>
-        <AppText variant="caption" color={colors.warningText}>As notificações estão bloqueadas neste celular. Sem elas, os avisos de dose não aparecem.</AppText>
-        <Button title="Abrir configurações do Android" size="sm" variant="secondary" onPress={() => void Linking.openSettings()} />
-      </View>
-    );
-  }
-  if (permission === 'undetermined') {
-    return <Button title="Ativar avisos de dose" size="sm" variant="secondary" onPress={() => void push.requestPermission().then(setPermission)} />;
-  }
-  return null;
+  return show ? <NotificationsOffBanner onEnable={() => void enable()} /> : null;
 }
 
 function PrefRow({ label, hint, value, onChange }: { label: string; hint?: string; value: boolean; onChange: (v: boolean) => void }) {

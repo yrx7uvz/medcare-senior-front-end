@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
-import { createPinGuard, type PinCheck } from './pinCore';
+import { createPinGuard, PIN_KEYS, type PinCheck } from './pinCore';
+import { parseLastUse, parsePinAskMode, type PinAskMode } from './pinGrace';
 import { parseThemePrefs, serializeThemePrefs, type ThemePrefs } from './themePrefs';
 
 /**
@@ -16,6 +17,7 @@ const KEYS = {
   notificationPrefs: 'medcare.notification.prefs',
   pushPendingRemoval: 'medcare.push.pendingRemoval',
   pushPromptAnswered: 'medcare.push.promptAnswered',
+  patientPushPendingRemoval: 'medcare.patientPush.pendingRemoval',
   themePrefs: 'medcare.theme.prefs',
 } as const;
 const memory = new Map<string, string>();
@@ -73,6 +75,7 @@ export interface StoredCaregiverSession {
   name: string;
   email: string;
   token: string;
+  emailVerified?: boolean;
 }
 
 /** Sessão do cuidador (JWT da API), restaurada ao abrir o app. */
@@ -136,6 +139,18 @@ export const patientDeviceStorage = {
   async persistPinAttempts() {
     await pinGuard.persist();
   },
+  /** Escolha de quando pedir o PIN e o último uso desbloqueado (tolerância de 10 minutos). */
+  async loadPinGrace(): Promise<{ mode: PinAskMode; lastUseMs: number | null }> {
+    return { mode: parsePinAskMode(await getItem(PIN_KEYS.askMode)), lastUseMs: parseLastUse(await getItem(PIN_KEYS.lastUse)) };
+  },
+  async savePinAskMode(mode: PinAskMode) {
+    await setItem(PIN_KEYS.askMode, mode);
+  },
+  /** Grava o instante do último uso desbloqueado (relógio do aparelho, em ms). */
+  async markUnlockedUse(nowMs: number) {
+    await setItem(PIN_KEYS.lastUse, String(Math.floor(nowMs)));
+  },
+  /** Apaga sessão, PIN, tentativas, último uso e a escolha de quando pedir o PIN. */
   async clear() {
     await removeItem(KEYS.patientSession);
     await pinGuard.clear();
@@ -180,6 +195,17 @@ export const pushStorage = {
   },
   async setPromptAnswered() {
     await setItem(KEYS.pushPromptAnswered, '1');
+  },
+};
+
+/** Remoção pendente do token do aparelho do paciente (troca de perfil sem rede). */
+export const patientPushStorage = {
+  async getPendingRemoval() {
+    return (await getItem(KEYS.patientPushPendingRemoval)) === '1';
+  },
+  async setPendingRemoval(pending: boolean) {
+    if (pending) await setItem(KEYS.patientPushPendingRemoval, '1');
+    else await removeItem(KEYS.patientPushPendingRemoval);
   },
 };
 

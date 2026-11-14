@@ -2,16 +2,32 @@ import CalendarCheck from 'lucide-react-native/icons/calendar-check';
 import CheckCircle2 from 'lucide-react-native/icons/circle-check';
 import MessageCircle from 'lucide-react-native/icons/message-circle';
 import Pill from 'lucide-react-native/icons/pill';
+import Settings from 'lucide-react-native/icons/settings';
+import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { PatientScreen } from '../../components/layout/PatientScreen';
-import { AppText, BigActionButton, Card, DoseStatusBadge, EmptyState, ErrorState, LoadingSkeleton, PillVisual, RefreshFailedBanner } from '../../components/ui';
+import {
+  AppText,
+  BigActionButton,
+  Card,
+  DoseStatusBadge,
+  EmptyState,
+  ErrorState,
+  LoadingSkeleton,
+  NotificationsOffBanner,
+  PillVisual,
+  RefreshFailedBanner,
+} from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
 import { firstName, formatLongDate, formatTime, greeting } from '../../lib/date';
 import { liveAt } from '../../lib/doseLive';
+import { reminderDosesSignature } from '../../lib/reminderPlan';
+import { sincronizarLembretesDoPaciente } from '../../lib/reminders';
 import { appTodayKey } from '../../lib/serverClock';
 import { useQuery } from '../../lib/useQuery';
+import { useReminderHealth } from '../../lib/useReminderHealth';
 import { minuteStamp, useNow } from '../../lib/useNow';
 import { useRefreshOnFocus } from '../../lib/useScreenActivity';
 import { radius, spacing, useTheme } from '../../theme';
@@ -30,6 +46,15 @@ export function PatientHomeScreen({ navigation }: RootScreenProps<'PatientHome'>
   // Contador de mensagens: ao voltar para esta tela (ex.: da conversa) e ao voltar ao app, sem atualização periódica
   const unread = useQuery(['patient-unread', patientId], () => services.messages.unreadCount(patientId, 'PACIENTE'));
   useRefreshOnFocus(unread.refresh);
+  // A lista do dia (atualizada a cada minuto) mudou: um remédio novo ou um horário alterado pelo cuidador ganha o
+  // alarme na hora, mesmo com o app aberto nesta tela (a sincronização é idempotente; nada muda se já está agendado)
+  const doseSignature = doses.data ? reminderDosesSignature(doses.data) : null;
+  useEffect(() => {
+    if (doseSignature !== null) void sincronizarLembretesDoPaciente();
+  }, [doseSignature]);
+  // Notificações ou alarme exato desligados: o lembrete do remédio não toca (ou atrasa). O aviso fica no topo
+  const reminder = useReminderHealth();
+  const reminderWarning = reminder.warning;
 
   const caregiver = profile.data?.caregiverFirstName ?? 'quem cuida de você';
   // Status entre as atualizações: só compara agora com a janela que veio do servidor
@@ -47,6 +72,16 @@ export function PatientHomeScreen({ navigation }: RootScreenProps<'PatientHome'>
           {formatLongDate(now)}
         </AppText>
       </View>
+
+      {reminderWarning ? (
+        <NotificationsOffBanner
+          variant="patient"
+          message={reminderWarning.message}
+          actionLabel={reminderWarning.action}
+          alarm={reminderWarning.issue === 'ALARME_INEXATO'}
+          onEnable={() => void reminder.fix(reminderWarning.issue)}
+        />
+      ) : null}
 
       {doses.refreshError ? <RefreshFailedBanner onRetry={doses.refresh} /> : null}
 
@@ -84,7 +119,7 @@ export function PatientHomeScreen({ navigation }: RootScreenProps<'PatientHome'>
                 <BigActionButton
                   title="TOMAR REMÉDIO AGORA"
                   icon={Pill}
-                  onPress={() => navigation.navigate('PatientConfirmDose', { doseId: next.id })}
+                  onPress={() => navigation.navigate('PatientConfirmDose', { doseId: next.id, preview: next })}
                   accessibilityHint="Abre a confirmação. Depois é só tocar em Tomei o remédio."
                 />
               ) : (
@@ -108,7 +143,7 @@ export function PatientHomeScreen({ navigation }: RootScreenProps<'PatientHome'>
           </AppText>
           <View style={styles.list}>
             {list.map((d) => (
-              <PatientDoseRow key={d.id} dose={d} onPress={() => navigation.navigate('PatientConfirmDose', { doseId: d.id })} />
+              <PatientDoseRow key={d.id} dose={d} onPress={() => navigation.navigate('PatientConfirmDose', { doseId: d.id, preview: d })} />
             ))}
           </View>
         </>
@@ -121,6 +156,7 @@ export function PatientHomeScreen({ navigation }: RootScreenProps<'PatientHome'>
         variant="primary"
         onPress={() => navigation.navigate('PatientMessages')}
       />
+      <BigActionButton title="AJUSTES" icon={Settings} variant="outline" onPress={() => navigation.navigate('PatientSettings')} accessibilityHint="Tema, alto contraste e sair da conta" />
     </PatientScreen>
   );
 }

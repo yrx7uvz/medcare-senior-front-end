@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import UserPlus from 'lucide-react-native/icons/user-plus';
 import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { KeyboardAvoidingView, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { StackHeader } from '../../components/layout/StackHeader';
@@ -10,6 +10,7 @@ import { SwitchProfileLink } from '../../components/layout/SwitchProfileLink';
 import { AppText, Button, Card, Checkbox, FormTextField } from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
+import { suggestEmail } from '../../lib/emailSuggestion';
 import { applyFieldErrors, mapFieldErrors } from '../../lib/formErrors';
 import { signUpSchema, type SignUpValues } from '../../lib/schemas';
 import { useMutation } from '../../lib/useQuery';
@@ -25,7 +26,7 @@ export function SignUpScreen({ navigation }: RootScreenProps<'SignUp'>) {
   const setSession = useAppStore((s) => s.setSession);
   const showToast = useAppStore((s) => s.showToast);
   const setFlash = useAppStore((s) => s.setFlash);
-  const { control, handleSubmit, watch, setError } = useForm<SignUpValues>({
+  const { control, handleSubmit, watch, setError, setValue } = useForm<SignUpValues>({
     resolver: zodResolver(signUpSchema),
     defaultValues: { name: '', email: '', phone: '', password: '', confirmPassword: '', lgpdConsent: false },
   });
@@ -34,11 +35,13 @@ export function SignUpScreen({ navigation }: RootScreenProps<'SignUp'>) {
   // eslint-disable-next-line react-hooks/incompatible-library
   const consent = watch('lgpdConsent');
   const password = watch('password');
+  // "ana@gmial.com" -> "Você quis dizer ana@gmail.com?" (só sugere; o servidor confere se o domínio existe)
+  const emailSuggestion = suggestEmail(watch('email'));
 
   const onSubmit = handleSubmit(async (v) => {
     const result = await signUp.run({ name: v.name, email: v.email, phone: v.phone, password: v.password, lgpdConsent: v.lgpdConsent });
     if (result.ok) {
-      showToast('Conta criada. Boas-vindas!');
+      showToast('Conta criada. Enviamos um código para o seu e-mail.');
       setSession(result.data);
     } else if (result.error.code === 'CONTA_CRIADA_SEM_LOGIN') {
       // A conta existe: enviar de novo daria e-mail duplicado. Vai ao login com o e-mail preenchido.
@@ -72,8 +75,21 @@ export function SignUpScreen({ navigation }: RootScreenProps<'SignUp'>) {
             required
             keyboardType="email-address"
             autoCapitalize="none"
-            hint="Usado para entrar. Cada e-mail só pode ter uma conta."
+            hint="Usado para entrar e para receber o código de confirmação. Cada e-mail só pode ter uma conta."
           />
+          {emailSuggestion ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Você quis dizer ${emailSuggestion}? Toque para corrigir`}
+              onPress={() => setValue('email', emailSuggestion, { shouldValidate: true })}
+              style={[styles.suggestion, { backgroundColor: colors.warningSoft }]}
+            >
+              <AppText>
+                Você quis dizer <AppText variant="bodyStrong">{emailSuggestion}</AppText>?{' '}
+                <AppText variant="bodyStrong" color={colors.primary}>Corrigir</AppText>
+              </AppText>
+            </Pressable>
+          ) : null}
           <FormTextField control={control} name="phone" label="Telefone de contato" mask="phone" keyboardType="phone-pad" placeholder="(61) 99999-9999" />
         </Card>
 
@@ -146,6 +162,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   body: { padding: spacing.lg, gap: spacing.lg },
   card: { gap: spacing.md },
+  suggestion: { borderRadius: radius.md, padding: spacing.md, marginTop: -spacing.xs },
   underline: { textDecorationLine: 'underline', fontFamily: 'NunitoSans_700Bold' },
   notice: { borderRadius: radius.md, padding: spacing.md },
   error: { borderRadius: radius.md, padding: spacing.md },

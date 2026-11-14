@@ -1,3 +1,8 @@
+/*
+ * Testes automatizados (Jest) de env (4 casos). Cobre: release recusa http:// e aceita https:// (com ou sem barra
+ * final); desenvolvimento aceita http:// da rede local e https://; ausente ou inválido é problema em qualquer
+ * build fora do demo; liga só quando pedido e preserva as outras opções do expo-build-properties.
+ */
 import { describe, expect, it } from '@jest/globals';
 import { withCleartextPolicy } from '../app.config';
 import { apiUrlProblem, normalizeApiBaseUrl } from '../src/config/env';

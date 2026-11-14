@@ -1,3 +1,7 @@
+/*
+ * Mensagem rápida (sucesso, erro ou informação) lida do estado global do app; aparece no topo da tela e some
+ * sozinha depois de cerca de 3 segundos.
+ */
 import CheckCircle2 from 'lucide-react-native/icons/circle-check';
 import Info from 'lucide-react-native/icons/info';
 import XCircle from 'lucide-react-native/icons/circle-x';

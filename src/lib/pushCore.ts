@@ -45,15 +45,23 @@ export interface PushService {
   /** Cria (ou atualiza) o canal "Alertas de dose" de importância alta. */
   ensureAlertChannel(): Promise<void>;
   getPermission(): Promise<PushPermission>;
+  /** O Android ainda mostra o pedido de permissão (falso depois de recusas seguidas: só pelas configurações). */
+  canAskAgain(): Promise<boolean>;
   /** Pede a permissão de notificações (Android 13+: POST_NOTIFICATIONS). */
   requestPermission(): Promise<PushPermission>;
   /** Toque numa notificação (app aberto, em segundo plano ou fechado). Devolve a função que cancela. */
   onOpen(listener: (data: Record<string, unknown>) => void): () => void;
   /** Dados da notificação que abriu o app fechado, se houver. */
   getLaunchData(): Promise<Record<string, unknown> | null>;
-  /** Mostra banner e som com o app em primeiro plano, enquanto `enabled()` for verdadeiro (preferência do usuário). */
-  showInForeground(enabled?: () => boolean): void;
+  /**
+   * Banner e som com o app em primeiro plano: `decide` recebe os dados da notificação e se ela veio do servidor
+   * (remota) ou foi agendada no aparelho (lembrete local). Sem `decide`, mostra todas.
+   */
+  showInForeground(decide?: ForegroundDecision): void;
 }
+
+/** Decide se uma notificação que chegou com o app aberto aparece (banner, lista e som). */
+export type ForegroundDecision = (notification: { data: Record<string, unknown>; remote: boolean }) => boolean | Promise<boolean>;
 
 export function isPushSupported(env: PushEnvironment): boolean {
   return env.os === 'android' && !env.isExpoGo && !env.isDemo;
@@ -67,6 +75,7 @@ const INERT: PushService = {
   onTokenChange: () => noop,
   ensureAlertChannel: async () => undefined,
   getPermission: async () => 'unavailable',
+  canAskAgain: async () => false,
   requestPermission: async () => 'unavailable',
   onOpen: () => noop,
   getLaunchData: async () => null,
@@ -153,6 +162,8 @@ export function createPushService(env: PushEnvironment, load: () => Notification
 
     getPermission: () => safe(async (n) => toPermission((await n.getPermissionsAsync()).status), 'unavailable'),
 
+    canAskAgain: () => safe(async (n) => (await n.getPermissionsAsync()).canAskAgain !== false, false),
+
     requestPermission: () => safe(async (n) => toPermission((await n.requestPermissionsAsync()).status), 'unavailable'),
 
     onOpen(listener) {
@@ -175,13 +186,22 @@ export function createPushService(env: PushEnvironment, load: () => Notification
         return responseData(response);
       }, null),
 
-    showInForeground(enabled = () => true) {
+    showInForeground(decide = () => true) {
       const n = notifications();
       if (!n) return;
       try {
         n.setNotificationHandler({
-          handleNotification: async () => {
-            const show = enabled();
+          handleNotification: async (notification) => {
+            const request = (notification as { request?: { content?: { data?: unknown }; trigger?: { type?: unknown } } } | undefined)?.request;
+            const data = dataOf(request?.content?.data);
+            // Push do FCM: o gatilho é do tipo "push"; o lembrete agendado no aparelho tem gatilho de data
+            const remote = request?.trigger?.type === 'push';
+            let show = false;
+            try {
+              show = await decide({ data, remote });
+            } catch {
+              show = true;
+            }
             return { shouldShowBanner: show, shouldShowList: show, shouldPlaySound: show, shouldSetBadge: false };
           },
         });

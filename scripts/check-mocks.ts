@@ -1,7 +1,8 @@
 /**
  * Confere os mocks do modo demonstração: (1) nenhum código fora do caminho do demo importa os mocks, e o carregador
  * (src/config/demo.ts) só os exige dentro da condição de build que o Metro remove do bundle de produção; (2) os números
- * fecham entre painel, histórico e PDF e seguem a regra da janela (aviso + 30 min).
+ * fecham entre painel, histórico e PDF e seguem a regra da janela (aviso + 30 min); (3) o cadastro e a edição de
+ * tratamento seguem a antecedência mínima de 5 minutos e devolvem a primeira dose, como a API.
  * Uso: npm run check:mocks (sai com erro se algo falhar)
  */
 import assert from 'node:assert/strict';
@@ -9,6 +10,8 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { services } from '../src/services';
 import { summarize } from '../src/lib/doseRules';
+import { TOO_SOON_MESSAGE } from '../src/lib/treatmentTime';
+import type { AppError } from '../src/services/errors';
 
 const SRC = join(__dirname, '..', 'src');
 const DEMO_PATHS = ['adapters/mock/', 'mocks/'];
@@ -41,6 +44,42 @@ function conferirIsolamento() {
   console.log('Isolamento : mocks só no caminho do demo; carregador com a condição de build');
 }
 
+/** Antecedência mínima e primeira dose no mock, com a mesma regra da API (relógio do demo: sexta, 05/06, 14:02). */
+async function conferirHorarioDoTratamento() {
+  const { useClockStore } = await import('../src/lib/clock');
+  const as1402 = () => useClockStore.getState().setTime(new Date(2026, 5, 5, 14, 2, 0));
+  const remedio = (times: string[], weekdays = [0, 1, 2, 3, 4, 5, 6]) => ({
+    patientId: 'e-jose',
+    name: 'Teste de horário',
+    dosage: '1mg',
+    type: 'COMPRIMIDO' as const,
+    appearanceSource: 'MANUAL' as const,
+    treatment: { startDate: '2026-06-05', weekdays, times: times.map((time) => ({ time })) },
+  });
+  const recusa = async (fn: () => Promise<unknown>) => {
+    as1402();
+    const erro = await fn().then(() => null, (e: unknown) => e as AppError);
+    assert.equal(erro?.status, 400);
+    assert.equal(erro?.code, 'VALIDACAO');
+    assert.equal(erro?.fieldErrors?.horarios, TOO_SOON_MESSAGE);
+  };
+
+  await recusa(() => services.medications.create(remedio(['14:05'])));
+  as1402();
+  const hoje = await services.medications.create(remedio(['14:08']));
+  assert.deepEqual(hoje.firstDose, { dateKey: '2026-06-05', time: '14:08' });
+  as1402();
+  const semanal = await services.medications.create(remedio(['08:00'], [5, 6]));
+  assert.deepEqual(semanal.firstDose, { dateKey: '2026-06-06', time: '08:00' });
+  // Edição: o 08:00 salvo não bloqueia; um horário novo a 2 minutos é recusado
+  await recusa(() => services.medications.update(semanal.medication.id, remedio(['08:00', '14:04'], [5, 6])));
+  as1402();
+  const editado = await services.medications.update(semanal.medication.id, { ...remedio(['08:00'], [5, 6]), dosage: '2mg' });
+  assert.equal(editado.medication.dosage, '2mg');
+  for (const view of [hoje, semanal]) await services.medications.remove(view.medication.id, { confirmed: true });
+  console.log('Horários    : menos de 5 min recusado (cadastro e horário novo da edição); primeira dose hoje ou no próximo dia');
+}
+
 async function main() {
   conferirIsolamento();
   const day = '2026-06-05';
@@ -71,6 +110,93 @@ async function main() {
   const ok = await services.patients.validateLinkCode('482913');
   console.log('Código válido →', ok.patientName);
   try { await services.patients.validateLinkCode('482913'); } catch (e) { console.log('Reuso →', (e as Error).message); }
+  await conferirLembretesDoDemo();
+  await conferirHorarioDoTratamento();
+  await conferirSaidaDaConta();
+  await conferirDesvinculo();
   process.exit(0);
+}
+
+/**
+ * Lembrete de dose no demo: agendado a partir dos dados de demonstração, como no modo real. O relógio do demo é
+ * simulado (sexta, 05/06, 14:02), então o alarme é levado para o relógio do aparelho: toca daqui a (horário da dose -
+ * agora do demo).
+ */
+async function conferirLembretesDoDemo() {
+  const { getNow, useClockStore } = await import('../src/lib/clock');
+  const { appNowMs, appTodayKey, doseInstantMs } = await import('../src/lib/serverClock');
+  const { reminderDays } = await import('../src/lib/reminderHealth');
+  const { planReminders } = await import('../src/lib/reminderPlan');
+  useClockStore.getState().setTime(new Date(2026, 5, 5, 14, 2, 0));
+  const dias = reminderDays(appTodayKey(getNow()));
+  assert.deepEqual(dias, ['2026-06-05', '2026-06-06', '2026-06-07', '2026-06-08']);
+  const doses = (await Promise.all(dias.map((d) => services.doses.listForDay('e-jose', d)))).flat();
+  const deviceNowMs = Date.now();
+  const demoNowMs = appNowMs(getNow());
+  const plano = planReminders(doses, { appNowMs: demoNowMs, deviceNowMs }, doseInstantMs);
+
+  assert.ok(plano.length > 0 && plano.length <= 60, 'o demo agenda lembretes (no máximo 60)');
+  assert.ok(plano.every((p) => p.data.pacienteId === 'e-jose' && /^dose-.+-[12]$/.test(p.id)));
+  // Nenhuma dose já confirmada ou encerrada no demo vira lembrete
+  const registradas = new Set(doses.filter((d) => d.storedStatus !== 'PENDENTE').map((d) => d.id));
+  assert.ok(plano.every((p) => !registradas.has(p.doseId)));
+  // O primeiro toca no relógio do aparelho na mesma distância em que a dose está do relógio do demo
+  const primeiro = plano[0];
+  const instante = doseInstantMs(doses.find((d) => d.id === primeiro.doseId)!.scheduledAt)! + (primeiro.kind === 2 ? 10 * 60_000 : 0);
+  assert.equal(primeiro.triggerAtMs - deviceNowMs, instante - demoNowMs);
+  assert.ok(primeiro.triggerAtMs > deviceNowMs);
+  console.log(`Lembretes   : ${plano.length} agendados a partir do demo; o primeiro "${primeiro.body}" em ${Math.round((primeiro.triggerAtMs - deviceNowMs) / 60_000)} min`);
+}
+
+/** Saída da conta do paciente no demo: as mesmas regras da API (um pendente, decisão única, 401 depois de autorizado). */
+async function conferirSaidaDaConta() {
+  const leave = services.leaveRequests;
+  const status = async (e: unknown) => (e as AppError).status;
+
+  // Recusar: o paciente continua conectado e pode pedir de novo
+  const pedido = await leave.request('e-helena');
+  assert.equal(pedido.status, 'PENDENTE');
+  assert.equal((await leave.request('e-helena')).id, pedido.id, 'pedir de novo devolve o mesmo pendente');
+  assert.deepEqual((await leave.listPending()).map((p) => p.patientName), ['Helena Souza']);
+  assert.equal((await leave.deny('e-helena', pedido.id)).status, 'RECUSADO');
+  assert.equal((await leave.deny('e-helena', pedido.id)).status, 'RECUSADO', 'recusar de novo não muda nada');
+  await assert.rejects(leave.approve('e-helena', pedido.id), (e) => (e as AppError).code === 'PEDIDO_ENCERRADO');
+  assert.equal((await leave.current('e-helena'))?.status, 'RECUSADO');
+
+  // Cancelar
+  await leave.request('e-helena');
+  await leave.cancel('e-helena');
+  assert.equal((await leave.current('e-helena'))?.status, 'CANCELADO');
+  assert.equal((await leave.listPending()).length, 0);
+
+  // Autorizar: o aparelho cai com 401 e os códigos não usados deixam de valer; um código novo reconecta
+  const antigo = await services.patients.generateLinkCode('e-helena');
+  const autorizar = await leave.request('e-helena');
+  assert.equal((await leave.approve('e-helena', autorizar.id)).status, 'AUTORIZADO');
+  assert.equal(await leave.current('e-helena').catch(status), 401);
+  await assert.rejects(services.patients.validateLinkCode(antigo.code), (e) => (e as AppError).code === 'CODIGO_INVALIDO');
+  const novo = await services.patients.generateLinkCode('e-helena');
+  await services.patients.validateLinkCode(novo.code);
+  assert.equal((await leave.current('e-helena'))?.status, 'AUTORIZADO');
+
+  // Desconexão direta pelo cuidador
+  await leave.disconnectDevice('e-helena');
+  assert.equal(await leave.request('e-helena').catch(status), 401);
+  console.log('Saída da conta: pedir, recusar, cancelar, autorizar (401 e código novo) e desconectar seguem a API');
+}
+
+/** Desvincular paciente no demo: some com os dados dele, os outros pacientes ficam, e o aparelho dele cai com 401. */
+async function conferirDesvinculo() {
+  const status = async (e: unknown) => (e as AppError).status;
+  const novo = await services.patients.create({ name: 'Paciente Temporário', birthDate: '1950-01-02' });
+  await services.messages.send(novo.id, 'CUIDADOR', 'Oi');
+  await services.patients.remove(novo.id);
+  assert.equal(await services.patients.get(novo.id).catch(status), 404);
+  assert.ok(!(await services.patients.list()).some((p) => p.id === novo.id));
+  assert.ok(!(await services.messages.listConversations()).some((c) => c.patient.id === novo.id));
+  assert.equal(await services.patients.remove(novo.id).catch(status), 404, 'desvincular de novo responde 404');
+  assert.equal(await services.patients.getProfile(novo.id).catch(status), 401, 'o aparelho do paciente recebe 401');
+  assert.equal((await services.patients.get('e-jose')).name, 'José Ferreira', 'os outros pacientes continuam');
+  console.log('Desvincular paciente: dados apagados, 404 depois, aparelho com 401 e os outros intactos');
 }
 void main();

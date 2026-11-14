@@ -1,3 +1,7 @@
+/*
+ * Botão padrão do app, com variantes (primária, secundária, discreta, perigo e sucesso), três tamanhos, ícone
+ * opcional, estado de carregamento e rótulo e dica de acessibilidade.
+ */
 import { ActivityIndicator, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { hitSlopFor, radius, spacing, touch, useTheme } from '../../theme';
 import { AppText } from './AppText';

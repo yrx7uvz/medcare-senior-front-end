@@ -1,4 +1,4 @@
-import type { Dose, Patient, LinkCode, Medication, Message, Treatment } from '../types/domain';
+import type { Dose, Patient, LeaveRequest, LinkCode, Medication, Message, Treatment } from '../types/domain';
 import { DEMO_START, DEMO_TODAY_KEY } from '../lib/clock';
 import { parseDateTime } from '../lib/date';
 import { DEFAULT_TOLERANCE_MIN } from '../lib/doseRules';
@@ -26,6 +26,10 @@ export interface MockDb {
   doses: Dose[];
   messages: Message[];
   linkCodes: LinkCode[];
+  /** Pedidos dos pacientes para sair da conta (vazio no início). */
+  leaveRequests: LeaveRequest[];
+  /** Aparelhos de paciente desconectados pelo cuidador (até parear de novo com um código novo). */
+  disconnectedPatientIds: string[];
   toleranceMinutes: number;
 }
 
@@ -140,6 +144,8 @@ export function createSeedDb(): MockDb {
     doses,
     messages,
     linkCodes,
+    leaveRequests: [],
+    disconnectedPatientIds: [],
     toleranceMinutes: DEFAULT_TOLERANCE_MIN,
   };
 }

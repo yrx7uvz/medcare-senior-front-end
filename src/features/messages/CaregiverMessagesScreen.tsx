@@ -1,7 +1,8 @@
 import MessageCircle from 'lucide-react-native/icons/message-circle';
-import { FlatList, KeyboardAvoidingView, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import type { TabScreenProps } from '../../app/navigation/types';
 import { CaregiverScreen } from '../../components/layout/CaregiverScreen';
+import { KeyboardAwareView } from '../../components/layout/KeyboardAwareView';
 import { AppText, Avatar, ChatThread, EmptyState, ErrorState, LoadingSkeleton } from '../../components/ui';
 import { services } from '../../services';
 import { useAppStore } from '../../store/appStore';
@@ -84,7 +85,7 @@ function Conversation({ patientId }: { patientId: string }) {
   if (thread.loading) return <View style={styles.pad}><LoadingSkeleton rows={3} /></View>;
   if (thread.error) return <ErrorState error={thread.error} onRetry={thread.reload} />;
   return (
-    <KeyboardAvoidingView style={styles.flex}>
+    <KeyboardAwareView>
       <ChatThread
         messages={thread.messages}
         viewer="CUIDADOR"
@@ -98,7 +99,7 @@ function Conversation({ patientId }: { patientId: string }) {
         olderError={thread.olderError?.message}
         onLoadOlder={thread.loadOlder}
       />
-    </KeyboardAvoidingView>
+    </KeyboardAwareView>
   );
 }
 

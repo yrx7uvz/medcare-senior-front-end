@@ -76,6 +76,10 @@ describe('janela e confirmabilidade', () => {
 
   it('tolerância aceita só inteiro de 5 a 120', () => {
     expect(toleranceError(5)).toBeNull();
+    // Modo de teste: a partir de 1 minuto
+    expect(toleranceError(1, 1)).toBeNull();
+    expect(toleranceError(0, 1)).toBe('A tolerância deve ficar entre 1 e 120 minutos');
+    expect(toleranceError(1)).toBe('A tolerância deve ficar entre 5 e 120 minutos');
     expect(toleranceError(120)).toBeNull();
     expect(toleranceError(4)).toMatch(/entre 5 e 120/);
     expect(toleranceError(121)).toMatch(/entre 5 e 120/);

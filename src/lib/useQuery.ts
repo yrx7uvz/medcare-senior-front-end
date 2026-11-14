@@ -10,10 +10,22 @@ interface QueryState<T> {
   refreshError?: AppError;
 }
 
-interface Options {
+interface Options<T> {
   enabled?: boolean;
   /** Quando muda, recarrega sem mostrar skeleton (ex.: a cada minuto). */
   silentKey?: unknown;
+  /**
+   * Dado já carregado em outra tela (ex.: a dose que estava na lista): a tela abre com ele, sem skeleton, e a primeira
+   * busca é silenciosa. Vale só na montagem; troca de chave volta ao carregamento normal.
+   */
+  initialData?: T;
+}
+
+/** Estado na montagem: com dado inicial, já pronto (sem carregamento); sem, carregando se habilitada. */
+export function initialQueryState<T>(enabled: boolean, initialData: T | undefined): QueryState<T> {
+  return initialData !== undefined && enabled
+    ? { data: initialData, error: undefined, loading: false }
+    : { data: undefined, error: undefined, loading: enabled };
 }
 
 /**
@@ -21,8 +33,8 @@ interface Options {
  * `silentKey` atualizam mantendo os dados atuais na tela. Se a atualização
  * silenciosa falhar e já houver dados, eles ficam e `refreshError` é exposto.
  */
-export function useQuery<T>(key: readonly unknown[], fetcher: () => Promise<T>, options: Options = {}) {
-  const { enabled = true, silentKey } = options;
+export function useQuery<T>(key: readonly unknown[], fetcher: () => Promise<T>, options: Options<T> = {}) {
+  const { enabled = true, silentKey, initialData } = options;
   const version = useQueryBus((s) => s.version);
   const fetcherRef = useRef(fetcher);
   // Padrão "latest ref": a função mais recente é lida só em callbacks/efeitos. Regra do React Compiler, que o projeto não usa.
@@ -30,8 +42,10 @@ export function useQuery<T>(key: readonly unknown[], fetcher: () => Promise<T>, 
   fetcherRef.current = fetcher;
   const keyStr = JSON.stringify(key);
   const silentStr = JSON.stringify(silentKey ?? null);
-  const [state, setState] = useState<QueryState<T>>({ data: undefined, error: undefined, loading: enabled });
+  const [state, setState] = useState<QueryState<T>>(() => initialQueryState(enabled, initialData));
   const requestId = useRef(0);
+  // A primeira busca só é silenciosa se a tela abriu com dado inicial
+  const seeded = useRef(initialData !== undefined && enabled);
 
   const run = useCallback((silent: boolean) => {
     const id = ++requestId.current;
@@ -52,9 +66,11 @@ export function useQuery<T>(key: readonly unknown[], fetcher: () => Promise<T>, 
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- busca dados ao montar/trocar a chave (sistema externo); regra do React Compiler
-    if (enabled) run(false);
-    else setState({ data: undefined, error: undefined, loading: false });
+    // Busca dados ao montar/trocar a chave (sistema externo)
+    if (enabled) {
+      run(seeded.current);
+      seeded.current = false;
+    } else setState({ data: undefined, error: undefined, loading: false });
   }, [keyStr, enabled, run]);
 
   const mounted = useRef(false);

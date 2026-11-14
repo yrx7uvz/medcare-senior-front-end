@@ -12,21 +12,48 @@ Um mesmo app tem dois perfis, escolhidos na primeira tela:
 ## Telas e fluxos
 
 **Cuidador** (abas Painel, Remédios, Histórico, Mensagens e Ajustes):
-1. Cria a conta (senha forte e aceite do termo LGPD) e entra.
+1. Cria a conta (senha forte e aceite do termo LGPD) e confirma o e-mail com o **código de 6 números** que chega
+   nele (sem confirmar, não cadastra pacientes; "Reenviar código" a cada 1 minuto). Um erro comum no domínio
+   ("gmial.com") ganha a sugestão "Você quis dizer gmail.com?". Esqueceu a senha? "Esqueci minha senha" no login envia
+   um código para criar uma senha nova.
 2. Cadastra o paciente e gera o **código de vínculo** de 6 números, válido por 24 horas.
-3. Cadastra os remédios (formato, cor, dosagem) e o tratamento (horários, dias da semana, início e fim).
+3. Cadastra os remédios (formato, cor, dosagem) e o tratamento (horários, dias da semana, início e fim). Os horários
+   saem de um seletor em rolagem que dá a volta (23 → 00), com faixa de seleção larga e um toque no número vizinho
+   para ir até ele. Um horário de hoje precisa de pelo
+   menos 5 minutos de antecedência; se os horários de hoje já passaram, o app avisa quando será a primeira dose.
 4. No **Painel**, vê as doses de hoje: pendentes, atrasadas, confirmadas e não confirmadas. Toca numa dose para ver os
    detalhes e, dentro da janela, **confirmar por ele**.
-5. Recebe o **aviso push** quando uma dose não é confirmada a tempo; o toque abre a dose.
+5. Recebe o **aviso push** quando uma dose não é confirmada a tempo; o toque abre a dose. Se as notificações estiverem
+   desligadas no aparelho, o Painel e os Ajustes avisam e oferecem "Ativar notificações".
 6. Consulta o **relatório do dia**, o **histórico** com filtros, e **exporta o PDF** de adesão (até 12 meses),
    compartilhado pelo menu do Android.
 7. Troca **mensagens** com cada paciente, ajusta a **tolerância** do aviso (5 a 120 minutos), o tema e as notificações,
    e pode **excluir a conta**.
+8. Quando um paciente **pede para sair da conta**, recebe um push e vê no Painel o cartão "{Paciente} pediu para sair
+   da conta" com **Autorizar** (com confirmação) e **Recusar**. Na tela do código de vínculo do paciente, pode
+   **desconectar o celular do paciente** sem pedido (celular perdido ou trocado). Para o paciente voltar, gera um código
+   novo.
+9. Na mesma tela, pode **desvincular o paciente** (remover da conta), com confirmação em duas etapas (explicação e o
+   nome do paciente digitado). Remédios, horários e mensagens são apagados; as doses já registradas ficam sem o nome do
+   paciente; o celular dele sai da conta. Não pode ser desfeito.
 
 **Paciente:**
-1. Entra com o código que o cuidador gerou e cria um **PIN** de 4 números (pedido ao abrir o app).
+1. Entra com o código que o cuidador gerou e cria um **PIN** de 4 números, pedido ao abrir o app quando passaram mais
+   de 10 minutos desde o último uso (em **Ajustes**, "Pedir o PIN ao abrir o app": Sempre, Depois de 10 minutos ou
+   Nunca neste celular, este com confirmação do PIN). Trocar do perfil do cuidador para o do paciente sempre pede o PIN.
 2. Vê o próximo remédio em destaque e confirma em dois toques ("Tomar remédio agora" → "Tomei o remédio").
-3. Lê e responde as mensagens do cuidador; pode ligar o **alto contraste**.
+   **Na hora do remédio o celular toca um alarme**, mesmo fechado, bloqueado e sem internet ("Hora do remédio — Tomar
+   Losartana às 08:00"): a tela acende e o som só para quando a dose é confirmada (ou adiada por 5 minutos). "Tomar o
+   remédio" abre a dose no app (pedindo o PIN se for a vez dele). Se as notificações ou os alarmes estiverem desligados, o início e os Ajustes mostram um aviso grande com o
+   botão para ativar; os Ajustes também orientam a tirar o app da economia de bateria. Detalhes em
+   [docs/lembrete-do-paciente.md](docs/lembrete-do-paciente.md).
+3. Lê e responde as mensagens do cuidador; pode ligar o **alto contraste** e escolher o **tema** (Automático, Claro ou
+   Escuro, o mesmo seletor do cuidador; a escolha vale para as duas visões no mesmo celular). No topo das telas do
+   paciente (inclusive a primeira, "Quem vai usar este celular?"), o botão com sol/lua alterna entre claro e escuro;
+   o alto contraste fica nos Ajustes.
+4. Em **Ajustes**, "Sair da conta" envia o pedido ao cuidador e mostra "Aguardando autorização" (a tela se atualiza
+   sozinha enquanto está aberta). Autorizado: o celular sai da conta e volta ao pareamento; recusado ou expirado: continua
+   conectado, com a explicação na tela.
 
 A janela de cada dose vem do servidor: abre 60 minutos antes do horário; no fim da tolerância do cuidador vira
 "atrasada" e o cuidador é avisado; 30 minutos depois, encerra como "não confirmada". Até o aviso, a confirmação é "no
@@ -46,7 +73,20 @@ PDF; o Expo Go não serve):
 1. Suba o backend (README do repositório do backend).
 2. No `.env`: `EXPO_PUBLIC_API_URL=http://10.0.2.2:8080` no emulador, ou `http://IP-DO-PC:8080` no celular da
    mesma rede.
-3. `npm run start:dev` e, com o app de desenvolvimento instalado (`npm run build:dev` gera o APK no EAS), aperte `a`.
+3. Com o app de desenvolvimento instalado (`npm run build:dev` gera o APK no EAS):
+   - **Emulador:** `npm run emulador`. Antes do Metro, o script `scripts/preparar-emulador.ts`:
+     - abre o emulador, se nenhum estiver aberto (`EMULADOR_AVD` escolhe qual);
+     - confere se o app está instalado;
+     - encerra um Metro antigo que esteja na porta 8081;
+     - faz o `adb reverse` do Metro e da API;
+     - avisa se o backend estiver fora do ar ou com código antigo.
+
+     O Metro sobe em `localhost`, sem depender do IP da rede nem do firewall, e abre o app. Só a preparação, sem
+     subir o Metro: `npm run emulador:preparar`.
+   - **Celular na mesma rede:** `npm run start:dev` e escaneie o QR code.
+
+   Se aparecer "Unable to load script", o app tentou um servidor que não está no ar: deixe o `npm run emulador`
+   rodando e toque em **Reload**.
 
 **Modo demonstração** (sem backend, dados fictícios em memória):
 
@@ -66,6 +106,7 @@ de produção, e o `npm run check:mocks` confere isso.
 |---|---|
 | `EXPO_PUBLIC_API_URL` | Endereço da API. Em desenvolvimento aceita `http://` da rede local; **no release, só `https://`** (senão o app mostra "App com configuração inválida" e não chama a API). No EAS, vem do ambiente `production`. |
 | `EXPO_PUBLIC_DEMO` | `true` liga o modo demonstração. Ao trocar, reinicie com `npx expo start -c`. |
+| `EXPO_PUBLIC_MODO_TESTE` | `true` liga o modo de teste: opção de tolerância de 1 minuto e qualquer horário no cadastro do remédio (sem a antecedência de 5 minutos). Precisa do servidor com `APP_MODO_TESTE=true`. Ligado no perfil `apk-final` enquanto durarem os testes no aparelho. |
 | `GOOGLE_SERVICES_JSON` | Só no build: caminho do `google-services.json` do Firebase, sempre fora do repositório (segredo de arquivo no EAS). Sem ele, o app compila sem push. |
 | `ANDROID_ALLOW_CLEARTEXT` | Só no perfil `development` do EAS: permite `http://` para falar com o backend na rede local. |
 
@@ -80,8 +121,8 @@ As variáveis `EXPO_PUBLIC_*` vão embutidas no app: nunca coloque segredo nelas
 | `npm run check:core` | Verificações do núcleo sem rede (adaptadores HTTP com `fetch` falso, configuração do app e do EAS) |
 | `npm run check:a11y` | Todo botão, campo e alternância com rótulo e papel acessíveis |
 | `npm run check:contrast` | Contraste WCAG dos cinco temas |
-| `npm run check:permissions` | Permissões do Android (prebuild numa pasta temporária); `-- --apk arquivo.apk` confere o APK real |
-| `npm run check:mocks` | Mocks do demo fora do bundle de produção |
+| `npm run check:permissions` (ou `check:android-permissions`) | Permissões do Android (prebuild numa pasta temporária); `-- --apk arquivo.apk` confere o APK real |
+| `npm run check:mocks` | Mocks do demo fora do bundle de produção; lembretes agendados a partir dos dados do demo |
 | `npm run smoke` | Fluxo de ponta a ponta contra a API (`EXPO_PUBLIC_API_URL`); cria e exclui uma conta de teste |
 | `npm run plano:testes` | Gera `docs/plano-de-testes.md` conferindo que cada teste citado existe nos dois repositórios |
 | `npm run gerar:icones` | Gera ícone, ícone adaptativo e splash a partir de SVG, com as cores do tema |
@@ -120,18 +161,26 @@ docs/             APK de release, qualidade, desempenho, acessibilidade e plano 
   configuração inválida, e o Android sai com `usesCleartextTraffic=false`. Teste: `tests/configuracaoRelease.test.ts`.
 - **PIN do paciente:** só o hash fica no aparelho, com PBKDF2-HMAC-SHA256, sal aleatório de 16 bytes e comparação em
   tempo constante. A cada 5 erros seguidos o teclado bloqueia por 30 s, 2 min e 10 min, contados pelo relógio
-  monotônico (adiantar o relógio não destrava); o bloqueio continua se o app for fechado.
+  monotônico (adiantar o relógio não destrava); o bloqueio continua se o app for fechado. Tolerância de 10 minutos
+  (`src/lib/pinGrace.ts`): o instante do último uso desbloqueado fica no SecureStore, junto do PIN, gravado ao
+  desbloquear, ao ir para o segundo plano e nos toques (no máximo uma vez por minuto); relógio que voltou para trás pede o
+  PIN. Desconexão, saída da conta e "Esqueci meu PIN" apagam o carimbo junto do PIN.
 - **Armazenamento local:** só a sessão, o PIN e as preferências, no SecureStore (Keystore do Android). Nenhum dado de
   saúde fica gravado no aparelho.
-- **Permissões mínimas:** internet, estado da rede, notificações, vibração, wake lock e o recebimento do FCM. Câmera,
-  microfone, localização, contatos, armazenamento, contador no ícone e o identificador de publicidade ficam
-  bloqueados em `app.config.ts`. O `check:permissions -- --apk` confere o APK de verdade.
-- **Push sem dado de saúde:** a notificação traz o nome do paciente e o horário, nunca o nome do remédio.
+- **Permissões mínimas:** internet, estado da rede, notificações, vibração, wake lock, o recebimento do FCM e, para o
+  lembrete do paciente, alarme exato (`SCHEDULE_EXACT_ALARM`, que o paciente libera), reagendar ao ligar o celular
+  (`RECEIVE_BOOT_COMPLETED`) e a tela cheia do alarme da dose por cima do bloqueio (`USE_FULL_SCREEN_INTENT`). Câmera, microfone, localização, contatos, armazenamento, serviço em primeiro plano,
+  `USE_EXACT_ALARM`, contador no ícone e o identificador de publicidade ficam bloqueados em `app.config.ts`. O
+  `check:permissions -- --apk` confere o APK de verdade.
+- **Push sem dado de saúde para o cuidador:** o aviso traz o nome do paciente e o horário, nunca o nome do remédio. O
+  lembrete do paciente, no aparelho dele, traz só o nome do remédio e o horário.
 - **Sem segredo no repositório:** `google-services.json`, keystores e `.env` estão no `.gitignore`; os valores do
   build ficam no EAS.
 
 ## Mais documentação
 
+- [docs/lembrete-do-paciente.md](docs/lembrete-do-paciente.md): as duas camadas do lembrete de dose, o alarme que toca
+  até a confirmação, os limites do Android e as decisões.
 - [docs/apk-de-release.md](docs/apk-de-release.md): gerar, assinar e validar o APK.
 - [docs/qualidade.md](docs/qualidade.md): SonarQube, `npm audit` e cobertura mínima.
 - [docs/desempenho.md](docs/desempenho.md): tamanho do bundle, listas e dispositivo fraco.

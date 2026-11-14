@@ -1,10 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import Save from 'lucide-react-native/icons/save';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
 import { AppText, Button, Card, FormTextField } from '../../components/ui';
+import { getNow } from '../../lib/clock';
+import { applyFieldErrors } from '../../lib/formErrors';
 import { DEFAULT_PRIMARY, isBottle } from '../../lib/medicationMeta';
 import { medicationFormSchema, type MedicationFormValues } from '../../lib/schemas';
+import { appLocalNow } from '../../lib/serverClock';
+import { useNow } from '../../lib/useNow';
 import type { AppError } from '../../services/errors';
 import type { Patient, MedicationAppearance, MedicationType } from '../../types/domain';
 import { spacing, useTheme } from '../../theme';
@@ -13,6 +18,10 @@ import { PatientSection } from './form/PatientSection';
 import { FormErrorBox, NoticeBox } from './form/FormErrorBox';
 import { MedicationDataSection } from './form/MedicationDataSection';
 import { ScheduleSection } from './form/ScheduleSection';
+import { scheduleTiming } from './formValues';
+
+/** Campos do tratamento na API (ErroResponse.campos) para os campos do formulário. */
+const API_SCHEDULE_FIELDS = { horarios: 'times', dataFim: 'endDate', diasSemana: 'weekdays' };
 
 interface Props {
   defaultValues: MedicationFormValues;
@@ -37,16 +46,35 @@ export function MedicationForm({
   defaultValues, patients, lockPatient, isEdit, submitting, submitError, submitLabel, lockMedicationFields, onSubmit,
 }: Props) {
   const { colors } = useTheme();
-  const { control, handleSubmit, watch, setValue, formState } = useForm<MedicationFormValues>({
+  const { control, handleSubmit, watch, setValue, setError, formState } = useForm<MedicationFormValues>({
     resolver: zodResolver(medicationFormSchema),
     defaultValues,
   });
   const errors = formState.errors;
+  const now = useNow(30_000);
+  // Na edição, só os horários novos passam pela antecedência mínima (os salvos não bloqueiam)
+  const savedTimes = isEdit ? defaultValues.times.map((t) => t.time) : [];
 
   // react-hook-form não é compatível com o React Compiler (só aviso; o projeto não usa o compilador).
   // eslint-disable-next-line react-hooks/incompatible-library
   const [type, shape, primaryColor, name, dosage, patientId] = watch(['type', 'shape', 'primaryColor', 'name', 'dosage', 'patientId']);
+  const [startDate, endDate, weekdays, times] = watch(['startDate', 'endDate', 'weekdays', 'times']);
   const appearance: MedicationAppearance = { type, shape: type === 'COMPRIMIDO' ? shape : undefined, primaryColor };
+  const timing = scheduleTiming({ startDate, endDate, weekdays, times }, savedTimes, appLocalNow(now));
+
+  // 400 da API com erro por campo (ex.: horário a menos de 5 minutos pelo relógio do servidor): a mensagem vai ao campo
+  useEffect(() => {
+    applyFieldErrors(setError, submitError, ['times', 'endDate', 'weekdays'], API_SCHEDULE_FIELDS);
+  }, [submitError, setError]);
+
+  function submit(v: MedicationFormValues) {
+    const { error } = scheduleTiming(v, savedTimes, appLocalNow(getNow()));
+    if (error) {
+      setError('times', { message: error });
+      return;
+    }
+    onSubmit(v);
+  }
 
   const set = <K extends keyof MedicationFormValues>(k: K, v: MedicationFormValues[K]) =>
     setValue(k, v as never, { shouldDirty: true, shouldValidate: formState.isSubmitted });
@@ -85,7 +113,7 @@ export function MedicationForm({
         />
       </Card>
 
-      <ScheduleSection control={control} isEdit={isEdit} />
+      <ScheduleSection control={control} isEdit={isEdit} timesNotice={timing.notice} />
 
       <NoticeBox tone="info">
         {isEdit
@@ -106,7 +134,7 @@ export function MedicationForm({
         </AppText>
       ) : null}
 
-      <Button title={submitLabel ?? 'Salvar medicamento e tratamento'} icon={Save} size="lg" loading={submitting} onPress={handleSubmit(onSubmit)} />
+      <Button title={submitLabel ?? 'Salvar medicamento e tratamento'} icon={Save} size="lg" loading={submitting} onPress={handleSubmit(submit)} />
     </View>
   );
 }

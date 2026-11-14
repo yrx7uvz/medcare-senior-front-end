@@ -1,3 +1,11 @@
+/*
+ * Testes automatizados (Jest) de mensagens (11 casos). Cobre: vazio ou só espaços não envia; até 500 caracteres
+ * envia; 501 não; conta caracteres como a API (emoji = 1) e mostra o contador; erro de envio mostra o motivo do
+ * campo na validação e a mensagem nos outros códigos; selo some no zero e para em 99+; ordem da tela: mais antiga
+ * primeiro; mesmo minuto pelo id numérico; junta a página mais recente (atualizada) com as antigas sem repetir;
+ * marca como lida só se há mensagem do outro lado não lida; toques enquanto envia recebem a mesma promessa; depois
+ * de terminar, envia de novo; entre outros.
+ */
 import { describe, expect, it } from '@jest/globals';
 import { toConversation, toMessage, toMessagePage } from '../src/adapters/http/HttpMessageService';
 import {

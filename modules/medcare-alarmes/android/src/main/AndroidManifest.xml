@@ -1,0 +1,34 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:tools="http://schemas.android.com/tools">
+
+  <!-- Alarme da dose por cima da tela bloqueada (Android 14+: o paciente pode desligar em "Notificações em tela cheia") -->
+  <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+
+  <application>
+    <!-- Tela do alarme: acende a tela, aparece por cima do bloqueio e fica fora da lista de apps recentes -->
+    <activity
+      android:name="br.ucb.medcaresenior.alarmes.AlarmeActivity"
+      android:exported="false"
+      android:excludeFromRecents="true"
+      android:launchMode="singleTask"
+      android:taskAffinity="br.ucb.medcaresenior.alarme"
+      android:showWhenLocked="true"
+      android:turnScreenOn="true"
+      android:screenOrientation="portrait"
+      android:theme="@android:style/Theme.Material.Light.NoActionBar"
+      tools:targetApi="27" />
+
+    <receiver
+      android:name="br.ucb.medcaresenior.alarmes.ReceptorDeAlarme"
+      android:exported="false" />
+
+    <receiver
+      android:name="br.ucb.medcaresenior.alarmes.ReceptorDeInicio"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+      </intent-filter>
+    </receiver>
+  </application>
+</manifest>

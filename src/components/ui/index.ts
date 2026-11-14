@@ -1,3 +1,6 @@
+/*
+ * Índice que reexporta os componentes de interface, para importar todos de um lugar só.
+ */
 export * from './AppText';
 export * from './Button';
 export * from './BigActionButton';
@@ -17,6 +20,7 @@ export * from './ErrorState';
 export * from './RefreshFailedBanner';
 export * from './LoadingSkeleton';
 export * from './ConfirmDialog';
+export * from './OptionList';
 export * from './ThemeToggle';
 export * from './ChatBubble';
 export * from './ChatThread';
@@ -24,4 +28,5 @@ export * from './PinPad';
 export * from './AdherenceBars';
 export * from './TimeWheelPicker';
 export * from './AppSwitch';
+export * from './NotificationsOffBanner';
 export type { IconComponent } from './icons';

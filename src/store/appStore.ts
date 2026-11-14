@@ -1,5 +1,7 @@
 import { create } from 'zustand';
-import type { DoseOpenTarget } from '../lib/pushPayload';
+import type { LeaveOpenTarget } from '../lib/leaveRequest';
+import { DEFAULT_PIN_ASK_MODE, type PinAskMode } from '../lib/pinGrace';
+import type { DoseOpenTarget, ReminderOpenTarget } from '../lib/pushPayload';
 import type { ThemeMode, ThemePrefs } from '../lib/themePrefs';
 import type { CaregiverSession, PatientFilter } from '../types/views';
 
@@ -32,8 +34,8 @@ interface AppState {
 
   /** Tema escolhido nas Configurações; null = seguir o tema do sistema. Guardado no aparelho. */
   themeChoice: ThemeMode | null;
-  /** Troca o tema a partir do que está na tela (vira escolha explícita). */
-  toggleTheme: (current: ThemeMode) => void;
+  /** Escolha do seletor de tema; null = Automático (tema do celular). */
+  setThemeChoice: (choice: ThemeMode | null) => void;
   /** As preferências de aparência já foram lidas do aparelho (até lá, só a tela de carregamento da marca). */
   themeLoaded: boolean;
   setThemePrefs: (prefs: ThemePrefs) => void;
@@ -46,17 +48,31 @@ interface AppState {
   /** Dose a abrir vinda de um toque em notificação (espera o login, se a sessão tiver expirado). */
   pendingDoseOpen: DoseOpenTarget | null;
   setPendingDoseOpen: (target: DoseOpenTarget | null) => void;
+  /** Dose do paciente a abrir, vinda do toque num lembrete (espera o boot e o PIN, se for a vez dele). */
+  pendingPatientDoseOpen: ReminderOpenTarget | null;
+  setPendingPatientDoseOpen: (target: ReminderOpenTarget | null) => void;
+  /** Pedido de saída a abrir, vindo de um toque no aviso (espera o login, como a dose). */
+  pendingLeaveOpen: LeaveOpenTarget | null;
+  setPendingLeaveOpen: (target: LeaveOpenTarget | null) => void;
 
   patientHighContrast: boolean;
   togglePatientHighContrast: () => void;
+  /** Alternador claro/escuro do topo das telas do paciente: grava o tema e sai do alto contraste. */
+  switchPatientTheme: (mode: ThemeMode) => void;
 
   /** Sessão do paciente carregada do SecureStore (o token fica em memória para as chamadas à API). */
   patientSession: { patientId: string; token: string } | null;
   patientSessionLoaded: boolean;
   setPatientSession: (s: { patientId: string; token: string } | null) => void;
-  /** PIN digitado nesta abertura. */
+  /** App do paciente desbloqueado: PIN digitado ou último uso dentro da tolerância (pinGrace). */
   patientUnlocked: boolean;
   setPatientUnlocked: (v: boolean) => void;
+  /** Quando pedir o PIN neste aparelho (Ajustes do paciente). */
+  pinAskMode: PinAskMode;
+  setPinAskMode: (mode: PinAskMode) => void;
+  /** O paciente pediu para sair e espera o cuidador: a desconexão que vier da API é a saída autorizada. */
+  patientLeaveRequested: boolean;
+  setPatientLeaveRequested: (v: boolean) => void;
 
   dismissedAlertIds: string[];
   dismissAlert: (id: string) => void;
@@ -87,7 +103,7 @@ export const useAppStore = create<AppState>()((set) => ({
   setSelectedPatient: (selectedPatientId) => set({ selectedPatientId }),
 
   themeChoice: null,
-  toggleTheme: (current) => set({ themeChoice: current === 'light' ? 'dark' : 'light' }),
+  setThemeChoice: (themeChoice) => set({ themeChoice }),
   themeLoaded: false,
   setThemePrefs: (prefs) => set({ themeChoice: prefs.mode, patientHighContrast: prefs.patientHighContrast, themeLoaded: true }),
 
@@ -97,15 +113,24 @@ export const useAppStore = create<AppState>()((set) => ({
 
   pendingDoseOpen: null,
   setPendingDoseOpen: (pendingDoseOpen) => set({ pendingDoseOpen }),
+  pendingPatientDoseOpen: null,
+  setPendingPatientDoseOpen: (pendingPatientDoseOpen) => set({ pendingPatientDoseOpen }),
+  pendingLeaveOpen: null,
+  setPendingLeaveOpen: (pendingLeaveOpen) => set({ pendingLeaveOpen }),
 
   patientHighContrast: false,
   togglePatientHighContrast: () => set((s) => ({ patientHighContrast: !s.patientHighContrast })),
+  switchPatientTheme: (themeChoice) => set({ themeChoice, patientHighContrast: false }),
 
   patientSession: null,
   patientSessionLoaded: false,
   setPatientSession: (patientSession) => set({ patientSession, patientSessionLoaded: true }),
   patientUnlocked: false,
   setPatientUnlocked: (patientUnlocked) => set({ patientUnlocked }),
+  pinAskMode: DEFAULT_PIN_ASK_MODE,
+  setPinAskMode: (pinAskMode) => set({ pinAskMode }),
+  patientLeaveRequested: false,
+  setPatientLeaveRequested: (patientLeaveRequested) => set({ patientLeaveRequested }),
 
   dismissedAlertIds: [],
   dismissAlert: (id) => set((s) => ({ dismissedAlertIds: [...s.dismissedAlertIds, id] })),

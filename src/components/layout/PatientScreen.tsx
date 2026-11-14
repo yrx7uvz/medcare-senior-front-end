@@ -1,11 +1,13 @@
 import { useNavigation } from '@react-navigation/native';
 import ArrowLeft from 'lucide-react-native/icons/arrow-left';
-import Contrast from 'lucide-react-native/icons/contrast';
+import Moon from 'lucide-react-native/icons/moon';
+import Sun from 'lucide-react-native/icons/sun';
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { nextPatientTheme } from '../../lib/themePrefs';
 import { useAppStore } from '../../store/appStore';
-import { radius, spacing, touch, useTheme } from '../../theme';
+import { radius, spacing, touch, useTheme, useThemeMode } from '../../theme';
 import { AppText } from '../ui';
 import { OfflineBanner } from './OfflineBanner';
 
@@ -17,12 +19,18 @@ interface Props {
   footer?: React.ReactNode;
 }
 
-/** Moldura das telas do paciente: sem menus, voltar grande e alto contraste. */
+/**
+ * Moldura das telas do paciente: sem menus, voltar grande e o alternador de tema claro/escuro no topo (o alto contraste
+ * fica nos Ajustes do paciente).
+ */
 export function PatientScreen({ children, back, scroll = true, footer }: Props) {
   const { colors, highContrast } = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const toggleContrast = useAppStore((s) => s.togglePatientHighContrast);
+  const mode = useThemeMode();
+  const switchTheme = useAppStore((s) => s.switchPatientTheme);
+  const dark = highContrast || mode === 'dark';
+  const ThemeIcon = dark ? Sun : Moon;
 
   const header = (
     <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
@@ -41,16 +49,13 @@ export function PatientScreen({ children, back, scroll = true, footer }: Props) 
       )}
       <Pressable
         accessibilityRole="switch"
-        accessibilityState={{ checked: highContrast }}
-        accessibilityLabel="Alto contraste"
-        onPress={toggleContrast}
-        style={({ pressed }) => [
-          styles.headerBtn,
-          styles.round,
-          { borderColor: colors.border, backgroundColor: highContrast ? colors.primary : colors.surface, opacity: pressed ? 0.7 : 1 },
-        ]}
+        accessibilityState={{ checked: dark }}
+        accessibilityLabel="Modo escuro"
+        accessibilityHint={dark ? 'Toque para usar o modo claro' : 'Toque para usar o modo escuro'}
+        onPress={() => switchTheme(nextPatientTheme(mode, highContrast))}
+        style={({ pressed }) => [styles.headerBtn, styles.round, { borderColor: colors.border, backgroundColor: colors.surface, opacity: pressed ? 0.7 : 1 }]}
       >
-        <Contrast color={highContrast ? colors.onPrimary : colors.text} size={28} strokeWidth={2.4} />
+        <ThemeIcon color={colors.text} size={28} strokeWidth={2.4} />
       </Pressable>
     </View>
   );

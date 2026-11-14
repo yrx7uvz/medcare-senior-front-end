@@ -7,14 +7,18 @@ import { PatientScreen } from '../../components/layout/PatientScreen';
 import { AppText, BigActionButton, ConfirmDialog, DigitBoxes, PinPad } from '../../components/ui';
 import { useAppStore } from '../../store/appStore';
 import { formatLockRemaining } from '../../lib/pinCore';
+import { DEFAULT_PIN_ASK_MODE } from '../../lib/pinGrace';
+import { forgetPatientActivity } from '../../lib/pinSession';
+import { patientPushRegistration } from '../../lib/pushSession';
 import { patientDeviceStorage } from '../../lib/secureStorage';
 import { radius, spacing, useTheme } from '../../theme';
 
 const monotonicNow = () => globalThis.performance.now();
 
 /**
- * PIN pedido a cada abertura do app do paciente. Depois de 5 erros seguidos o teclado fica bloqueado por um tempo
- * crescente (30 s, 2 min, 10 min), com a contagem na tela; o bloqueio continua se o app for fechado.
+ * PIN pedido ao abrir o app do paciente quando passou da tolerância (10 minutos sem uso, por padrão; ver pinGrace) e
+ * na troca para o perfil do paciente. Depois de 5 erros seguidos o teclado fica bloqueado por um tempo crescente (30 s,
+ * 2 min, 10 min), com a contagem na tela; o bloqueio continua se o app for fechado.
  */
 export function PinUnlockScreen(_: RootScreenProps<'PatientPinUnlock'>) {
   const { colors } = useTheme();
@@ -135,6 +139,9 @@ export function PinUnlockScreen(_: RootScreenProps<'PatientPinUnlock'>) {
         confirmLabel="Desconectar este celular"
         onCancel={() => setForgot(false)}
         onConfirm={async () => {
+          // Tira o aparelho do lembrete do servidor enquanto o token da sessão ainda vale (melhor esforço, com tempo
+          // limite: sem rede, a desconexão acontece mesmo assim)
+          await patientPushRegistration.unregister();
           try {
             await patientDeviceStorage.clear();
           } catch {
@@ -143,6 +150,9 @@ export function PinUnlockScreen(_: RootScreenProps<'PatientPinUnlock'>) {
             return;
           }
           setForgot(false);
+          // O PIN, o último uso e a escolha de quando pedir o PIN foram apagados juntos
+          forgetPatientActivity();
+          useAppStore.getState().setPinAskMode(DEFAULT_PIN_ASK_MODE);
           setPatientSession(null);
         }}
       />

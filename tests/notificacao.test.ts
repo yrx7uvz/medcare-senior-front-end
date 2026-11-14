@@ -1,3 +1,11 @@
+/*
+ * Testes automatizados (Jest) de notificação (10 casos). Cobre: payload inválido (%s) é ignorado sem quebrar; sem
+ * sessão de cuidador (expirada) o destino espera o login; com o perfil do aparelho ainda não escolhido, o destino
+ * também espera o login do cuidador; aparelho no perfil do paciente ignora o aviso (ele é só do cuidador);
+ * paciente que não pertence à conta logada leva ao Painel com aviso; decideDoseOpen aceita o destino já lido do
+ * payload; sem rede ou erro do servidor fica com a tela de erro e o "Tentar novamente"; lê content.data e, sem
+ * ele, trigger.remoteMessage.data; entre outros.
+ */
 import { describe, expect, it } from '@jest/globals';
 import {
   FOREIGN_PATIENT_NOTICE,

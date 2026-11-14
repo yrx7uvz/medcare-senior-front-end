@@ -7,19 +7,22 @@ import { AppText, Button, TimeWheelPicker } from '../../../components/ui';
 import { EMPTY_TIMES_MESSAGE, addTime, removeTime, type TimeEntry } from '../../../lib/timeList';
 import { parseHHmm, spokenTime, toHHmm } from '../../../lib/timeWheel';
 import { radius, spacing, useTheme } from '../../../theme';
+import { NoticeBox } from './FormErrorBox';
 
 interface Props {
   value: TimeEntry[];
   onChange: (times: TimeEntry[]) => void;
   /** Erro do formulário (validação ao salvar). */
   error?: string;
+  /** Aviso informativo (ex.: os horários de hoje já passaram e a primeira dose fica para amanhã). */
+  notice?: string | null;
 }
 
 /**
  * Horários do tratamento como etiquetas ("08:00 ×"), em ordem. "Adicionar horário" abre o seletor em rolagem; o "×"
  * tira o horário, inclusive o último (aí aparece "Informe ao menos um horário"). Repetido não entra.
  */
-export function TimesField({ value, onChange, error }: Props) {
+export function TimesField({ value, onChange, error, notice }: Props) {
   const { colors } = useTheme();
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState<[number, number]>([8, 0]);
@@ -74,6 +77,7 @@ export function TimesField({ value, onChange, error }: Props) {
       {message ? (
         <AppText variant="caption" color={colors.danger} accessibilityRole="alert">{message}</AppText>
       ) : null}
+      {notice ? <NoticeBox tone="info">{notice}</NoticeBox> : null}
 
       {adding ? (
         <View style={[styles.panel, { borderColor: colors.border, backgroundColor: colors.surfaceAlt }]}>

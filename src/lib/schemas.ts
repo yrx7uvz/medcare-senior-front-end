@@ -8,6 +8,9 @@ const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 // Domínio em partes separadas por ponto, sem ponto vazio: as classes não se sobrepõem (sem retrocesso caro)
 const EMAIL_RE = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
 
+/** Mesmo formato do servidor (FormatoDeEmail): algo@dominio.ext. */
+export const isEmail = (value: string) => EMAIL_RE.test(value.trim());
+
 export const loginSchema = z.object({
   email: z.string().trim().min(1, 'Informe seu e-mail').regex(EMAIL_RE, 'E-mail inválido'),
   password: z.string().min(1, 'Informe sua senha'),

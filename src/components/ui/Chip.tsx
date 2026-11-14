@@ -1,3 +1,6 @@
+/*
+ * Opção selecionável em forma de pílula, usada em filtros e na escolha dos dias da semana.
+ */
 import React from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import { radius, spacing, touch, useTheme } from '../../theme';

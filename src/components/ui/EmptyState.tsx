@@ -1,3 +1,6 @@
+/*
+ * Estado de lista vazia: ícone e texto explicando o que fazer em seguida.
+ */
 import { StyleSheet, View } from 'react-native';
 import { spacing, useTheme } from '../../theme';
 import { AppText } from './AppText';

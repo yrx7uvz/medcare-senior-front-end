@@ -10,8 +10,10 @@ import { useAppStore } from '../../store/appStore';
 import type { MedicationFormValues } from '../../lib/schemas';
 import { useMutation, useQuery } from '../../lib/useQuery';
 import { useNow } from '../../lib/useNow';
+import { getNow } from '../../lib/clock';
+import { appLocalNow } from '../../lib/serverClock';
 import { spacing, useTheme } from '../../theme';
-import { emptyMedicationValues, toMedicationInput, valuesFromMedication } from './formValues';
+import { emptyMedicationValues, savedMessage, toMedicationInput, valuesFromMedication } from './formValues';
 import { MedicationForm } from './MedicationForm';
 
 export function MedicationFormScreen({ route, navigation }: RootScreenProps<'MedicationForm'>) {
@@ -42,7 +44,7 @@ export function MedicationFormScreen({ route, navigation }: RootScreenProps<'Med
   async function onSubmit(v: MedicationFormValues) {
     const result = await save.run(v);
     if (result.ok) {
-      showToast(isEdit ? 'Remédio e tratamento atualizados' : 'Remédio salvo e doses geradas');
+      showToast(savedMessage(isEdit, result.data.firstDose, appLocalNow(getNow())));
       navigation.goBack();
     } else if (!isEdit && result.error instanceof TreatmentNotSavedError) {
       setOrphanId(result.error.medicationId);

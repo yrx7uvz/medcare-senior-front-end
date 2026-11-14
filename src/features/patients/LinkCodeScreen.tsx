@@ -2,14 +2,20 @@ import CheckCircle2 from 'lucide-react-native/icons/circle-check';
 import KeyRound from 'lucide-react-native/icons/key-round';
 import RefreshCw from 'lucide-react-native/icons/refresh-cw';
 import Smartphone from 'lucide-react-native/icons/smartphone';
+import Unplug from 'lucide-react-native/icons/unplug';
+import UserX from 'lucide-react-native/icons/user-x';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootScreenProps } from '../../app/navigation/types';
 import { StackHeader } from '../../components/layout/StackHeader';
-import { AppText, Button, Card, EmptyState, ErrorState, LoadingSkeleton } from '../../components/ui';
+import { AppText, Button, Card, ConfirmDialog, EmptyState, ErrorState, LoadingSkeleton, TextField } from '../../components/ui';
 import { services } from '../../services';
+import { useAppStore } from '../../store/appStore';
 import { firstName } from '../../lib/date';
+import { DISCONNECT_CONFIRM_MESSAGE } from '../../lib/leaveRequest';
+import { invalidateQueries } from '../../lib/queryBus';
+import { filterAfterUnlink, UNLINK_MESSAGES, unlinkNameMatches, unlinkTitle, unlinkTypeNameMessage } from '../../lib/unlinkPatient';
 import { useMutation, useQuery } from '../../lib/useQuery';
 import type { LinkCode } from '../../types/domain';
 import { spacing, useTheme } from '../../theme';
@@ -24,6 +30,39 @@ export function LinkCodeScreen({ route, navigation }: RootScreenProps<'LinkCode'
   const active = useQuery(['link-code', patientId], () => services.patients.getActiveLinkCode(patientId));
   const generate = useMutation(services.patients.generateLinkCode);
   const [fresh, setFresh] = useState<LinkCode | null>(null);
+  const disconnect = useMutation(services.leaveRequests.disconnectDevice);
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+  const showToast = useAppStore((s) => s.showToast);
+  const onDisconnect = async () => {
+    const result = await disconnect.run(patientId);
+    setConfirmDisconnect(false);
+    if (result.ok) {
+      // Os códigos ainda não usados deixaram de valer: some com o que estava na tela
+      setFresh(null);
+      active.reload();
+      showToast('Celular desconectado. Para voltar, gere um código novo.');
+    }
+  };
+  // Desvincular: 1 = explicação, 2 = digitar o nome do paciente
+  const unlink = useMutation(services.patients.remove);
+  const [unlinkStep, setUnlinkStep] = useState<0 | 1 | 2>(0);
+  const [typedName, setTypedName] = useState('');
+  const closeUnlink = () => {
+    setUnlinkStep(0);
+    setTypedName('');
+    unlink.clearError();
+  };
+  const onUnlink = async () => {
+    const result = await unlink.run(patientId);
+    if (!result.ok) return;
+    closeUnlink();
+    const store = useAppStore.getState();
+    store.setSelectedPatient(filterAfterUnlink(store.selectedPatientId, patientId));
+    // Painel, Remédios, Histórico, Relatórios e Mensagens recarregam sem ele
+    invalidateQueries();
+    showToast(UNLINK_MESSAGES.success);
+    navigation.goBack();
+  };
   const newCode = async () => {
     const created = await generate.mutate(patientId);
     if (created) setFresh(created);
@@ -98,7 +137,72 @@ export function LinkCodeScreen({ route, navigation }: RootScreenProps<'LinkCode'
 
         {justCreated ? (
           <Button title="Cadastrar remédio para este paciente" onPress={() => navigation.replace('MedicationForm', undefined)} />
-        ) : null}
+        ) : (
+          <Card style={styles.card}>
+            <View style={styles.titleRow}>
+              <Unplug color={colors.danger} size={20} />
+              <AppText variant="heading">Desconectar o celular</AppText>
+            </View>
+            <AppText>
+              Use se o celular de {firstName(name) || 'paciente'} foi perdido ou trocado. O app sai da conta nele; os remédios e o
+              histórico continuam.
+            </AppText>
+            {disconnect.error ? <AppText color={colors.danger}>{disconnect.error.message}</AppText> : null}
+            <Button title="Desconectar o celular do paciente" icon={Unplug} variant="secondary" onPress={() => setConfirmDisconnect(true)} />
+          </Card>
+        )}
+        {justCreated ? null : (
+          <Card style={[styles.card, { borderColor: colors.danger }]}>
+            <View style={styles.titleRow}>
+              <UserX color={colors.danger} size={20} />
+              <AppText variant="heading">{UNLINK_MESSAGES.action}</AppText>
+            </View>
+            <AppText>
+              Remove {firstName(name) || 'o paciente'} da sua conta. {UNLINK_MESSAGES.explanation}
+            </AppText>
+            <Button title={UNLINK_MESSAGES.action} icon={UserX} variant="danger" disabled={!name} onPress={() => setUnlinkStep(1)} />
+          </Card>
+        )}
+        <ConfirmDialog
+          visible={unlinkStep === 1}
+          title={unlinkTitle(name)}
+          message={`${UNLINK_MESSAGES.explanation} ${UNLINK_MESSAGES.deviceNote}`}
+          confirmLabel="Continuar"
+          icon={UserX}
+          tone="danger"
+          onConfirm={() => setUnlinkStep(2)}
+          onCancel={closeUnlink}
+        />
+        <ConfirmDialog
+          visible={unlinkStep === 2}
+          title={unlinkTitle(name)}
+          message={unlinkTypeNameMessage(name)}
+          confirmLabel={unlink.error ? 'Tentar de novo' : UNLINK_MESSAGES.confirmLabel}
+          icon={UserX}
+          tone="danger"
+          loading={unlink.loading}
+          confirmDisabled={!unlinkNameMatches(typedName, name)}
+          onConfirm={() => void onUnlink()}
+          onCancel={closeUnlink}
+        >
+          <TextField label="Nome do paciente" value={typedName} onChangeText={setTypedName} autoCapitalize="words" placeholder={name} />
+          {unlink.error ? (
+            <AppText color={colors.danger} accessibilityRole="alert">
+              {unlink.error.message}
+            </AppText>
+          ) : null}
+        </ConfirmDialog>
+        <ConfirmDialog
+          visible={confirmDisconnect}
+          title={`Desconectar o celular de ${firstName(name) || 'paciente'}?`}
+          message={DISCONNECT_CONFIRM_MESSAGE}
+          confirmLabel="Desconectar"
+          icon={Unplug}
+          tone="danger"
+          loading={disconnect.loading}
+          onConfirm={() => void onDisconnect()}
+          onCancel={() => setConfirmDisconnect(false)}
+        />
       </ScrollView>
     </View>
   );

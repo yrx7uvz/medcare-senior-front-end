@@ -1,3 +1,6 @@
+/*
+ * Círculo com a inicial do nome e uma cor da paleta, usado para identificar o paciente.
+ */
 import { StyleSheet, View } from 'react-native';
 import { initials } from '../../lib/date';
 import { useTheme } from '../../theme';

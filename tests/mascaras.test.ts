@@ -1,3 +1,7 @@
+/*
+ * Testes automatizados (Jest) de mascaras (4 casos). Cobre: data DD/MM/AAAA, com no máximo 8 dígitos; hora HH:MM;
+ * telefone fixo e celular com DDD; só dígitos.
+ */
 import { describe, expect, it } from '@jest/globals';
 import { applyMask } from '../src/lib/masks';
 

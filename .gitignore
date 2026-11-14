@@ -8,6 +8,8 @@ dist/
 
 # Builds nativos gerados (prebuild) e artefatos
 android/
+# Módulos nativos locais (modules/*/android) são código do app, não o projeto gerado pelo prebuild
+!modules/*/android/
 ios/
 *.apk
 *.aab
@@ -39,3 +41,7 @@ tools/
 .scannerwork/
 backups/
 *.dump
+
+# Credenciais da demonstração e APK de entrega (ficam fora dos repositórios)
+CREDENCIAIS_DEMO*
+entrega/
