@@ -172,8 +172,7 @@ export function createDoseAlarms(env: { os: string }, native: MedcareAlarmesNati
     sync(planned, options) {
       try {
         for (const id of alarmsToCancel(planned, list(), options)) native.cancelarAlarme(id);
-        native.agendarAlarmes(JSON.stringify(planned), options.force === true);
-        return true;
+        return native.agendarAlarmes(JSON.stringify(planned), options.force === true) >= 0;
       } catch {
         return false;
       }

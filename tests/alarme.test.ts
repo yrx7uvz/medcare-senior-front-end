@@ -205,6 +205,8 @@ describe('createDoseAlarms', () => {
     };
     const alarmes = createDoseAlarms({ os: 'android' }, quebrado);
     expect(alarmes.sync([], { complete: true })).toBe(false);
+    // Sem contexto no nativo (-1): também conta como falha
+    expect(createDoseAlarms({ os: 'android' }, { ...nativo, agendarAlarmes: () => -1 }).sync([], { complete: true })).toBe(false);
     expect(alarmes.has('7')).toBe(false);
     expect(() => alarmes.cancelDose('7')).not.toThrow();
     expect(() => alarmes.cancelAll()).not.toThrow();

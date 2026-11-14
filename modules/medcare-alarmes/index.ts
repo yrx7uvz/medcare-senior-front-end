@@ -15,7 +15,7 @@ export interface MedcareAlarmesNativo {
   /**
    * Alarme da dose: grava e programa cada alarme (lista em JSON, ver AlarmeDeDose em src/lib/doseAlarm.ts). Um alarme
    * que já existe com o mesmo horário mantém o estado (tocando, adiado); `forcar` programa de novo até esses.
-   * @return quantos foram programados
+   * @return quantos foram programados; -1 se não deu para gravar (o app volta para os lembretes comuns)
    */
   agendarAlarmes?(json: string, forcar: boolean): number;
   /** Doses com alarme gravado (agendado, tocando ou adiado). */

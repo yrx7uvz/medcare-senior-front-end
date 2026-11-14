@@ -64,12 +64,13 @@ class MedcareAlarmesModule : Module() {
         abrir(ctx, Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
     }
 
+    // -1: não deu para gravar (sem contexto ou lista ilegível); o app volta para os lembretes comuns
     Function("agendarAlarmes") { json: String, forcar: Boolean ->
-      val ctx = context ?: return@Function 0
+      val ctx = context ?: return@Function -1
       val lista = try {
         JSONArray(json)
       } catch (e: Exception) {
-        return@Function 0
+        return@Function -1
       }
       val alarmes = (0 until lista.length()).mapNotNull { AlarmeDeDose.deJson(lista.getJSONObject(it)) }
       AlarmesDaDose.agendar(ctx, alarmes, forcar)
