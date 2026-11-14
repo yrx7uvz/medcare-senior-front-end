@@ -2,6 +2,10 @@
 export const endpoints = {
   signUp: '/api/cuidadores',
   login: '/api/auth/login',
+  forgotPassword: '/api/auth/esqueci-senha',
+  resetPassword: '/api/auth/redefinir-senha',
+  confirmEmail: '/api/cuidadores/me/verificacao-email/confirmar',
+  resendEmailCode: '/api/cuidadores/me/verificacao-email/reenviar',
   deleteAccount: '/api/cuidadores/me',
   fcmToken: '/api/cuidadores/me/fcm-token',
   patients: '/api/pacientes',

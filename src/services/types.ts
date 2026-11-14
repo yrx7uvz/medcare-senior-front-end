@@ -27,13 +27,21 @@ import type {
  * src/services/index.ts, sem mexer nas telas.
  */
 
-/** POST /api/cuidadores, POST /api/auth/login, DELETE /api/cuidadores/me */
+/** POST /api/cuidadores, POST /api/auth/login, DELETE /api/cuidadores/me, confirmação do e-mail e troca de senha */
 export interface AuthService {
   login(email: string, password: string): Promise<CaregiverSession>;
   /** Somente protótipo: entra na conta de demonstração sem senha no código. */
   loginDemo(): Promise<CaregiverSession>;
   signUp(input: SignUpInput): Promise<CaregiverSession>;
   deleteAccount(): Promise<{ removalDeadlineDays: number }>;
+  /** POST /api/cuidadores/me/verificacao-email/confirmar: o código de 6 dígitos enviado ao e-mail. */
+  confirmEmail(code: string): Promise<void>;
+  /** POST /api/cuidadores/me/verificacao-email/reenviar: outro código (429 antes de 1 minuto, com Retry-After). */
+  resendEmailCode(): Promise<void>;
+  /** POST /api/auth/esqueci-senha: envia um código se o e-mail tiver conta (a resposta é a mesma sem conta). */
+  requestPasswordReset(email: string): Promise<void>;
+  /** POST /api/auth/redefinir-senha: senha nova com o código do e-mail. */
+  resetPassword(input: { email: string; code: string; newPassword: string }): Promise<void>;
 }
 
 /** POST /api/pacientes, DELETE /api/pacientes/{id}, POST /api/pacientes/{id}/gerar-codigo, POST /api/vinculo/validar */

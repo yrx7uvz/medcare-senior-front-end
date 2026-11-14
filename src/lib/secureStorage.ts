@@ -75,6 +75,7 @@ export interface StoredCaregiverSession {
   name: string;
   email: string;
   token: string;
+  emailVerified?: boolean;
 }
 
 /** Sessão do cuidador (JWT da API), restaurada ao abrir o app. */

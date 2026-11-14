@@ -18,6 +18,8 @@ export type RootStackParamList = {
   // email: preenchido quando a conta acabou de ser criada mas o login automático falhou
   Login: { email?: string } | undefined;
   SignUp: undefined;
+  ForgotPassword: { email?: string } | undefined;
+  VerifyEmail: undefined;
   // Cuidador (com sessão)
   CaregiverTabs: NavigatorScreenParams<CaregiverTabParamList> | undefined;
   PatientForm: undefined;

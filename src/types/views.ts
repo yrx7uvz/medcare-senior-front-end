@@ -137,6 +137,11 @@ export interface CaregiverSession {
   name: string;
   email: string;
   token: string;
+  /**
+   * false: o e-mail ainda não foi confirmado com o código enviado a ele, e o app mostra só a tela do código. Ausente
+   * (sessões gravadas antes da confirmação existir, modo demonstração): confirmado.
+   */
+  emailVerified?: boolean;
 }
 
 export interface PatientPairing {

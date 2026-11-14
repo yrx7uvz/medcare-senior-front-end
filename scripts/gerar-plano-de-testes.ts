@@ -134,6 +134,18 @@ const CASOS: Item[] = [
     ['app', 'tests/aberturaDaDose.test.ts', 'com a dose da lista: pronta no primeiro quadro, sem carregamento'],
     ['app', 'tests/aberturaDaDose.test.ts', 'a dose da lista, recalculada na tela da dose no mesmo instante, não muda (sem "Atrasado" piscando)'],
   ] },
+  { id: 'E-mail do cuidador', descricao: 'Conta nova confirma o e-mail com um código de 6 números antes de cadastrar pacientes; "Esqueci minha senha" troca a senha por código; domínio que não existe é barrado e o app sugere a correção', testes: [
+    ['backend', 'VerificacaoDeEmailApiTest', 'cadastroEnviaOCodigoEOPacienteSoDepoisDeConfirmar'],
+    ['backend', 'VerificacaoDeEmailApiTest', 'reenviarSoDepoisDeUmMinuto'],
+    ['backend', 'VerificacaoDeEmailApiTest', 'cadastroRecusaEmailForaDoFormatoOuDeDominioInexistente'],
+    ['backend', 'VerificacaoDeEmailApiTest', 'esqueciASenhaTrocaASenhaEConfirmaOEmail'],
+    ['backend', 'VerificacaoDeEmailApiTest', 'esqueciASenhaDeEmailSemContaRespondeIgualENaoEnviaNada'],
+    ['backend', 'CodigosPorEmailServiceTest', 'cincoErrosBloqueiamOCodigoAteOCertoDeixaDeValer'],
+    ['backend', 'CodigosPorEmailServiceTest', 'enviaUmCodigoDeSeisDigitosEGuardaSoOHash'],
+    ['app', 'tests/email.test.ts', 'corrige os erros de digitação mais comuns no domínio'],
+    ['app', 'tests/email.test.ts', 'login com e-mail não confirmado vira emailVerified=false; servidor antigo (sem o campo) conta como confirmado'],
+    ['app', 'tests/email.test.ts', 'confirmar, reenviar, esqueci e redefinir usam as rotas e os nomes da API'],
+  ] },
   { id: 'UC-04 Remédios', descricao: 'Cadastro, edição e remoção de remédios', testes: [
     ['backend', 'CadastrarMedicamentoUseCaseTest', 'deveCadastrarMedicamento'],
     ['backend', 'EditarMedicamentoUseCaseTest', 'deveRejeitarTransferenciaParaPacienteDeOutroCuidador'],
@@ -240,6 +252,14 @@ const CASOS: Item[] = [
 ];
 
 const MANUAIS = [
+  { caso: 'E-mail do cuidador', roteiro: [
+    'No cadastro, digite "voce@gmial.com": aparece "Você quis dizer voce@gmail.com?"; toque para corrigir.',
+    'Cadastre com um domínio que não existe (ex.: voce@dominio-inexistente-123.com): a API recusa no campo E-mail.',
+    'Cadastre com um e-mail seu: abre "Confirme seu e-mail" (sem SMTP na apresentação, o código sai em .\\ultimo-codigo-email.ps1).',
+    'Digite um código errado: "Código incorreto. Você tem mais 4 tentativas." "Reenviar código" só libera depois de 1 minuto.',
+    'Digite o código certo: entra no painel e consegue cadastrar o paciente.',
+    'Saia, toque em "Esqueci minha senha", peça o código, troque a senha e entre com a nova (a antiga não entra mais).',
+  ] },
   { caso: 'Lembrete do paciente', roteiro: [
     'Paciente pareado, PIN criado; em Ajustes do paciente, nenhum aviso amarelo (notificações e alarmes liberados; bateria "Sem restrições").',
     'No cuidador, cadastre uma dose para daqui a 6 minutos.',

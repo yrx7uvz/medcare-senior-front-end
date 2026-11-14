@@ -2,7 +2,7 @@
 
 Gerado por `npm run plano:testes` (repositório do app, com o do backend ao lado). O script **confere que cada teste
 citado existe** (método no backend, título no app) e falha se algum sumir ou mudar de nome: a matriz não fica
-desatualizada. São 146 referências a testes automatizados, todas conferidas.
+desatualizada. São 156 referências a testes automatizados, todas conferidas.
 
 Como rodar todos os testes automatizados:
 - **backend:** `.\mvnw.cmd verify` (com as variáveis `POSTGRES_*`);
@@ -38,6 +38,7 @@ Como rodar todos os testes automatizados:
 | Desvincular paciente | Cuidador remove um paciente da conta: dados apagados, doses registradas anonimizadas, aparelho do paciente sai | backend: `DesvincularPacienteUseCaseTest` › deveApagarDadosDoPacienteNaOrdemDasChavesEstrangeiras<br>backend: `DesvinculacaoApiTest` › desvincularApagaOPacienteEOsDadosDeleEAnonimizaAsDosesRegistradas<br>backend: `DesvinculacaoApiTest` › depoisDeDesvincularOPacienteSome404EOAparelhoPerdeASessao<br>backend: `DesvinculacaoAtomicaTest` › falhaNoMeioNaoDeixaEstadoParcial<br>app: `tests/desvinculo.test.ts` › nome diferente, só o primeiro nome ou vazio não libera<br>app: `tests/desvinculo.test.ts` › DELETE /api/pacientes/{id}, 204 sem corpo |
 | Tema do paciente | Escuro do paciente igual ao do cuidador; o paciente escolhe Automático, Claro ou Escuro | app: `tests/tema.test.ts` › só o texto secundário (documentado) difere entre paciente escuro e cuidador escuro<br>app: `tests/tema.test.ts` › escolher Escuro muda as cores do paciente mesmo com o celular no claro; Automático volta a seguir o celular |
 | Abrir a dose do paciente | A tela da dose abre com a dose da lista, sem skeleton nem salto, e o status não muda só por abrir | app: `tests/aberturaDaDose.test.ts` › com a dose da lista: pronta no primeiro quadro, sem carregamento<br>app: `tests/aberturaDaDose.test.ts` › a dose da lista, recalculada na tela da dose no mesmo instante, não muda (sem "Atrasado" piscando) |
+| E-mail do cuidador | Conta nova confirma o e-mail com um código de 6 números antes de cadastrar pacientes; "Esqueci minha senha" troca a senha por código; domínio que não existe é barrado e o app sugere a correção | backend: `VerificacaoDeEmailApiTest` › cadastroEnviaOCodigoEOPacienteSoDepoisDeConfirmar<br>backend: `VerificacaoDeEmailApiTest` › reenviarSoDepoisDeUmMinuto<br>backend: `VerificacaoDeEmailApiTest` › cadastroRecusaEmailForaDoFormatoOuDeDominioInexistente<br>backend: `VerificacaoDeEmailApiTest` › esqueciASenhaTrocaASenhaEConfirmaOEmail<br>backend: `VerificacaoDeEmailApiTest` › esqueciASenhaDeEmailSemContaRespondeIgualENaoEnviaNada<br>backend: `CodigosPorEmailServiceTest` › cincoErrosBloqueiamOCodigoAteOCertoDeixaDeValer<br>backend: `CodigosPorEmailServiceTest` › enviaUmCodigoDeSeisDigitosEGuardaSoOHash<br>app: `tests/email.test.ts` › corrige os erros de digitação mais comuns no domínio<br>app: `tests/email.test.ts` › login com e-mail não confirmado vira emailVerified=false; servidor antigo (sem o campo) conta como confirmado<br>app: `tests/email.test.ts` › confirmar, reenviar, esqueci e redefinir usam as rotas e os nomes da API |
 | UC-04 Remédios | Cadastro, edição e remoção de remédios | backend: `CadastrarMedicamentoUseCaseTest` › deveCadastrarMedicamento<br>backend: `EditarMedicamentoUseCaseTest` › deveRejeitarTransferenciaParaPacienteDeOutroCuidador<br>app: `tests/mapeadores.test.ts` › pedido leva só os campos da API, formato só de comprimido e estoque opcional |
 | Tratamentos e doses | Horários e dias da semana; as doses são geradas numa janela rolante | backend: `SalvarTratamentoUseCaseTest` › deveSalvarTratamentoValido<br>backend: `GeradorDeDosesServiceTest` › deveGerarSomenteNosDiasDaSemanaDoTratamento<br>backend: `GeradorDeDosesServiceTest` › naoDeveDuplicarDosesJaExistentes<br>backend: `PersistenciaPostgresTest` › indiceUnicoDeixaUmaSoDoseNoMesmoHorarioDoMesmoTratamento<br>app: `tests/mapeadores.test.ts` › tratamento: horários únicos e ordenados, dias em inglês; resposta vira HH:mm e índice |
 | Horário do tratamento | Horário de hoje com pelo menos 5 minutos de antecedência (na edição, só os novos); o que já passou fica para o próximo dia | backend: `AntecedenciaDoHorarioTest` › menosDeCincoMinutosAFrenteEhRecusado<br>backend: `EditarTratamentoUseCaseTest` › edicaoSemMudarOsHorariosNaoEhBloqueadaPorHorarioQueJaExistia<br>backend: `TratamentoApiTest` › horarioAgoraOuAMenosDeCincoMinutosResponde400ComAMensagemNoTopoENoCampo<br>app: `tests/horarioDoTratamento.test.ts` › a menos de 5 minutos é recusado; com 5 minutos ou mais, aceito<br>app: `tests/horarioDoTratamento.test.ts` › horário de hoje passou: amanhã, com o texto do aviso |
@@ -57,6 +58,19 @@ Como rodar todos os testes automatizados:
 
 Estes itens dependem de aparelho real, de serviço externo ou de percepção humana. Preencha a coluna **Resultado**
 (ok / falhou, com data e aparelho) e, se falhar, descreva o passo.
+
+### E-mail do cuidador
+
+1. No cadastro, digite "voce@gmial.com": aparece "Você quis dizer voce@gmail.com?"; toque para corrigir.
+2. Cadastre com um domínio que não existe (ex.: voce@dominio-inexistente-123.com): a API recusa no campo E-mail.
+3. Cadastre com um e-mail seu: abre "Confirme seu e-mail" (sem SMTP na apresentação, o código sai em .\ultimo-codigo-email.ps1).
+4. Digite um código errado: "Código incorreto. Você tem mais 4 tentativas." "Reenviar código" só libera depois de 1 minuto.
+5. Digite o código certo: entra no painel e consegue cadastrar o paciente.
+6. Saia, toque em "Esqueci minha senha", peça o código, troque a senha e entre com a nova (a antiga não entra mais).
+
+| Aparelho e Android | Data | Resultado | Observação |
+|---|---|---|---|
+| | | | |
 
 ### Lembrete do paciente
 

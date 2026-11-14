@@ -735,9 +735,14 @@ check('Validação do formulário de remédio: limites da API (255, 100, 2048) e
   assert.deepEqual(erroEm({ times: [{ time: '08:00' }, { time: '08:00' }] }), ['times']);
 });
 
-check('"Esqueci a senha" removido do login e tela "Relatório diário" registrada com esse nome', () => {
+check('"Esqueci minha senha" no login leva à troca por código no e-mail; conta sem e-mail confirmado só vê a tela do código', () => {
   const ler = (p: string) => readFileSync(join(__dirname, '..', 'src', p), 'utf8');
-  assert.doesNotMatch(ler('features/auth/LoginScreen.tsx'), /Esqueci a senha|forgot/i);
+  assert.match(ler('features/auth/LoginScreen.tsx'), /navigation\.navigate\('ForgotPassword'/);
+  assert.match(ler('app/navigation/RootNavigator.tsx'), /name="ForgotPassword" component=\{ForgotPasswordScreen\}/);
+  assert.match(ler('app/navigation/RootNavigator.tsx'), /session\?\.emailVerified === false \? \(/);
+  assert.match(ler('app/navigation/RootNavigator.tsx'), /name="VerifyEmail" component=\{VerifyEmailScreen\}/);
+  // Telas de produção sem nada do modo demonstração (o código fixo do demo vem de src/lib/emailCode.ts)
+  assert.doesNotMatch(ler('features/auth/ForgotPasswordScreen.tsx'), /adapters\/mock/);
   assert.match(ler('app/navigation/RootNavigator.tsx'), /name="DailyReport" component=\{DailyReportScreen\}/);
   assert.match(ler('features/reports/DailyReportScreen.tsx'), /title="Relatório diário"/);
 });

@@ -11,6 +11,8 @@ interface AuthResponse {
   tipo: string;
   id: number;
   nome: string;
+  /** Só no login do cuidador; ausente em servidores anteriores à confirmação do e-mail (vale como confirmado). */
+  emailVerificado?: boolean;
 }
 
 export const ACCOUNT_CREATED_LOGIN_FAILED = 'Conta criada, mas não foi possível entrar agora. Faça login.';
@@ -28,7 +30,7 @@ function toCuidadorRequest(input: SignUpInput) {
 
 async function login(email: string, password: string): Promise<CaregiverSession> {
   const res = await request<AuthResponse>('POST', endpoints.login, { email: email.trim(), senha: password });
-  return { caregiverId: fromApiId(res.id), name: res.nome, email: email.trim(), token: res.token };
+  return { caregiverId: fromApiId(res.id), name: res.nome, email: email.trim(), token: res.token, emailVerified: res.emailVerificado !== false };
 }
 
 /**
@@ -56,6 +58,22 @@ export const httpAuthService: AuthService = {
   async deleteAccount() {
     await request<void>('DELETE', endpoints.deleteAccount);
     return { removalDeadlineDays: 0 };
+  },
+
+  async confirmEmail(code) {
+    await request<unknown>('POST', endpoints.confirmEmail, { codigo: code.trim() });
+  },
+
+  async resendEmailCode() {
+    await request<void>('POST', endpoints.resendEmailCode);
+  },
+
+  async requestPasswordReset(email) {
+    await request<void>('POST', endpoints.forgotPassword, { email: email.trim() });
+  },
+
+  async resetPassword({ email, code, newPassword }) {
+    await request<void>('POST', endpoints.resetPassword, { email: email.trim(), codigo: code.trim(), novaSenha: newPassword });
   },
 
   loginDemo: () =>

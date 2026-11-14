@@ -5,7 +5,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { AppText, Button } from '../../components/ui';
 import { LoginScreen } from '../../features/auth/LoginScreen';
+import { ForgotPasswordScreen } from '../../features/auth/ForgotPasswordScreen';
 import { SignUpScreen } from '../../features/auth/SignUpScreen';
+import { VerifyEmailScreen } from '../../features/auth/VerifyEmailScreen';
 import { DoseDetailScreen } from '../../features/dashboard/DoseDetailScreen';
 import { DailyReportScreen } from '../../features/reports/DailyReportScreen';
 import { ConfirmDoseScreen } from '../../features/patient/ConfirmDoseScreen';
@@ -189,7 +191,10 @@ export function RootNavigator() {
           ) : viewAs === null ? (
             <Stack.Screen name="ProfileChoice" component={ProfileChoice} />
           ) : viewAs === 'CAREGIVER' ? (
-            session ? (
+            session?.emailVerified === false ? (
+              // Conta nova: só a confirmação do e-mail (a API não deixa cadastrar pacientes sem ela)
+              <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
+            ) : session ? (
               <Stack.Group>
                 <Stack.Screen name="CaregiverTabs" component={CaregiverTabs} />
                 <Stack.Screen name="PatientForm" component={PatientFormScreen} />
@@ -204,6 +209,7 @@ export function RootNavigator() {
               <Stack.Group>
                 <Stack.Screen name="Login" component={LoginScreen} />
                 <Stack.Screen name="SignUp" component={SignUpScreen} />
+                <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
               </Stack.Group>
             )
           ) : !patientLoaded ? (

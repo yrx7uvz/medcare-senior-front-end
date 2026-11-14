@@ -12,7 +12,10 @@ Um mesmo app tem dois perfis, escolhidos na primeira tela:
 ## Telas e fluxos
 
 **Cuidador** (abas Painel, Remédios, Histórico, Mensagens e Ajustes):
-1. Cria a conta (senha forte e aceite do termo LGPD) e entra.
+1. Cria a conta (senha forte e aceite do termo LGPD) e confirma o e-mail com o **código de 6 números** que chega
+   nele (sem confirmar, não cadastra pacientes; "Reenviar código" a cada 1 minuto). Um erro comum no domínio
+   ("gmial.com") ganha a sugestão "Você quis dizer gmail.com?". Esqueceu a senha? "Esqueci minha senha" no login envia
+   um código para criar uma senha nova.
 2. Cadastra o paciente e gera o **código de vínculo** de 6 números, válido por 24 horas.
 3. Cadastra os remédios (formato, cor, dosagem) e o tratamento (horários, dias da semana, início e fim). Os horários
    saem de um seletor em rolagem que dá a volta (23 → 00), com faixa de seleção larga e um toque no número vizinho
