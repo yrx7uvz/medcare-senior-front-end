@@ -1,3 +1,7 @@
+/*
+ * Testes automatizados (Jest) de teclado (3 casos). Cobre: sobe exatamente o que o teclado cobre da área; desconta
+ * o que fica abaixo da área (barra de abas sob o teclado); sem teclado ou com a área toda acima dele: nada.
+ */
 import { describe, expect, it } from '@jest/globals';
 import { keyboardOverlap } from '../src/lib/keyboardOverlap';
 

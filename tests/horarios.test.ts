@@ -1,3 +1,10 @@
+/*
+ * Testes automatizados (Jest) de horários (15 casos). Cobre: adiciona em ordem; remove o horário escolhido (o
+ * botão de apagar funciona); remove o único horário e permite escolher outro; ao salvar, pede ao menos um; horário
+ * repetido não entra e explica o motivo; o formulário também recusa repetidos; com horários válidos e diferentes o
+ * formulário passa; passo com volta nas duas pontas; encaixa no item mais próximo do centro e não sai da lista;
+ * linhas com pelo menos 48 dp, maiores com a fonte ampliada; entre outros.
+ */
 import { describe, expect, it } from '@jest/globals';
 import { medicationFormSchema } from '../src/lib/schemas';
 import { DUPLICATE_TIME_MESSAGE, EMPTY_TIMES_MESSAGE, addTime, removeTime } from '../src/lib/timeList';

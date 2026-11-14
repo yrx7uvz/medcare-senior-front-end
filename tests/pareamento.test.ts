@@ -1,3 +1,7 @@
+/*
+ * Testes automatizados (Jest) de pareamento (2 casos). Cobre: aceita exatamente 6 números, ignorando espaços e
+ * hífens; recusa o que não é um código de 6 números.
+ */
 import { describe, expect, it } from '@jest/globals';
 import { parsePastedCode } from '../src/lib/pairingCode';
 

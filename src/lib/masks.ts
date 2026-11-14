@@ -1,3 +1,6 @@
+/*
+ * Máscaras de entrada para data, hora, telefone e só dígitos, aplicadas enquanto a pessoa digita.
+ */
 export type MaskKind = 'date' | 'time' | 'phone' | 'digits';
 
 export function applyMask(kind: MaskKind, raw: string): string {

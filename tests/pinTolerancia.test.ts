@@ -1,3 +1,10 @@
+/*
+ * Testes automatizados (Jest) de pin tolerância (12 casos). Cobre: é de 10 minutos; fronteiras: 9:59 e 10:00
+ * entram direto; 10:01 pede o PIN; primeiro acesso, valor ausente ou inválido: pede o PIN; relógio que voltou
+ * (último uso no futuro): pede o PIN; aceita outra tolerância; três opções, com "Depois de 10 minutos" como
+ * padrão; Sempre pede; Nunca não pede; o padrão segue a tolerância; valor gravado ilegível volta ao padrão, nunca
+ * ao "Nunca"; entre outros.
+ */
 import { describe, expect, it } from '@jest/globals';
 import { randomBytes } from 'node:crypto';
 import { createPinGuard, PIN_KEYS, type PinStore } from '../src/lib/pinCore';

@@ -1,3 +1,10 @@
+/*
+ * Testes automatizados (Jest) de validacoes (7 casos). Cobre: login exige e-mail válido e senha; senha segue a
+ * RN02 (8+, maiúscula, minúscula e número) e o medidor de força; cadastro confere senhas, telefone e consentimento
+ * LGPD; nome com 3+ letras, nascimento válido a partir de 1900 e telefone opcional; aceita o formulário padrão
+ * preenchido; limites da API, estoque inteiro, link da bula, dias, horários repetidos e período; traduz os nomes
+ * da API e ignora campos que o formulário não tem.
+ */
 import { describe, expect, it } from '@jest/globals';
 import { emptyMedicationValues } from '../src/features/medications/formValues';
 import { mapFieldErrors } from '../src/lib/formErrors';

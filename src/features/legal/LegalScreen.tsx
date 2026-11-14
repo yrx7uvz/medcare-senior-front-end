@@ -1,3 +1,7 @@
+/*
+ * Tela com os textos do Termo de Uso e da Política de Privacidade (LGPD): o que o app faz e não faz,
+ * responsabilidades, dados tratados e para que são usados.
+ */
 import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

@@ -1,3 +1,11 @@
+/*
+ * Testes automatizados (Jest) de mapeadores (13 casos). Cobre: string numérica vai e volta; inválidos são
+ * recusados; PacienteResponse vira Patient com cor estável pelo id e telefone opcional; CodigoVinculoResponse vira
+ * LinkCode com validade em São Paulo; validade ilegível é erro; MedicamentoResponse vira Medication; tipo legado e
+ * cor fora do padrão são tolerados; pedido leva só os campos da API, formato só de comprimido e estoque opcional;
+ * tratamento: horários únicos e ordenados, dias em inglês; resposta vira HH:mm e índice; tratamento vigente,
+ * resumo de horários e aparência; formulário: valores do remédio salvo voltam iguais ao pedido; entre outros.
+ */
 import { describe, expect, it } from '@jest/globals';
 import { parseApiError, parseJsonBody } from '../src/adapters/http/apiError';
 import { toDoseView, toHistoryPage, type DoseResponse } from '../src/adapters/http/HttpDoseService';

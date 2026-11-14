@@ -1,3 +1,6 @@
+/*
+ * Faixa de aviso "Sem conexão", exibida quando o estado offline do app está ligado. Maior no perfil do paciente.
+ */
 import WifiOff from 'lucide-react-native/icons/wifi-off';
 import { StyleSheet, View } from 'react-native';
 import { useDevStore } from '../../store/devStore';

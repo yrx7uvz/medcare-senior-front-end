@@ -1,3 +1,7 @@
+/*
+ * Caixa de seleção acessível (papel checkbox, com estado marcado e indicação de erro), usada onde há aceite, como
+ * o termo LGPD.
+ */
 import Check from 'lucide-react-native/icons/check';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';

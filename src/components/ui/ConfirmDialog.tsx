@@ -1,3 +1,7 @@
+/*
+ * Diálogo de confirmação reutilizável: título, mensagem, botões de confirmar e cancelar, tom normal ou de perigo e
+ * estado de carregamento. Usado antes de ações importantes ou destrutivas.
+ */
 import React from 'react';
 import { Modal, StyleSheet, View } from 'react-native';
 import { radius, spacing, useTheme } from '../../theme';

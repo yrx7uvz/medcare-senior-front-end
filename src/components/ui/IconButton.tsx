@@ -1,3 +1,7 @@
+/*
+ * Botão só de ícone, com tamanho padrão de 48 e rótulo de acessibilidade obrigatório. Aceita eventos de pressionar
+ * e soltar para repetir a ação enquanto é segurado (por exemplo, o mais e o menos do seletor de horário).
+ */
 import { Pressable, StyleSheet } from 'react-native';
 import { hitSlopFor, useTheme } from '../../theme';
 import type { IconComponent } from './icons';

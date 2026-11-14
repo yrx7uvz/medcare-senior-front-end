@@ -1,3 +1,6 @@
+/*
+ * Cartão padrão com borda, fundo e sombra vindos do tema.
+ */
 import { StyleSheet, View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 import { cardShadow, radius, spacing, useTheme } from '../../theme';
 

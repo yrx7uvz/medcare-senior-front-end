@@ -1,3 +1,6 @@
+/*
+ * Índice que reexporta os componentes de interface, para importar todos de um lugar só.
+ */
 export * from './AppText';
 export * from './Button';
 export * from './BigActionButton';

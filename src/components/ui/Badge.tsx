@@ -1,3 +1,7 @@
+/*
+ * Selo pequeno com texto e ícone opcional, em cinco tons (informação, sucesso, alerta, perigo e neutro), todos com
+ * as cores do tema.
+ */
 import { StyleSheet, View } from 'react-native';
 import { radius, useTheme } from '../../theme';
 import { AppText } from './AppText';

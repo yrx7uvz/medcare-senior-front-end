@@ -1,3 +1,7 @@
+/*
+ * Campo de texto padrão do app: rótulo, dica, mensagem de erro, estado de foco, máscara de entrada, modo senha,
+ * indicação de obrigatório e versão grande (usada no perfil do paciente).
+ */
 import Eye from 'lucide-react-native/icons/eye';
 import EyeOff from 'lucide-react-native/icons/eye-off';
 import React, { forwardRef, useState } from 'react';

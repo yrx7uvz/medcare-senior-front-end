@@ -1,3 +1,7 @@
+/*
+ * Banco em memória dos dados simulados do app (modo demonstração). Some ao fechar o app, por desenho; toda
+ * alteração invalida as consultas em cache para as telas recarregarem.
+ */
 import { invalidateQueries } from '../lib/queryBus';
 import { createSeedDb, type MockDb } from './seed';
 

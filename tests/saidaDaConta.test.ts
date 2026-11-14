@@ -1,3 +1,10 @@
+/*
+ * Testes automatizados (Jest) de saida da conta (15 casos). Cobre: pendente até 23h59 e expirado exatamente em
+ * 24h; decidido não muda com o tempo; cada status vira um estado com texto (não só cor); sem pedido mostra a
+ * explicação; 401 da API é a saída autorizada, sem tela de erro; falha de rede ou do servidor oferece tentar de
+ * novo; ao abrir, decisão antiga não é notícia: volta à explicação; consulta periódica só enquanto espera; entre
+ * outros.
+ */
 import { describe, expect, it } from '@jest/globals';
 import { toLeaveRequest, toPendingLeaveRequest } from '../src/adapters/http/HttpLeaveRequestService';
 import {

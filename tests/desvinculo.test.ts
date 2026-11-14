@@ -1,3 +1,9 @@
+/*
+ * Testes automatizados (Jest) de desvinculo (6 casos). Cobre: o nome digitado confere sem acento, maiúsculas nem
+ * espaços sobrando; nome diferente, só o primeiro nome ou vazio não libera; textos em português simples, iguais na
+ * API e no demo; o filtro que apontava para o paciente desvinculado volta a Todos; DELETE /api/pacientes/{id}, 204
+ * sem corpo; 404 (já desvinculado ou de outra conta) chega como erro com o código da API.
+ */
 import { describe, expect, it } from '@jest/globals';
 import { httpPatientService } from '../src/adapters/http/HttpPatientService';
 import { filterAfterUnlink, normalizeName, UNLINK_MESSAGES, unlinkNameMatches, unlinkTitle, unlinkTypeNameMessage } from '../src/lib/unlinkPatient';
