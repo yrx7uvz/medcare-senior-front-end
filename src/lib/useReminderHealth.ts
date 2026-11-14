@@ -18,7 +18,8 @@ function readNative(fn: () => boolean): boolean | null {
 
 /**
  * Situação do lembrete neste aparelho, lida ao abrir a tela e de novo sempre que o app volta ao primeiro plano (o
- * paciente pode ter ligado nas configurações do Android): notificações, alarme exato e economia de bateria.
+ * paciente pode ter ligado nas configurações do Android): notificações, alarme exato, tela cheia do alarme (Android
+ * 14+) e economia de bateria.
  *
  * - `warning`: o aviso grande ("O lembrete pode atrasar. Toque aqui para ativar"), ou null;
  * - `fix`: pede a permissão ou abre a tela certa das configurações;
@@ -30,6 +31,7 @@ export function useReminderHealth() {
   const [permission, setPermission] = useState<PushPermission | null>(null);
   const [exactAlarm, setExactAlarm] = useState<boolean | null>(null);
   const [batteryUnrestricted, setBatteryUnrestricted] = useState<boolean | null>(null);
+  const [fullScreen, setFullScreen] = useState<boolean | null>(null);
   const lastExact = useRef<boolean | null>(null);
 
   useEffect(() => {
@@ -44,6 +46,8 @@ export function useReminderHealth() {
       lastExact.current = exact;
       setExactAlarm(exact);
       setBatteryUnrestricted(medcareAlarmes ? readNative(() => medcareAlarmes!.ignoraOtimizacaoDeBateria()) : null);
+      const canFullScreen = typeof medcareAlarmes?.podeUsarTelaCheia === 'function';
+      setFullScreen(canFullScreen ? readNative(() => medcareAlarmes!.podeUsarTelaCheia!()) : null);
     });
     return () => {
       current = false;
@@ -58,7 +62,10 @@ export function useReminderHealth() {
       if (next === 'granted') void sincronizarLembretesDoPaciente();
       return;
     }
-    const opened = medcareAlarmes ? readNative(() => medcareAlarmes!.abrirAjusteDeAlarmeExato()) : null;
+    const openFullScreen = typeof medcareAlarmes?.abrirAjusteDeTelaCheia === 'function';
+    let opened: boolean | null;
+    if (issue === 'TELA_CHEIA_BLOQUEADA') opened = openFullScreen ? readNative(() => medcareAlarmes!.abrirAjusteDeTelaCheia!()) : null;
+    else opened = medcareAlarmes ? readNative(() => medcareAlarmes!.abrirAjusteDeAlarmeExato()) : null;
     if (!opened) await Linking.openSettings().catch(() => undefined);
   }, []);
 
@@ -69,7 +76,7 @@ export function useReminderHealth() {
 
   return {
     supported,
-    warning: reminderWarning({ supported, permission, exactAlarm }),
+    warning: reminderWarning({ supported, permission, exactAlarm, fullScreen }),
     fix,
     batteryUnrestricted,
     openBattery,

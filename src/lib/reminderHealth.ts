@@ -7,12 +7,14 @@ import type { DateKey } from '../types/domain';
  * permissão de notificações, alarme exato e bateria chegam de fora (expo-notifications e o módulo nativo local).
  */
 
-export type ReminderIssue = 'NOTIFICACOES_DESLIGADAS' | 'ALARME_INEXATO';
+export type ReminderIssue = 'NOTIFICACOES_DESLIGADAS' | 'ALARME_INEXATO' | 'TELA_CHEIA_BLOQUEADA';
 
 export const REMINDER_OFF_MESSAGE = 'O lembrete do remédio está desligado. Toque aqui para ativar.';
 export const REMINDER_LATE_MESSAGE = 'O lembrete pode atrasar. Toque aqui para ativar.';
 export const REMINDER_OFF_ACTION = 'Ativar o lembrete';
 export const REMINDER_LATE_ACTION = 'Ativar alarmes';
+export const REMINDER_FULL_SCREEN_MESSAGE = 'O alarme do remédio pode não aparecer com o celular bloqueado. Toque aqui para permitir.';
+export const REMINDER_FULL_SCREEN_ACTION = 'Permitir o alarme';
 
 export const BATTERY_TITLE = 'Economia de bateria';
 export const BATTERY_TIP =
@@ -27,6 +29,8 @@ export interface ReminderHealthState {
   permission: PushPermission | null;
   /** O Android deixa agendar alarme exato; null = não dá para saber (Expo Go, aparelho sem o módulo nativo). */
   exactAlarm: boolean | null;
+  /** Android 14+: o alarme da dose pode abrir por cima da tela bloqueada; null = não se sabe ou não se aplica. */
+  fullScreen?: boolean | null;
 }
 
 /**
@@ -38,6 +42,7 @@ export function reminderIssues(state: ReminderHealthState): ReminderIssue[] {
   const issues: ReminderIssue[] = [];
   if (state.permission === 'denied' || state.permission === 'undetermined') issues.push('NOTIFICACOES_DESLIGADAS');
   if (state.exactAlarm === false) issues.push('ALARME_INEXATO');
+  if (state.fullScreen === false) issues.push('TELA_CHEIA_BLOQUEADA');
   return issues;
 }
 
@@ -45,9 +50,9 @@ export function reminderIssues(state: ReminderHealthState): ReminderIssue[] {
 export function reminderWarning(state: ReminderHealthState): { issue: ReminderIssue; message: string; action: string } | null {
   const [issue] = reminderIssues(state);
   if (!issue) return null;
-  return issue === 'NOTIFICACOES_DESLIGADAS'
-    ? { issue, message: REMINDER_OFF_MESSAGE, action: REMINDER_OFF_ACTION }
-    : { issue, message: REMINDER_LATE_MESSAGE, action: REMINDER_LATE_ACTION };
+  if (issue === 'NOTIFICACOES_DESLIGADAS') return { issue, message: REMINDER_OFF_MESSAGE, action: REMINDER_OFF_ACTION };
+  if (issue === 'ALARME_INEXATO') return { issue, message: REMINDER_LATE_MESSAGE, action: REMINDER_LATE_ACTION };
+  return { issue, message: REMINDER_FULL_SCREEN_MESSAGE, action: REMINDER_FULL_SCREEN_ACTION };
 }
 
 /** Hoje e os dias seguintes que cobrem a janela de 72 h a partir de qualquer hora de hoje (4 dias). */

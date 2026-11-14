@@ -1170,11 +1170,12 @@ check('Texto claro só no perfil development; release com usesCleartextTraffic=f
   assert.equal(eas.build['apk-final'].environment, 'production');
   assert.equal(eas.build['apk-final'].android.buildType, 'apk');
   assert.equal(eas.build['apk-final'].developmentClient, undefined);
-  // Lembrete do paciente: alarme exato (SCHEDULE_EXACT_ALARM, que o paciente libera) e reagendar depois de reiniciar
+  // Lembrete do paciente: alarme exato (SCHEDULE_EXACT_ALARM, que o paciente libera), reagendar depois de reiniciar e
+  // o alarme da dose por cima da tela bloqueada (USE_FULL_SCREEN_INTENT)
   assert.deepEqual([...ANDROID_PERMISSIONS].sort((a, b) => a.localeCompare(b)), [
     'android.permission.ACCESS_NETWORK_STATE', 'android.permission.INTERNET', 'android.permission.POST_NOTIFICATIONS',
     'android.permission.RECEIVE_BOOT_COMPLETED', 'android.permission.SCHEDULE_EXACT_ALARM',
-    'android.permission.VIBRATE', 'android.permission.WAKE_LOCK', 'com.google.android.c2dm.permission.RECEIVE',
+    'android.permission.USE_FULL_SCREEN_INTENT', 'android.permission.VIBRATE', 'android.permission.WAKE_LOCK', 'com.google.android.c2dm.permission.RECEIVE',
   ]);
   // USE_EXACT_ALARM (reservada pela loja a despertadores e agendas) e serviço em primeiro plano continuam bloqueados
   for (const p of ['android.permission.CAMERA', 'android.permission.RECORD_AUDIO', 'android.permission.READ_EXTERNAL_STORAGE', 'android.permission.SYSTEM_ALERT_WINDOW',

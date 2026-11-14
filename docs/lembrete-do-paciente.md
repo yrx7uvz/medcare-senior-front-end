@@ -4,7 +4,8 @@ O paciente precisa ser lembrado **na hora da dose**, com o app fechado, o celula
 UC-006, passo 1). Antes, só o cuidador recebia push; o paciente só via a dose se abrisse o app.
 
 A solução tem duas camadas independentes: um alarme agendado no próprio aparelho (a principal) e um push do servidor
-(a reserva).
+(a reserva). No APK com o módulo nativo, a camada A é um **alarme que toca até a dose ser confirmada** (seção
+[Alarme da dose](#alarme-da-dose-toca-até-confirmar)); sem ele (Expo Go, web), ficam os dois lembretes descritos abaixo.
 
 ```mermaid
 sequenceDiagram
@@ -65,6 +66,40 @@ O plano é puro (`src/lib/reminderPlan.ts`), o agendamento embrulha o `expo-noti
 e a ligação com a sessão fica em `src/lib/reminders.ts`. Testes: `tests/lembrete.test.ts` e
 `tests/lembreteSessao.test.ts`.
 
+## Alarme da dose (toca até confirmar)
+
+Pedido para o paciente não perder a dose: no horário, o celular toca **som de alarme sem parar** e só para quando a
+dose é confirmada no app (ou quando acaba o prazo de confirmação). O paciente pode adiar 5 minutos.
+
+Código nativo próprio, no módulo local `modules/medcare-alarmes` (Kotlin), porque o `expo-notifications` não faz som
+contínuo nem tela cheia: `AlarmesDaDose.kt` (regras), `AlarmeActivity.kt` (tela), `ReceptorDeAlarme.kt` (disparo,
+soneca e reinício do aparelho) e `AlarmeDeDose.kt` (dados gravados). No app, `src/lib/doseAlarm.ts` monta o plano e
+`reminders.ts` sincroniza.
+
+| Momento | O que acontece |
+|---|---|
+| Horário da dose | `AlarmManager.setAlarmClock` dispara (tratado como despertador: o Doze e a economia de bateria não adiam). Notificação no canal "Alarme do remédio": som de alarme em repetição (`FLAG_INSISTENT`, volume de alarme), vibração, fixa (não sai deslizando). Com o celular bloqueado ou apagado, a tela acende e abre a **tela do alarme** por cima do bloqueio |
+| Tela do alarme | Letras grandes, o remédio e o horário, e dois botões: **Tomar o remédio** e **Adiar 5 minutos**. Os mesmos dois botões aparecem na notificação |
+| "Tomar o remédio" | Cala o alarme por 3 minutos (a notificação fica, sem som: "Confirme no app: o alarme volta a tocar às HH:mm"), pede o desbloqueio e abre o app **na tela de confirmar a dose** (passando pelo PIN, se houver) |
+| "Adiar 5 minutos" | Cala e tira a notificação; toca de novo 5 minutos depois |
+| Sem resposta | Toca de novo a cada 2 minutos (também se o paciente só abrir a gaveta de notificações, o que cala o som insistente) |
+| Dose confirmada | O app cancela o alarme na hora (tela de confirmar, ou na sincronização seguinte se foi confirmada em outro lugar) |
+| Fim do prazo de confirmação | O alarme some sozinho: a dose não pode mais ser confirmada |
+| Celular reiniciado ou app atualizado | Os alarmes gravados são programados de novo; um que ficou para trás e ainda está no prazo toca na hora |
+
+- **Plano:** uma entrada por dose PENDENTE das próximas 72 horas cujo prazo ainda não passou, no relógio do aparelho
+  (corrigido pelo do servidor). Uma dose cujo horário já passou continua no plano enquanto pode ser confirmada: o nativo
+  reconhece o mesmo horário e mantém o estado (tocando, adiado). Horário alterado pelo cuidador recomeça o alarme.
+- **No lugar dos dois lembretes comuns:** com o alarme ativo, os lembretes `dose-{id}-1` e `dose-{id}-2` do
+  `expo-notifications` são cancelados (o alarme já insiste). Se o nativo falhar, eles voltam na mesma sincronização.
+- **Reforço do servidor:** com o app aberto, não aparece para uma dose que tem alarme. Com o app em segundo plano, o
+  Android mostra o push do servidor como notificação separada (ela continua sendo a reserva se o alarme não tocar).
+- **Permissão nova:** `USE_FULL_SCREEN_INTENT` (tela cheia por cima do bloqueio). No Android 14+ o paciente pode
+  desligá-la; o app mostra o aviso "O alarme do remédio pode não aparecer com o celular bloqueado. Toque aqui para
+  permitir" e abre a tela certa. Sem ela, o alarme ainda toca e aparece no topo da tela, só não acende a tela cheia.
+- **Sem serviço em primeiro plano:** a repetição a cada 2 minutos é feita pelo próprio `setAlarmClock`, e a
+  `FOREGROUND_SERVICE` continua bloqueada.
+
 ## Camada B: reforço pelo servidor (reserva)
 
 Se o celular reiniciou, o fabricante apagou o agendamento ou a economia de bateria atrasou o alarme, o servidor reforça.
@@ -124,3 +159,7 @@ Se o celular reiniciou, o fabricante apagou o agendamento ou a economia de bater
 - Se o paciente trocar para o perfil do cuidador sem internet, o token do aparelho pode ficar no servidor até a
   próxima vez que o perfil do paciente for usado; o reforço do servidor ainda pode chegar nesse intervalo.
 - O app só existe para Android; no iPhone e na web o lembrete é inerte.
+- Alarme da dose: o Não Perturbe do aparelho continua mandando (o app não pede acesso a ele); com "alarmes permitidos"
+  no Não Perturbe, que é o padrão da maioria dos aparelhos, o alarme toca.
+- Alarme da dose confirmada pelo **cuidador** com o celular do paciente fechado: continua tocando até a próxima
+  sincronização (abrir o app ou a tarefa em segundo plano); ao abrir, a tela da dose mostra que ela já foi confirmada.

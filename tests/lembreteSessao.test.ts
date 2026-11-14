@@ -35,6 +35,8 @@ jest.mock('react-native', () => ({
   AppState: { currentState: 'active', addEventListener: () => ({ remove: () => undefined }) },
 }));
 jest.mock('expo-notifications', () => mockNotificacoes);
+// APK sem o alarme nativo: valem os dois lembretes do expo-notifications (o alarme está em alarmeSessao.test.ts)
+jest.mock('../modules/medcare-alarmes', () => ({ medcareAlarmes: null }));
 jest.mock('../src/lib/push', () => ({ push: { supported: false } }));
 jest.mock('../src/services', () => ({ services: { doses: { listForDay: (p: string, d: string) => mockListForDay(p, d) } } }));
 

@@ -17,7 +17,10 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
  * - SCHEDULE_EXACT_ALARM: alarme exato no Android 12+ (sem ele o expo-notifications agenda como inexato e o Android
  *   pode atrasar o lembrete). O paciente libera em "Alarmes e lembretes"; o app mostra o aviso e abre a tela certa.
  *   USE_EXACT_ALARM fica bloqueada: a política do Google Play a reserva a apps de despertador e agenda.
- * - RECEIVE_BOOT_COMPLETED: o Android apaga os alarmes ao reiniciar; o expo-notifications os agenda de novo ao ligar.
+ * - RECEIVE_BOOT_COMPLETED: o Android apaga os alarmes ao reiniciar; o expo-notifications e o alarme da dose (módulo
+ *   medcare-alarmes) os agendam de novo ao ligar.
+ * - USE_FULL_SCREEN_INTENT: o alarme da dose acende a tela e aparece por cima do bloqueio até o paciente confirmar
+ *   (Android 14+: o paciente pode desligar; o app mostra o aviso e abre a tela certa).
  */
 export const ANDROID_PERMISSIONS = [
   'android.permission.INTERNET',
@@ -27,6 +30,7 @@ export const ANDROID_PERMISSIONS = [
   'android.permission.WAKE_LOCK',
   'android.permission.SCHEDULE_EXACT_ALARM',
   'android.permission.RECEIVE_BOOT_COMPLETED',
+  'android.permission.USE_FULL_SCREEN_INTENT',
   'com.google.android.c2dm.permission.RECEIVE',
 ];
 
